@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package owlapi.gateway.v1;
+
+option go_package = "github.com/hongjunyao/owlapi/internal/pb";
+
+// Gateway 服务 - Agent 与 Control Plane 之间的通信
+service GatewayService {
+  // Agent 连接并保持双向流
+  // Agent 作为客户端主动连接，实现反向隧道
+  rpc Connect(stream AgentMessage) returns (stream ServerMessage);
+}
+
+// ==================== Agent → Server ====================
+
+message AgentMessage {
+  oneof payload {
+    RegisterRequest register = 1;
+    HeartbeatRequest heartbeat = 2;
+    QueryResult query_result = 3;
+    AIStreamChunk ai_chunk = 4;
+  }
+}
+
+// Agent 注册请求
+message RegisterRequest {
+  string node_id = 1;
+  string node_token = 2;
+  string version = 3;
+  map<string, string> metadata = 4;
+}
+
+// 心跳请求
+message HeartbeatRequest {
+  int64 timestamp = 1;
+  SystemStats stats = 2;
+}
+
+message SystemStats {
+  double cpu_percent = 1;
+  double memory_percent = 2;
+  int32 active_connections = 3;
+}
+
+// SQL 查询结果
+message QueryResult {
+  string request_id = 1;
+  bool success = 2;
+  string error = 3;
+  bytes data = 4;  // JSON 格式的查询结果
+  int64 rows_affected = 5;
+  int64 execution_time_ms = 6;
+}
+
+// AI 流式响应块
+message AIStreamChunk {
+  string request_id = 1;
+  string content = 2;
+  bool is_done = 3;
+  string error = 4;
+}
+
+// ==================== Server → Agent ====================
+
+message ServerMessage {
+  oneof payload {
+    RegisterResponse register_ack = 1;
+    HeartbeatResponse heartbeat_ack = 2;
+    ExecuteQueryRequest execute_query = 3;
+    AIRequest ai_request = 4;
+  }
+}
+
+// 注册响应
+message RegisterResponse {
+  bool success = 1;
+  string error = 2;
+  string session_id = 3;
+}
+
+// 心跳响应
+message HeartbeatResponse {
+  int64 server_time = 1;
+}
+
+// 执行 SQL 查询指令
+message ExecuteQueryRequest {
+  string request_id = 1;
+  string datasource_id = 2;
+  string sql = 3;
+  map<string, string> params = 4;
+  int32 timeout_seconds = 5;
+}
+
+// AI 请求
+message AIRequest {
+  string request_id = 1;
+  string model = 2;
+  string endpoint = 3;  // 内网 LLM 服务地址
+  bytes body = 4;       // OpenAI 兼容的请求体
+  bool stream = 5;
+}

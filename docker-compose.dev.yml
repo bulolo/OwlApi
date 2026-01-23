@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  # Control Plane Server
+  server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.server
+    container_name: owlapi_server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/owlapi?sslmode=disable
+    depends_on:
+      - db
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend
+    container_name: owlapi_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    depends_on:
+      - server
+
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: owlapi_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=owlapi
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:

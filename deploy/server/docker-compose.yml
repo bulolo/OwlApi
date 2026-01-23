@@ -1,0 +1,73 @@
+# OwlApi Server 生产部署配置
+#
+# 使用方法：
+# 1. 配置环境变量（.env 文件或直接修改）
+# 2. 运行: docker compose up -d
+
+version: "3.8"
+
+services:
+  # Control Plane Server
+  server:
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:latest
+    container_name: owlapi_server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # HTTP API
+      - "9090:9090"   # gRPC (Agent 连接)
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/owlapi?sslmode=disable
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - TZ=Asia/Shanghai
+    depends_on:
+      db:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+
+  # Frontend
+  frontend:
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/frontend:latest
+    container_name: owlapi_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://server:8080
+      - TZ=Asia/Shanghai
+    depends_on:
+      - server
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: owlapi_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=owlapi
+      - TZ=Asia/Shanghai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+volumes:
+  postgres_data:

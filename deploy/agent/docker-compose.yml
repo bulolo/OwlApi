@@ -1,0 +1,41 @@
+# OwlApi Gateway Agent 部署配置
+# 
+# 使用方法：
+# 1. 复制此文件到您的服务器
+# 2. 修改环境变量配置
+# 3. 运行: docker compose up -d
+#
+# 获取 AGENT_ID 和 AGENT_TOKEN：
+# 登录 OwlApi 控制台 -> 项目设置 -> 网关管理 -> 创建网关
+
+version: "3.8"
+
+services:
+  owlapi_agent:
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/agent:latest
+    container_name: owlapi_agent
+    restart: unless-stopped
+    environment:
+      # 必填：OwlApi 服务器地址
+      - OWLAPI_SERVER_URL=https://api.owlapi.io
+      # 必填：在控制台创建网关后获取
+      - OWLAPI_AGENT_ID=your-agent-id
+      - OWLAPI_AGENT_TOKEN=your-agent-token
+      # 可选：日志级别 (debug, info, warn, error)
+      - OWLAPI_LOG_LEVEL=info
+      # 时区设置
+      - TZ=Asia/Shanghai
+    volumes:
+      # 日志持久化
+      - ./logs:/owlapi/logs
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    # 健康检查（可选，需要 Agent 支持）
+    # healthcheck:
+    #   test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3

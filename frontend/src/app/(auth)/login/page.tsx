@@ -33,8 +33,8 @@ export default function LoginPage() {
               <Hexagon className="w-6 h-6 text-white" />
             </div>
             <div className="text-center space-y-1">
-              <h1 className="text-xl font-black text-zinc-900 uppercase tracking-tighter">OwlAPI Cloud</h1>
-              <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Enterprise SQL-API Gateway</p>
+              <h1 className="text-xl font-black text-zinc-900 uppercase tracking-tighter">OwlAPI 云平台</h1>
+              <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">企业级 SQL-API 网关</p>
             </div>
           </div>
 
@@ -87,14 +87,14 @@ export default function LoginPage() {
           <div className="pt-6 border-t border-zinc-100 flex items-center justify-between">
             <div className="flex items-center space-x-1.5 text-[9px] text-zinc-400 font-bold uppercase tracking-tight">
               <ShieldCheck className="w-3 h-3 text-emerald-500" />
-              <span>SSL 256-bit Encrypted</span>
+              <span>SSL 256 位加密保护</span>
             </div>
             <span className="text-[9px] text-zinc-300 font-bold uppercase cursor-pointer hover:text-zinc-600">忘记密码?</span>
           </div>
         </div>
 
         <p className="text-center mt-8 text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em] opacity-50">
-          Built for Scale • Powered by SQL
+          专为大规模构建 • SQL 驱动
         </p>
       </motion.div>
     </div>

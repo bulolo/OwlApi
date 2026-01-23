@@ -1,5 +1,9 @@
 # OwlApi 云平台
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/bulolo/owlapi)](https://goreportcard.com/report/github.com/bulolo/owlapi)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](docker-compose.yml)
+
 > **企业级 SQL to API 智能网关平台**
 > 旨在帮助开发者和企业快速构建及管理数据接口与 AI 服务。
 
@@ -25,6 +29,16 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
 *释放内网算力，统一模型接口。*
 - **私有模型代理**：将内网部署的 DeepSeek, Llama, ChatGLM 等大模型安全代理至公网。
 - **统一接口管控**：提供兼容 OpenAI 协议的统一 API，内置鉴权、计费与流控功能。
+
+---
+
+## 🛠️ 技术栈 (Tech Stack)
+
+- **Backend**: Go 1.22, gRPC, Gin, GORM
+- **Frontend**: Next.js 14, React, TailwindCSS, Framer Motion
+- **Database**: PostgreSQL (TimescaleDB optional), Redis
+- **Infra**: Docker, Docker Compose
+- **AI Integration**: OpenAI Compatible SDK
 
 ---
 
@@ -101,7 +115,7 @@ make docker-up
 
 ```bash
 # 下载配置
-curl -O https://raw.githubusercontent.com/hongjunyao/owlapi/main/deploy/agent/docker-compose.yml
+curl -O https://raw.githubusercontent.com/bulolo/owlapi/main/deploy/agent/docker-compose.yml
 
 # 编辑配置（填入您的 AGENT_ID 和 AGENT_TOKEN）
 vim docker-compose.yml
@@ -183,3 +197,9 @@ owlapi/
 ├── Makefile                    # 构建脚本
 └── README.md
 ```
+
+---
+
+## 📄 开源协议 (License)
+
+本项目采用 [MIT License](LICENSE) 开源授权。

@@ -1,14 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useProjectStore, type ApiEndpoint } from "@/store/useProjectStore"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Play, Save, Plus, Globe, FileJson, Terminal, ChevronRight, Search, LayoutTemplate } from "lucide-react"
+import { Play, Save, Plus, Globe, FileJson, Terminal, ChevronRight, Search, LayoutTemplate, AlignLeft } from "lucide-react"
+import { format } from "sql-formatter"
 import Editor from "@monaco-editor/react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { ResultTable } from "@/components/ResultTable"
 
 export default function ApisPage({ projectId }: { projectId: string }) {
   const { projects, addApi, updateApi, deleteApi, executeSql } = useProjectStore()
@@ -19,14 +23,51 @@ export default function ApisPage({ projectId }: { projectId: string }) {
   const [searchTerm, setSearchTerm] = useState("")
 
   const [formData, setFormData] = useState<Partial<ApiEndpoint>>({
-    method: 'GET',
+    method: 'POST',
     path: '/',
-    sql: 'SELECT * FROM users',
-    description: ''
+    sql: 'SELECT * FROM users WHERE id = :id',
+    description: '',
+    parameters: []
   })
 
   const [executing, setExecuting] = useState(false)
-  const [execResult, setExecResult] = useState<string | null>(null)
+  const [execResult, setExecResult] = useState<any | null>(null)
+  // Local state to hold test values for execution
+  const [testValues, setTestValues] = useState<Record<string, string>>({})
+
+  // Auto-sync parameters from SQL
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        if (!formData.sql) return
+        
+        // Regex to find :paramName
+        const regex = /:([a-zA-Z0-9_]+)/g
+        const matches = Array.from(formData.sql.matchAll(regex))
+        const foundParamNames = Array.from(new Set(matches.map(m => m[1])))
+
+        const currentParams = formData.parameters || []
+        
+        // Check if params actually changed to avoid infinite loops/unnecessary renders
+        const currentNames = currentParams.map(p => p.name).sort().join(',')
+        const newNames = [...foundParamNames].sort().join(',')
+        
+        if (currentNames === newNames) return
+
+        const newParams = foundParamNames.map(name => {
+          const existing = currentParams.find(p => p.name === name)
+          return existing || {
+            name,
+            type: 'string', // Default type
+            required: true,
+            defaultValue: ''
+          }
+        })
+        
+        setFormData(prev => ({ ...prev, parameters: newParams as any }))
+    }, 800) // Debounce 800ms
+
+    return () => clearTimeout(timer)
+  }, [formData.sql])
 
   if (!project) return <div className="p-20 text-center text-zinc-500">找不到项目数据</div>
 
@@ -38,13 +79,43 @@ export default function ApisPage({ projectId }: { projectId: string }) {
   const handleSelect = (api: ApiEndpoint) => {
     setSelectedApi(api)
     setFormData(api)
+    // Reset test values when selecting a new API
+    const initialTestValues: Record<string, string> = {}
+    if (api.parameters) {
+      api.parameters.forEach(p => {
+        if (p.defaultValue) initialTestValues[p.name] = p.defaultValue
+      })
+    }
+    setTestValues(initialTestValues)
     setIsEditing(true)
     setExecResult(null)
   }
 
+  const handleFormat = () => {
+    if (!formData.sql) return
+    try {
+      const formatted = format(formData.sql, { 
+        language: 'postgresql', 
+        keywordCase: 'upper' 
+      })
+      setFormData({ ...formData, sql: formatted })
+    } catch (e) {
+      console.warn("Formatting failed", e)
+    }
+  }
+
   const handleCreateNew = () => {
     setSelectedApi(null)
-    setFormData({ method: 'GET', path: '/api/v1/new', sql: 'SELECT * FROM products LIMIT 10', description: '新创建的 API 接口' })
+    setFormData({ 
+      method: 'POST', 
+      path: '/api/v1/new', 
+      sql: 'SELECT * FROM products WHERE category = :category LIMIT 10', 
+      description: '新创建的 API 接口', 
+      parameters: [
+        { name: 'category', type: 'string', required: true, defaultValue: '' }
+      ] 
+    })
+    setTestValues({})
     setIsEditing(true)
     setExecResult(null)
   }
@@ -57,12 +128,41 @@ export default function ApisPage({ projectId }: { projectId: string }) {
     }
   }
 
+  const handleSyncParams = () => {
+    if (!formData.sql) return
+    // Regex to find :paramName
+    const regex = /:([a-zA-Z0-9_]+)/g
+    const matches = Array.from(formData.sql.matchAll(regex))
+    const foundParamNames = Array.from(new Set(matches.map(m => m[1])))
+
+    const currentParams = formData.parameters || []
+    const newParams = foundParamNames.map(name => {
+      const existing = currentParams.find(p => p.name === name)
+      return existing || {
+        name,
+        type: 'string', // Default type
+        required: true,
+        defaultValue: ''
+      }
+    })
+    
+    // Cast to any to avoid strict type issues with Partial<ApiEndpoint> vs ApiParameter
+    setFormData({ ...formData, parameters: newParams as any })
+  }
+
   const handleRun = async () => {
     if (!formData.sql) return
     setExecuting(true)
     try {
-      const res = await executeSql(formData.sql)
-      setExecResult(JSON.stringify(res, null, 2))
+      // Basic substitution for the mock run
+      let runSql = formData.sql
+      Object.entries(testValues).forEach(([key, val]) => {
+         runSql = runSql.replace(new RegExp(`:${key}\\b`, 'g'), `'${val}'`)
+      })
+
+      const res = await executeSql(runSql)
+      const data = typeof res === 'string' ? JSON.parse(res) : res
+      setExecResult(data)
     } catch (e) {
       setExecResult("错误: " + e)
     } finally {
@@ -76,7 +176,7 @@ export default function ApisPage({ projectId }: { projectId: string }) {
       <div className="col-span-3 flex flex-col bg-white border border-zinc-200 rounded-lg overflow-hidden shadow-sm">
         <div className="p-3 border-b bg-zinc-50/50 flex flex-col space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">Endpoints ({project.apis.length})</span>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-1">接口列表 ({project.apis.length})</span>
             <Button size="icon" variant="ghost" className="h-6 w-6 rounded hover:bg-zinc-200 text-zinc-600" onClick={handleCreateNew}>
               <Plus className="w-3.5 h-3.5" />
             </Button>
@@ -94,7 +194,7 @@ export default function ApisPage({ projectId }: { projectId: string }) {
 
         <div className="flex-1 overflow-auto divide-y divide-zinc-50 custom-scrollbar">
           {filteredApis.map((api) => (
-            <div
+             <div
               key={api.id}
               onClick={() => handleSelect(api)}
               className={cn(
@@ -136,7 +236,7 @@ export default function ApisPage({ projectId }: { projectId: string }) {
               {/* Workspace Header */}
               <div className="h-12 border-b flex items-center justify-between px-4 bg-zinc-50/30">
                 <div className="flex items-center space-x-3 flex-1 overflow-hidden">
-                  <div className="flex items-center space-x-1.5 bg-white border rounded p-0.5 shadow-sm">
+                   <div className="flex items-center space-x-1.5 bg-white border rounded p-0.5 shadow-sm">
                     <select
                       className="h-7 rounded border-none bg-transparent px-2 text-[10px] font-bold uppercase tracking-tight text-zinc-600 focus:ring-0 outline-none"
                       value={formData.method}
@@ -168,66 +268,156 @@ export default function ApisPage({ projectId }: { projectId: string }) {
                 </div>
               </div>
 
-              {/* Development Split */}
-              <div className="flex-1 grid grid-cols-12 overflow-hidden bg-white">
-                {/* Slimmer Editor */}
-                <div className="col-span-12 lg:col-span-7 flex flex-col border-r border-zinc-100">
-                  <div className="px-4 py-2 bg-zinc-50/30 border-b flex items-center justify-between text-[10px] font-bold text-zinc-400 tracking-tight h-8 uppercase">
-                    <span>SQL Core Engine</span>
-                    <span>Line 1</span>
+                {/* TOP HALF: Logic Construction */}
+                <div className="flex-1 grid grid-cols-12 min-h-0 divide-x divide-zinc-100">
+                  {/* LEFT: SQL Editor */}
+                  <div className="col-span-8 flex flex-col">
+                    <div className="px-4 py-2 bg-zinc-50/30 border-b flex items-center justify-between text-[10px] font-bold text-zinc-400 tracking-tight h-8 uppercase">
+                      <span>SQL 核心引擎</span>
+                      <div className="flex items-center gap-2">
+                        <Button onClick={handleFormat} variant="ghost" size="sm" className="h-5 text-[9px] px-2 text-zinc-500 hover:text-blue-600 hover:bg-blue-50">
+                          <AlignLeft className="w-3 h-3 mr-1" />
+                          格式化
+                        </Button>
+                        <div className="w-[1px] h-3 bg-zinc-200" />
+                        <Button onClick={handleSyncParams} variant="ghost" size="sm" className="h-5 text-[9px] px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                          <Terminal className="w-3 h-3 mr-1" />
+                          解析参数
+                        </Button>
+                        <span>行 1</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 relative">
+                       <Editor
+                          height="100%"
+                          defaultLanguage="sql"
+                          theme="light"
+                          value={formData.sql}
+                          onChange={val => setFormData({ ...formData, sql: val || '' })}
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 13,
+                            padding: { top: 15 },
+                            fontFamily: "'Inter', 'Menlo', monospace",
+                            lineNumbers: "on",
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            renderLineHighlight: "none",
+                            overviewRulerBorder: false,
+                            hideCursorInOverviewRuler: true
+                          }}
+                        />
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <Editor
-                      height="100%"
-                      defaultLanguage="sql"
-                      theme="light" // Switched to light monaco
-                      value={formData.sql}
-                      onChange={val => setFormData({ ...formData, sql: val || '' })}
-                      options={{
-                        minimap: { enabled: false },
-                        fontSize: 13,
-                        padding: { top: 15 },
-                        fontFamily: "'Inter', 'Menlo', monospace",
-                        lineNumbers: "on",
-                        scrollBeyondLastLine: false,
-                        automaticLayout: true,
-                        renderLineHighlight: "none",
-                        overviewRulerBorder: false,
-                        hideCursorInOverviewRuler: true
-                      }}
-                    />
+
+                  {/* RIGHT: Params & Body Preview */}
+                  <div className="col-span-4 flex flex-col bg-zinc-50/20">
+                     <div className="px-4 py-2 border-b flex items-center justify-between text-[10px] font-bold text-zinc-400 tracking-tight h-8 uppercase bg-zinc-50/50">
+                       <span>请求参数配置 (Body)</span>
+                       <Badge variant="outline" className="text-[9px] h-4 border-zinc-200 text-zinc-500 bg-white">
+                         application/json
+                       </Badge>
+                    </div>
+                    
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                       <div className="flex-1 overflow-auto p-0">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-transparent hover:bg-transparent border-none">
+                                <TableHead className="h-7 text-[10px] pl-4">参数名</TableHead>
+                                <TableHead className="h-7 text-[10px] w-[85px]">类型</TableHead>
+                                <TableHead className="h-7 text-[10px] w-[100px] pr-4">测试值</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {(!formData.parameters || formData.parameters.length === 0) && (
+                                <TableRow>
+                                  <TableCell colSpan={3} className="text-center py-8 text-xs text-zinc-400 italic">
+                                     未检测到参数，请在 SQL 中使用 :name
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                              {formData.parameters?.map((param, idx) => (
+                                <TableRow key={idx} className="border-none hover:bg-zinc-50/50">
+                                  <TableCell className="py-1 pl-4 font-mono text-xs font-bold text-blue-600 align-middle">
+                                    :{param.name}
+                                  </TableCell>
+                                  <TableCell className="py-1">
+                                    <select 
+                                      className="h-6 w-full rounded border border-zinc-200 bg-white px-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      value={param.type}
+                                      onChange={(e) => {
+                                        const newParams = [...(formData.parameters || [])];
+                                        newParams[idx] = { ...newParams[idx], type: e.target.value as any };
+                                        setFormData({ ...formData, parameters: newParams });
+                                      }}
+                                    >
+                                      <option value="string">字符串</option>
+                                      <option value="number">数字</option>
+                                      <option value="boolean">布尔值</option>
+                                    </select>
+                                  </TableCell>
+                                  <TableCell className="py-1 pr-4">
+                                    <Input 
+                                      className="h-6 text-xs bg-white" 
+                                      placeholder="值..." 
+                                      value={testValues[param.name] || ''}
+                                      onChange={(e) => setTestValues({...testValues, [param.name]: e.target.value})}
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                       </div>
+                       
+                       {/* JSON Body Preview */}
+                       <div className="h-[120px] bg-zinc-50 p-3 overflow-auto border-t border-zinc-100">
+                          <span className="text-[9px] font-bold text-zinc-400 uppercase mb-1 block">JSON 预览</span>
+                          <pre className="font-mono text-[10px] text-zinc-600 whitespace-pre-wrap break-all leading-tight">
+                            {JSON.stringify(testValues, null, 2)}
+                          </pre>
+                       </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Dense Preview Panel */}
-                <div className="col-span-12 lg:col-span-5 flex flex-col bg-zinc-50/10">
-                  <div className="px-4 py-2 border-b flex items-center justify-between text-[10px] font-bold text-zinc-400 tracking-tight h-8 uppercase">
-                    <span>Dynamic Response</span>
+                {/* BOTTOM HALF: Dynamic Response */}
+                <div className="h-[300px] flex flex-col bg-zinc-50/10 border-t border-zinc-200">
+                  <div className="px-4 py-2 border-b flex items-center justify-between text-[10px] font-bold text-zinc-400 tracking-tight h-8 uppercase bg-zinc-50/30">
+                    <span>响应结果</span>
                   </div>
-                  <div className="flex-1 p-4 overflow-auto">
+                  <div className="flex-1 p-0 overflow-hidden relative">
                     <AnimatePresence mode="wait">
                       {executing ? (
                         <div className="flex flex-col items-center justify-center h-full space-y-3 opacity-50">
                           <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Processing</span>
+                          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">处理中...</span>
                         </div>
                       ) : execResult ? (
-                        <div className="bg-white border rounded p-4 font-mono text-[11px] text-zinc-600 shadow-inner h-full overflow-auto whitespace-pre-wrap leading-relaxed">
-                          {execResult}
-                        </div>
+                        typeof execResult === 'string' && execResult.startsWith('错误') ? (
+                           <div className="bg-red-50 border border-red-200 m-4 rounded p-4 text-red-600 font-mono text-xs">
+                             {execResult}
+                           </div>
+                        ) : (
+                          <div className="h-full w-full overflow-hidden">
+                             <ResultTable data={execResult} />
+                          </div>
+                        )
                       ) : (
                         <div className="flex flex-col items-center justify-center h-full opacity-30 text-center grayscale py-10">
                           <LayoutTemplate className="w-8 h-8 mb-4 text-zinc-300" />
-                          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-tighter">Ready for push</p>
+                          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-tighter">等待执行</p>
                         </div>
                       )}
                     </AnimatePresence>
                   </div>
                 </div>
-              </div>
+
             </motion.div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-white border border-dashed border-zinc-200 rounded-lg shadow-inner">
+               {/* Empty State */}
               <div className="w-12 h-12 bg-zinc-50 border border-zinc-100 rounded-lg flex items-center justify-center mb-5">
                 <Terminal className="w-6 h-6 text-zinc-300" />
               </div>

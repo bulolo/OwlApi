@@ -15,6 +15,7 @@ import {
   SignalLow,
   ExternalLink
 } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useProjectStore } from "@/store/useProjectStore"
@@ -28,16 +29,19 @@ export default function GatewaysClientPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h1 className="text-xl font-bold text-zinc-900 tracking-tight">网关管理</h1>
-          <p className="text-xs text-zinc-500 mt-1 font-medium leading-relaxed italic">网关部署于数据库所在机器，提供安全的内网数据索引能力</p>
+          <h1 className="text-xl font-bold text-zinc-900 tracking-tight">执行节点管理 (Runners)</h1>
+          <p className="text-xs text-zinc-500 mt-1 font-medium leading-relaxed italic">执行节点部署于数据库所在机器，提供安全的内网数据索引能力</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="h-9 px-4 rounded-md border-zinc-200 text-xs font-bold shadow-sm">
             刷新心跳
           </Button>
-          <Button className="h-9 px-4 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold shadow-sm">
-            安装新节点
-          </Button>
+          <Link href="/dashboard/gateways/register">
+            <Button className="h-9 px-4 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-bold shadow-sm">
+              <Plus className="w-3.5 h-3.5 mr-2" />
+              安装新节点
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -45,7 +49,7 @@ export default function GatewaysClientPage() {
         <MonitorCard label="活动节点" value={gateways.filter(g => g.status === 'Online').length} icon={ShieldCheck} color="text-emerald-600" />
         <MonitorCard label="平均资源占用" value="24%" icon={Activity} color="text-blue-600" />
         <MonitorCard label="跨域覆盖" value="3" icon={Globe} color="text-zinc-600" />
-        <MonitorCard label="离线记录" value={gateways.filter(g => g.status === 'Offline').length} icon={SignalLow} color="text-rose-600" />
+        <MonitorCard label="离线节点" value={gateways.filter(g => g.status === 'Offline').length} icon={SignalLow} color="text-rose-600" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

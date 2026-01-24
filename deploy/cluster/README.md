@@ -1,4 +1,4 @@
-# OwlApi Server 部署指南
+# OwlApi Cluster 部署指南
 
 ## 系统要求
 
@@ -10,14 +10,14 @@
 
 ```bash
 # 1. 下载配置
-curl -O https://raw.githubusercontent.com/hongjunyao/owlapi/main/deploy/server/docker-compose.yml
+curl -O https://raw.githubusercontent.com/hongjunyao/owlapi/main/deploy/cluster/docker-compose.yml
 
 # 2. 创建环境变量文件
 cat > .env << EOF
 JWT_SECRET=your-super-secret-key-here
 EOF
 
-# 3. 启动服务
+# 3. 启动服务 (包含控制面及一个本地执行节点)
 docker compose up -d
 
 # 4. 查看日志
@@ -30,7 +30,7 @@ docker compose logs -f
 |------|------|------|
 | Frontend | 3000 | Web 控制台 |
 | Server HTTP | 8080 | REST API |
-| Server gRPC | 9090 | Agent 连接 |
+| Server gRPC | 9090 | 执行节点连接 |
 | PostgreSQL | 5432 | 数据库（内部） |
 
 ## 常用命令

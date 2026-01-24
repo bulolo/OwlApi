@@ -21,7 +21,7 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
 
 ### 🌐 混合云网关 (Hybrid Gateway)
 *打破内网边界，连接任意设施。*
-- **任意部署**：Agent 可运行在本地 IDC、云服务器或边缘设备（树莓派等）。
+- **任意部署**：Runner 可运行在本地 IDC、云服务器或边缘设备（树莓派等）。
 - **内网穿透**：自动建立加密隧道，无需公网 IP 即可安全访问内网数据库与服务。
 - **服务发布**：将内网微服务安全暴露给公网或第三方调用。
 
@@ -60,7 +60,7 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
          │                         │                         │
          ▼                         ▼                         ▼
 ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│ Gateway Agent   │      │ Gateway Agent   │      │ Gateway Agent   │
+│ Gateway Runner  │      │ Gateway Runner  │      │ Gateway Runner  │
 │   (公司 IDC)    │      │  (阿里云 ECS)   │      │   (树莓派)      │
 ├─────────────────┤      ├─────────────────┤      ├─────────────────┤
 │ ┌─────────────┐ │      │ ┌─────────────┐ │      │ ┌─────────────┐ │
@@ -109,18 +109,18 @@ make docker-up
 # - API: http://localhost:8080
 ```
 
-### 部署 Gateway Agent
+### 部署分发版
 
-详细部署指南请参考 [`deploy/agent/README.md`](deploy/agent/README.md)
+详细部署指南请参考 [`deploy/cluster/README.md`](deploy/cluster/README.md) 或 [`deploy/runner/README.md`](deploy/runner/README.md)
 
 ```bash
-# 下载配置
-curl -O https://raw.githubusercontent.com/bulolo/owlapi/main/deploy/agent/docker-compose.yml
+# 下载执行节点配置
+curl -O https://raw.githubusercontent.com/hongjunyao/owlapi/main/deploy/runner/docker-compose.yml
 
-# 编辑配置（填入您的 AGENT_ID 和 AGENT_TOKEN）
+# 编辑配置（填入您的 RUNNER_ID 和 RUNNER_TOKEN）
 vim docker-compose.yml
 
-# 启动 Agent
+# 启动 Runner
 docker compose up -d
 ```
 
@@ -162,7 +162,7 @@ owlapi/
 ├── backend/                    # Go 后端
 │   ├── cmd/                    # 入口文件
 │   │   ├── server/             # Control Plane 入口
-│   │   └── agent/              # Gateway Agent 入口
+│   │   └── runner/             # Gateway Runner 入口
 │   ├── internal/               # 内部模块
 │   │   ├── domain/             # (NEW) 核心领域层 (Entities/Repo Interfaces)
 │   │   ├── service/            # (NEW) 业务逻辑层 (Use Cases)
@@ -170,12 +170,14 @@ owlapi/
 │   │   ├── transport/          # (NEW) 传输层
 │   │   │   ├── http/           # HTTP Handlers
 │   │   │   └── grpc/           # gRPC Handlers
-│   │   ├── app/                # 应用组装 (Wiring)
+│   │   ├── app/                # 应用组装
+│   │   │   ├── server/
+│   │   │   └── runner/
 │   │   ├── config/             # 配置管理
 │   │   └── pkg/                # 内部通用包 (Logger, Core)
 │   ├── proto/                  # gRPC Proto 定义
 │   ├── Dockerfile.server
-│   ├── Dockerfile.agent
+│   ├── Dockerfile.runner
 │   └── go.mod
 ├── docs/                       # (NEW) 项目文档
 │   ├── architecture/           # 架构设计
@@ -186,8 +188,9 @@ owlapi/
 ├── frontend/                   # Next.js 前端
 │   ├── src/
 │   └── package.json
+│   └── Dockerfile.frontend
 ├── deploy/                     # 生产部署配置
-│   ├── server/                 # 服务端部署
+│   ├── cluster/                # 全功能集群部署
 │   │   ├── docker-compose.yml
 │   │   └── README.md
 │   └── agent/                  # Agent 部署

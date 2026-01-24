@@ -28,12 +28,23 @@ func LoadFromEnv() *Config {
 		LogConsole: getEnvAsBool("OWLAPI_LOG_CONSOLE", true),
 		
 		ServerURL:  getEnv("OWLAPI_SERVER_URL", "dns:///localhost:9090"), // 使用 dns:/// 支持负载均衡
-		AgentID:    getEnv("OWLAPI_AGENT_ID", ""),
-		AgentToken: getEnv("OWLAPI_AGENT_TOKEN", ""),
+		AgentID:    getEnvWithFallback("OWLAPI_RUNNER_ID", "OWLAPI_AGENT_ID", ""),
+		AgentToken: getEnvWithFallback("OWLAPI_RUNNER_TOKEN", "OWLAPI_AGENT_TOKEN", ""),
 		
 		HTTPPort: getEnv("OWLAPI_HTTP_PORT", ":8080"),
 		GRPCPort: getEnv("OWLAPI_GRPC_PORT", ":9090"),
 	}
+}
+
+// Helper to get env string with fallback
+func getEnvWithFallback(primary, fallback, defaultValue string) string {
+	if value, exists := os.LookupEnv(primary); exists {
+		return value
+	}
+	if value, exists := os.LookupEnv(fallback); exists {
+		return value
+	}
+	return defaultValue
 }
 
 // Helper to get env string with default

@@ -1,0 +1,19 @@
+.git
+.gitignore
+node_modules
+dist
+tmp
+*.log
+.env
+.env.*
+.vscode
+.idea
+vendor
+bin
+# Don't copy local binaries
+server
+runner
+agent
+# Don't copy other dockers
+Dockerfile.*
+docker-compose.*

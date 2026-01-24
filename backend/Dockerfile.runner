@@ -1,0 +1,39 @@
+# Build stage
+FROM golang:1.22-alpine AS builder
+
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum* ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the runner binary
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /runner ./cmd/runner
+
+# Runtime stage
+FROM alpine:3.19
+
+RUN apk --no-cache add ca-certificates tzdata \
+    && addgroup -S owlapi && adduser -S owlapi -G owlapi
+
+WORKDIR /app
+
+# Create logs directory with correct permissions
+RUN mkdir -p /app/logs && chown owlapi:owlapi /app/logs
+
+COPY --from=builder /runner .
+RUN chown owlapi:owlapi /app/runner
+
+USER owlapi
+
+# Environment variables (defaults)
+ENV OWLAPI_SERVER_URL=http://localhost:9090
+ENV OWLAPI_RUNNER_ID=""
+ENV OWLAPI_RUNNER_TOKEN=""
+ENV OWLAPI_LOG_LEVEL=info
+ENV OWLAPI_LOG_CONSOLE=false
+
+CMD ["./runner"]

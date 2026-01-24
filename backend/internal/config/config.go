@@ -5,20 +5,22 @@ import (
 	"strconv"
 )
 
-// Config holds the configuration for both Server and Agent
+// Config holds the configuration for both Server and Runner
 type Config struct {
 	// Common
 	LogLevel   string
 	LogConsole bool
 
-	// Agent Specific
-	ServerURL  string
-	AgentID    string
-	AgentToken string
+	// Runner Specific
+	ServerURL   string
+	RunnerID    string
+	RunnerToken string
+	TenantID    string
 	
-	// Server Specific (Example)
-	HTTPPort string
-	GRPCPort string
+	// Server Specific
+	HTTPPort    string
+	GRPCPort    string
+	DatabaseURL string
 }
 
 // LoadFromEnv loads configuration from environment variables
@@ -27,12 +29,14 @@ func LoadFromEnv() *Config {
 		LogLevel:   getEnv("OWLAPI_LOG_LEVEL", "info"),
 		LogConsole: getEnvAsBool("OWLAPI_LOG_CONSOLE", true),
 		
-		ServerURL:  getEnv("OWLAPI_SERVER_URL", "dns:///localhost:9090"), // 使用 dns:/// 支持负载均衡
-		AgentID:    getEnvWithFallback("OWLAPI_RUNNER_ID", "OWLAPI_AGENT_ID", ""),
-		AgentToken: getEnvWithFallback("OWLAPI_RUNNER_TOKEN", "OWLAPI_AGENT_TOKEN", ""),
+		ServerURL:   getEnv("OWLAPI_SERVER_URL", "dns:///localhost:9090"),
+		RunnerID:    getEnv("OWLAPI_RUNNER_ID", ""),
+		RunnerToken: getEnv("OWLAPI_RUNNER_TOKEN", ""),
+		TenantID:    getEnv("OWLAPI_TENANT_ID", "default"),
 		
-		HTTPPort: getEnv("OWLAPI_HTTP_PORT", ":8080"),
-		GRPCPort: getEnv("OWLAPI_GRPC_PORT", ":9090"),
+		HTTPPort:    getEnv("OWLAPI_HTTP_PORT", ":8080"),
+		GRPCPort:    getEnv("OWLAPI_GRPC_PORT", ":9090"),
+		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/owlapi?sslmode=disable"),
 	}
 }
 

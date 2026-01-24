@@ -1,59 +1,65 @@
 version: "3.8"
 
 services:
-  # Control Plane Server
+  # Control Plane Server (Hot Reload)
   server:
     build:
       context: ./backend
-      dockerfile: Dockerfile.server
-    container_name: owlapi_server
+      dockerfile: Dockerfile.dev
+    container_name: owlapi_server_dev
+    command: air -c .air.server.toml
     restart: unless-stopped
     ports:
       - "8080:8080"
-      - "9090:9090" # gRPC for Runner connection
+      - "9090:9090"
+    volumes:
+      - ./backend:/app
+      - /app/tmp # Mount tmp as anonymous volume to avoid host permission issues and conflicts
     environment:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/owlapi?sslmode=disable
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     depends_on:
       db:
         condition: service_healthy
 
-  # Frontend (Next.js)
+  # Frontend (Hot Reload)
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.frontend
-      args:
-        - NEXT_PUBLIC_API_URL=http://localhost:8080
-    container_name: owlapi_frontend
+      dockerfile: Dockerfile.dev
+    container_name: owlapi_frontend_dev
+    command: sh -c "pnpm install && pnpm dev"
     restart: unless-stopped
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Anonymous volume for container dependencies
+      - /app/.next # Anonymous volume for build cache
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8080
     depends_on:
       server:
-        condition: service_healthy
+        condition: service_started
 
-  # Local Runner Node (Dev Mode)
+  # Local Runner Node (Hot Reload)
   runner:
     build:
       context: ./backend
-      dockerfile: Dockerfile.runner
+      dockerfile: Dockerfile.dev
     container_name: owlapi_runner_dev
+    command: air -c .air.runner.toml
     restart: unless-stopped
+    volumes:
+      - ./backend:/app
+      - /app/tmp
     environment:
-      - OWLAPI_SERVER_URL=http://server:9090
-      - OWLAPI_RUNNER_ID=dev-local-runner
+      - OWLAPI_SERVER_URL=dns:///server:9090
+      - OWLAPI_RUNNER_ID=dev-docker-runner
       - OWLAPI_RUNNER_TOKEN=dev-token
       - TZ=Asia/Shanghai
     depends_on:
       server:
-        condition: service_healthy
+        condition: service_started
 
   # PostgreSQL Database
   db:
@@ -67,7 +73,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432" # Use 5433 to avoid conflict with local postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s

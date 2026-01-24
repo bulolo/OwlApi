@@ -2,6 +2,7 @@ package runner
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/hongjunyao/owlapi/internal/config"
+	"github.com/hongjunyao/owlapi/internal/pb"
 	"github.com/hongjunyao/owlapi/internal/pkg/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,32 +18,45 @@ import (
 )
 
 type App struct {
-	config *config.Config
+	config   *config.Config
+	executor *Executor
 }
 
 func New() *App {
 	cfg := config.LoadFromEnv()
 	logger.Init(cfg.LogLevel)
 
-	if cfg.AgentID == "" || cfg.AgentToken == "" {
-		slog.Error("OWLAPI_AGENT_ID and OWLAPI_AGENT_TOKEN must be set")
+	if cfg.RunnerID == "" || cfg.RunnerToken == "" {
+		slog.Error("OWLAPI_RUNNER_ID and OWLAPI_RUNNER_TOKEN must be set")
 		os.Exit(1)
 	}
 
 	return &App{
-		config: cfg,
+		config:   cfg,
+		executor: NewExecutor(),
 	}
 }
 
 func (a *App) Run() {
-	slog.Info("OwlApi Gateway Agent starting...", 
-		"agent_id", a.config.AgentID, 
+	slog.Info("OwlApi Gateway Runner starting...", 
+		"tenant_id", a.config.TenantID,
+		"runner_id", a.config.RunnerID, 
 		"server_url", a.config.ServerURL)
 
+	for {
+		err := a.connectAndServe()
+		if err != nil {
+			slog.Error("Connection lost, retrying in 5 seconds...", "error", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+	}
+}
+
+func (a *App) connectAndServe() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// 1. 创建连接
 	conn, err := grpc.DialContext(ctx, a.config.ServerURL,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
@@ -51,38 +66,108 @@ func (a *App) Run() {
 		}),
 	)
 	if err != nil {
-		slog.Error("Failed to connect to server", "error", err)
-		os.Exit(1)
+		return err
 	}
 	defer conn.Close()
 
-	slog.Info("Connected to Control Plane successfully!")
+	client := pb.NewGatewayServiceClient(conn)
+	stream, err := client.Connect(ctx)
+	if err != nil {
+		return err
+	}
 
-	// TODO: 创建双向流
-	// client := pb.NewGatewayServiceClient(conn)
+	// 1. Register
+	err = stream.Send(&pb.RunnerMessage{
+		Payload: &pb.RunnerMessage_Register{
+			Register: &pb.RegisterRequest{
+				NodeId:    a.config.RunnerID,
+				NodeToken: a.config.RunnerToken,
+				Version:   "v0.1.0",
+				TenantId:  a.config.TenantID,
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
 
-	// 2. 启动心跳
-	go a.startHeartbeat(ctx)
+	// 2. Start Message Loops
+	go a.startHeartbeat(ctx, stream)
 
-	// 3. 等待信号
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
 
-	slog.Info("Shutting down agent...")
+	errorChan := make(chan error, 1)
+	go func() {
+		for {
+			msg, err := stream.Recv()
+			if err == io.EOF {
+				errorChan <- nil
+				return
+			}
+			if err != nil {
+				errorChan <- err
+				return
+			}
+			go a.handleServerMessage(stream, msg)
+		}
+	}()
+
+	select {
+	case <-stop:
+		slog.Info("Shutting down Gateway Runner...")
+		return nil
+	case err := <-errorChan:
+		return err
+	}
 }
 
-func (a *App) startHeartbeat(ctx context.Context) {
-	ticker := time.NewTicker(10 * time.Second)
+func (a *App) startHeartbeat(ctx context.Context, stream pb.GatewayService_ConnectClient) {
+	ticker := time.NewTicker(20 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			slog.Debug("Heartbeat: Agent is alive")
-			// TODO: Send heartbeat
+			err := stream.Send(&pb.RunnerMessage{
+				Payload: &pb.RunnerMessage_Heartbeat{
+					Heartbeat: &pb.HeartbeatRequest{
+						Timestamp: time.Now().Unix(),
+					},
+				},
+			})
+			if err != nil {
+				slog.Error("Failed to send heartbeat", "error", err)
+				return
+			}
 		case <-ctx.Done():
 			return
 		}
+	}
+}
+
+func (a *App) handleServerMessage(stream pb.GatewayService_ConnectClient, msg *pb.ServerMessage) {
+	switch p := msg.Payload.(type) {
+	case *pb.ServerMessage_RegisterAck:
+		if p.RegisterAck.Success {
+			slog.Info("Gateway Runner registered successfully", "session_id", p.RegisterAck.SessionId)
+		} else {
+			slog.Error("Registration failed", "error", p.RegisterAck.Error)
+			os.Exit(1)
+		}
+	case *pb.ServerMessage_ExecuteQuery:
+		slog.Info("Executing query", "request_id", p.ExecuteQuery.RequestId)
+		res := a.executor.Execute(p.ExecuteQuery)
+		err := stream.Send(&pb.RunnerMessage{
+			Payload: &pb.RunnerMessage_QueryResult{
+				QueryResult: res,
+			},
+		})
+		if err != nil {
+			slog.Error("Failed to send query result", "error", err)
+		}
+	case *pb.ServerMessage_AiRequest:
+		// TODO: Implement AI Proxy
+		slog.Info("AI Request received", "request_id", p.AiRequest.RequestId)
 	}
 }

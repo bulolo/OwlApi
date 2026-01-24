@@ -54,8 +54,8 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
 │  └─────────────────┘    │  gRPC :9090     │    └────────────────┘  │
 │                         └────────┬────────┘                        │
 └──────────────────────────────────┼──────────────────────────────────┘
-                                   │ gRPC 双向流 (HTTP/2)
-                                   │ Agent 主动连接
+                                    │ gRPC 双向流 (HTTP/2)
+                                    │ Gateway Runner 主动连接
          ┌─────────────────────────┼─────────────────────────┐
          │                         │                         │
          ▼                         ▼                         ▼
@@ -74,10 +74,10 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
 部署在云端的核心服务，负责：
 - **用户管理**：多租户、项目隔离、权限控制
 - **API 定义**：SQL 查询管理、参数映射、版本控制
-- **Agent 管理**：注册、心跳监控、状态同步
-- **流量路由**：将 API 请求路由到正确的 Agent
+- **Gateway Runner 管理**：注册、心跳监控、状态同步
+- **流量路由**：将 API 请求路由到正确的 Gateway Runner
 
-### 🔌 Gateway Agent (网关代理)
+### 🔌 Gateway Runner (网关执行节点)
 部署在用户内网的轻量级代理，负责：
 - **反向隧道**：主动连接 Control Plane，无需公网 IP
 - **数据库执行**：接收 SQL 指令，执行查询，返回结果
@@ -86,7 +86,7 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
 
 ### 🔄 数据流示例
 ```
-用户请求 → Control Plane → gRPC Stream → Gateway Agent → 内网数据库
+用户请求 → Control Plane → gRPC Stream → Gateway Runner → 内网数据库
                 ↑                              │
                 └──────── 查询结果 ◄───────────┘
 ```
@@ -128,29 +128,26 @@ docker compose up -d
 
 ## 🛠️ 开发指南 (Development)
 
-### 环境要求
-- Go 1.22+
-- Node.js 18+
-- Docker & Docker Compose
+### 核心文档索引
+- 🏗 [系统架构设计 (含多租户原理)](docs/backend/architecture.md)
+- 📗 [后端开发 README (快速 setup)](backend/README.md)
+- 📘 [API 协议定义 (gRPC & REST)](docs/backend/api.md)
 
 ### 常用命令
+### 常用命令
 ```bash
-make help          # 查看所有可用命令
-make dev           # 启动开发环境（数据库）
-make build         # 构建所有二进制文件
-make docker-build  # 构建 Docker 镜像
+make gen-proto         # 生成 gRPC 代码 (辅助)
+make dev-up            # 启动开发环境 (Hot-Reload)
+make prod-up           # 启动生产环境 (Stable)
 ```
 
-### 本地开发
+### 部署与运维
 ```bash
-# 启动数据库
-make dev
+# 生产环境部署
+make prod-up
 
-# 启动后端（另一个终端）
-cd backend && go run ./cmd/server
-
-# 启动前端（另一个终端）
-cd frontend && pnpm dev
+# 查看生产日志
+make prod-logs
 ```
 
 ---
@@ -159,46 +156,21 @@ cd frontend && pnpm dev
 
 ```
 owlapi/
-├── backend/                    # Go 后端
-│   ├── cmd/                    # 入口文件
-│   │   ├── server/             # Control Plane 入口
-│   │   └── runner/             # Gateway Runner 入口
-│   ├── internal/               # 内部模块
-│   │   ├── domain/             # (NEW) 核心领域层 (Entities/Repo Interfaces)
-│   │   ├── service/            # (NEW) 业务逻辑层 (Use Cases)
-│   │   ├── repo/               # (NEW) 数据持久层 (DB/Redis)
-│   │   ├── transport/          # (NEW) 传输层
-│   │   │   ├── http/           # HTTP Handlers
-│   │   │   └── grpc/           # gRPC Handlers
-│   │   ├── app/                # 应用组装
-│   │   │   ├── server/
-│   │   │   └── runner/
-│   │   ├── config/             # 配置管理
-│   │   └── pkg/                # 内部通用包 (Logger, Core)
-│   ├── proto/                  # gRPC Proto 定义
-│   ├── Dockerfile.server
-│   ├── Dockerfile.runner
-│   └── go.mod
-├── docs/                       # (NEW) 项目文档
-│   ├── architecture/           # 架构设计
-│   └── api/                    # API 定义
-├── scripts/                    # (NEW) 工程化脚本
-│   ├── db/                     # DB 迁移
-│   └── dev/                    # 开发辅助
-├── frontend/                   # Next.js 前端
-│   ├── src/
-│   └── package.json
-│   └── Dockerfile.frontend
-├── deploy/                     # 生产部署配置
-│   ├── cluster/                # 全功能集群部署
-│   │   ├── docker-compose.yml
-│   │   └── README.md
-│   └── agent/                  # Agent 部署
-│       ├── docker-compose.yml
-│       └── README.md
-├── docker-compose.dev.yml      # 本地开发编排
-├── Makefile                    # 构建脚本
-└── README.md
+├── backend/                    # Go 后端核心 (All-Go 架构)
+│   ├── cmd/                    # 程序入口 (Server & Runner)
+│   ├── internal/               # 内部核心模块
+│   │   ├── domain/             # 核心实体与仓库接口定义
+│   │   ├── service/            # 业务逻辑服务 (Query, Runner)
+│   │   ├── repo/               # 数据隔离持久层 (PostgreSQL)
+│   │   └── transport/          # 传输协议层 (gRPC & HTTP)
+│   ├── proto/                  # 协议定义
+│   └── README.md               # 后端详细指南
+├── docs/                       # 系统全局文档
+│   ├── architecture/           # 架构图示
+│   └── backend/                # 后端详细设计与 API 规范
+├── frontend/                   # Next.js 控制台前端
+├── deploy/                     # 生产环境部署资源
+└── Makefile                    # 合一化构建脚本
 ```
 
 ---

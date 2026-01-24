@@ -13,8 +13,12 @@ import {
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useUIStore } from "@/store/useUIStore"
 
 export default function MetricsClientPage() {
+  const { viewContext } = useUIStore()
+  const isSystem = viewContext === 'SYSTEM'
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b pb-4">
@@ -90,12 +94,23 @@ export default function MetricsClientPage() {
               </div>
             </div>
             <div className="bg-white border rounded-lg p-4 shadow-sm flex flex-col space-y-4">
-              <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">热门端点</h4>
+              <h4 className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{isSystem ? "租户调用排行" : "热门端点"}</h4>
               <div className="space-y-3">
-                <EndpointItem method="GET" path="/v1/users" count="45.2k" />
-                <EndpointItem method="POST" path="/v1/orders" count="28.1k" />
-                <EndpointItem method="GET" path="/v1/products" count="19.4k" />
-                <EndpointItem method="PUT" path="/v1/profile" count="5.2k" />
+                {isSystem ? (
+                  <>
+                    <RankingItem label="上海研发中心" count="842.2k" percent={45} />
+                    <RankingItem label="北京分公司" count="312.1k" percent={22} />
+                    <RankingItem label="深圳测试组" count="102.4k" percent={15} />
+                    <RankingItem label="海外事业部" count="28.2k" percent={8} />
+                  </>
+                ) : (
+                  <>
+                    <EndpointItem method="GET" path="/v1/users" count="45.2k" />
+                    <EndpointItem method="POST" path="/v1/orders" count="28.1k" />
+                    <EndpointItem method="GET" path="/v1/products" count="19.4k" />
+                    <EndpointItem method="PUT" path="/v1/profile" count="5.2k" />
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -113,7 +128,14 @@ export default function MetricsClientPage() {
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
               <div key={i} className="flex flex-col space-y-1 py-2 border-b border-zinc-50 last:border-0">
                 <div className="flex justify-between items-center">
-                  <span className="text-zinc-400">17:40:1{i}.482</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-zinc-400">17:40:1{i}.482</span>
+                    {isSystem && (
+                      <span className="px-1.5 py-0.5 bg-zinc-100 text-zinc-500 rounded text-[8px] font-bold">
+                        {i % 2 === 0 ? "上海研发" : "北京分公司"}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-emerald-600 font-bold">200 OK</span>
                 </div>
                 <div className="text-zinc-700">
@@ -179,6 +201,20 @@ function EndpointItem({ method, path, count }: { method: string; path: string; c
         <span className="truncate text-zinc-700">{path}</span>
       </div>
       <span className="text-zinc-400 font-bold ml-2">{count}</span>
+    </div>
+  )
+}
+
+function RankingItem({ label, count, percent }: { label: string; count: string; percent: number }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex justify-between text-[11px] font-bold">
+        <span className="text-zinc-700">{label}</span>
+        <span className="text-zinc-400">{count}</span>
+      </div>
+      <div className="h-1 bg-zinc-50 rounded-full overflow-hidden">
+        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${percent}%` }} />
+      </div>
     </div>
   )
 }

@@ -28,8 +28,8 @@ export default function RegisterGatewayPage() {
         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
           <Server className="w-6 h-6 text-white" />
         </div>
-        <h1 className="text-2xl font-bold text-zinc-900">部署新的 Gateway Agent</h1>
-        <p className="text-sm text-zinc-500 mt-2">只需三步，将您的私有网络/本地环境接入 OwlApi 混合云。</p>
+        <h1 className="text-2xl font-bold text-zinc-900">部署新的执行节点 (Runner)</h1>
+        <p className="text-sm text-zinc-500 mt-2">只需两步，将您的私有网络/本地环境安全接入 OwlApi。</p>
       </div>
 
       {/* Steps */}
@@ -47,27 +47,24 @@ export default function RegisterGatewayPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>节点名称 (Node Name)</Label>
-                <Input placeholder="e.g. Aliyun-Shanghai-Prod-01" className="bg-zinc-50" />
-                <p className="text-[11px] text-zinc-400">仅用于识别，建议包含区域和环境信息。</p>
+                <Input placeholder="e.g. Aliyun-Shanghai-01" className="bg-zinc-50" />
+                <p className="text-[11px] text-zinc-400">仅用于在控制台中识别该节点，建议包含位置和用途。</p>
               </div>
               
-              <div className="space-y-2">
-                 <Label>网络环境 (Network)</Label>
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="border hover:border-blue-500 cursor-pointer p-4 rounded-lg bg-zinc-50 hover:bg-white transition-all">
-                      <div className="font-bold text-sm text-zinc-900 mb-1">公有云 / IDC (Public IP)</div>
-                      <p className="text-[10px] text-zinc-500">服务器拥有公网访问能力，可直接连接控制面。</p>
-                   </div>
-                   <div className="border border-blue-500 bg-blue-50/20 cursor-pointer p-4 rounded-lg">
-                      <div className="font-bold text-sm text-blue-700 mb-1">内网 / NAT (Private)</div>
-                      <p className="text-[10px] text-zinc-500">无公网 IP，通过反向隧道连接 (Tunnel Mode)。</p>
-                   </div>
-                 </div>
+              <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg flex items-start gap-3">
+                <Shield className="w-5 h-5 text-blue-600 shrink-0" />
+                <div>
+                  <h4 className="text-xs font-bold text-blue-900 uppercase">通用接入模式</h4>
+                  <p className="text-[11px] text-blue-800 mt-1 leading-relaxed">
+                    OwlApi 采用自适应反向隧道技术。无论您的节点处于公网还是私有内网（NAT），
+                    只要能够访问外网地址即可自动建立持久的加密连接。
+                  </p>
+                </div>
               </div>
             </div>
             <div className="pt-4 flex justify-end">
               <Button onClick={() => setStep(2)} className="bg-blue-600 hover:bg-blue-700 font-bold">
-                下一步
+                生成安装命令
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -93,7 +90,7 @@ export default function RegisterGatewayPage() {
               <div>
                 <h4 className="text-xs font-bold text-amber-900 uppercase">安全须知</h4>
                 <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                  该 Token 有效期为 24 小时，且只能激活一个 Agent 节点。
+                  该 Token 有效期为 24 小时，且只能激活一个执行节点。
                   请确保目标机器已安装 Docker 且允许出站访问 `connect.owlapi.com:443`。
                 </p>
               </div>

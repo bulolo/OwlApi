@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
-import { Brain, Sparkles, Key, Zap, RefreshCw, Plus } from "lucide-react"
+import { Brain, Sparkles, Key, Zap, RefreshCw, Plus, Server, Settings } from "lucide-react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 
@@ -11,7 +11,7 @@ const MOCK_MODELS = [
   {
     id: "deepseek-r1",
     name: "DeepSeek R1",
-    provider: "Gateway Agent #1 (Local IDC)",
+    provider: "接入节点: IDC-Runner #1",
     status: "online",
     context: "128k",
     type: "Reasoning"
@@ -19,7 +19,7 @@ const MOCK_MODELS = [
   {
     id: "llama3-70b",
     name: "Llama 3 70B",
-    provider: "Gateway Agent #2 (Aliyun ECS)",
+    provider: "接入节点: Aliyun-Runner #2",
     status: "online",
     context: "8k",
     type: "Chat"
@@ -27,7 +27,7 @@ const MOCK_MODELS = [
   {
     id: "qwen-14b",
     name: "Qwen 1.5 14B",
-    provider: "Gateway Agent #1 (Local IDC)",
+    provider: "接入节点: IDC-Runner #1",
     status: "busy",
     context: "32k",
     type: "Chat"
@@ -41,7 +41,7 @@ export default function ModelsPage() {
         <div>
           <h2 className="text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
             <Brain className="w-5 h-5 text-blue-600" />
-            AI 模型网关
+            AI 引擎
           </h2>
           <p className="text-xs text-zinc-500 mt-1 font-medium">
             统一纳管内网私有模型，提供兼容 OpenAI 的标准 API 接口。
@@ -54,10 +54,12 @@ export default function ModelsPage() {
               API Keys
             </Button>
           </Link>
-          <Button className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm">
-            <Plus className="w-3.5 h-3.5 mr-2" />
-            接入模型
-          </Button>
+          <Link href="/dashboard/models/register">
+            <Button className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm">
+              <Plus className="w-3.5 h-3.5 mr-2" />
+              接入模型
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -85,15 +87,19 @@ export default function ModelsPage() {
                 <CardTitle className="text-base font-bold text-zinc-900 group-hover:text-blue-600 transition-colors">
                   {model.name}
                 </CardTitle>
-                <CardDescription className="text-xs text-zinc-400 font-mono">
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Server className="w-3 h-3 text-zinc-400" />
+                  <span className="text-[10px] text-zinc-500 font-medium">执行节点: {model.provider.split(": ")[1] || model.provider}</span>
+                </div>
+                <CardDescription className="text-xs text-zinc-400 font-mono mt-2">
                   {model.id}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-xs py-1.5 border-b border-zinc-50">
-                    <span className="text-zinc-400 font-medium">来源节点</span>
-                    <span className="text-zinc-700 font-medium truncate max-w-[140px]">{model.provider}</span>
+                    <span className="text-zinc-400 font-medium">模型类型</span>
+                    <span className="text-zinc-700 font-medium">{model.type}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs py-1.5 border-b border-zinc-50">
                     <span className="text-zinc-400 font-medium">上下文窗口</span>
@@ -105,10 +111,12 @@ export default function ModelsPage() {
                   </div>
                   
                   <div className="pt-2 flex gap-2">
-                    <Button variant="secondary" size="sm" className="w-full text-xs font-bold h-8 bg-zinc-100 hover:bg-zinc-200 text-zinc-600">
-                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                      测试连通性
-                    </Button>
+                    <Link href={`/dashboard/models/register?id=${model.id}`} className="w-full">
+                      <Button variant="secondary" size="sm" className="w-full text-xs font-bold h-8 bg-zinc-100 hover:bg-zinc-200 text-zinc-600">
+                        <Settings className="w-3.5 h-3.5 mr-1.5" />
+                        编辑配置
+                      </Button>
+                    </Link>
                     <Link href="/dashboard/models/playground" className="w-full">
                       <Button variant="default" size="sm" className="w-full text-xs font-bold h-8 bg-zinc-900 hover:bg-zinc-800 text-white">
                         <Zap className="w-3.5 h-3.5 mr-1.5" />
@@ -123,15 +131,17 @@ export default function ModelsPage() {
         ))}
         
         {/* Add New Card */}
-        <div className="border-2 border-dashed border-zinc-200 rounded-xl flex flex-col items-center justify-center p-6 bg-zinc-50/30 hover:bg-white hover:border-blue-300 transition-all cursor-pointer group min-h-[280px]">
-           <div className="w-12 h-12 rounded-full border border-zinc-100 flex items-center justify-center mb-3 bg-white shadow-sm group-hover:scale-105 transition-transform group-hover:text-blue-600 text-zinc-300">
-            <Plus className="w-6 h-6" />
+        <Link href="/dashboard/models/register" className="group">
+          <div className="border-2 border-dashed border-zinc-200 rounded-xl flex flex-col items-center justify-center p-6 bg-zinc-50/30 group-hover:bg-white group-hover:border-blue-300 transition-all cursor-pointer min-h-[280px]">
+             <div className="w-12 h-12 rounded-full border border-zinc-100 flex items-center justify-center mb-3 bg-white shadow-sm group-hover:scale-105 transition-transform group-hover:text-blue-600 text-zinc-300">
+              <Plus className="w-6 h-6" />
+            </div>
+            <h3 className="text-sm font-bold text-zinc-900">接入新模型</h3>
+            <p className="text-xs text-zinc-400 mt-1 text-center px-8">
+              通过执行节点扫描并代理内网 LLM 服务 (Ollama/vLLM)
+            </p>
           </div>
-          <h3 className="text-sm font-bold text-zinc-900">接入新模型</h3>
-          <p className="text-xs text-zinc-400 mt-1 text-center px-8">
-            通过 Gateway Agent 扫描并代理内网 LLM 服务 (Ollama/vLLM)
-          </p>
-        </div>
+        </Link>
       </div>
     </div>
   )

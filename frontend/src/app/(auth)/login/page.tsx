@@ -15,7 +15,7 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
     setTimeout(() => {
-      router.push("/dashboard")
+      router.push("/sh-rd/overview")
     }, 800)
   }
 

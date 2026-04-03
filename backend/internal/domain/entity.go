@@ -114,8 +114,9 @@ type TenantRepository interface {
 	Create(ctx context.Context, tenant *Tenant) error
 	GetByID(ctx context.Context, id string) (*Tenant, error)
 	GetBySlug(ctx context.Context, slug string) (*Tenant, error)
-	List(ctx context.Context) ([]*Tenant, error)
+	List(ctx context.Context, page, size int) ([]*Tenant, int, error)
 	Update(ctx context.Context, tenant *Tenant) error
+	Delete(ctx context.Context, id string) error
 }
 
 type UserRepository interface {
@@ -127,7 +128,7 @@ type UserRepository interface {
 type TenantMemberRepository interface {
 	Add(ctx context.Context, member *TenantMember) error
 	Remove(ctx context.Context, tenantID, userID string) error
-	GetByTenantID(ctx context.Context, tenantID string) ([]*TenantMember, error)
+	GetByTenantID(ctx context.Context, tenantID string, page, size int) ([]*TenantMember, int, error)
 	GetByUserID(ctx context.Context, userID string) ([]*TenantMember, error)
 	GetMembership(ctx context.Context, tenantID, userID string) (*TenantMember, error)
 	UpdateRole(ctx context.Context, tenantID, userID string, role UserRole) error

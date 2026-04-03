@@ -146,10 +146,15 @@ func (r *Repository) GetTenantBySlug(ctx context.Context, slug string) (*domain.
 	return &t, nil
 }
 
-func (r *Repository) ListTenants(ctx context.Context) ([]*domain.Tenant, error) {
-	rows, err := r.pool.Query(ctx, `SELECT id, name, slug, plan, status, created_at, updated_at FROM tenants ORDER BY created_at DESC`)
+func (r *Repository) ListTenants(ctx context.Context, page, size int) ([]*domain.Tenant, int, error) {
+	var total int
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM tenants`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * size
+	rows, err := r.pool.Query(ctx, `SELECT id, name, slug, plan, status, created_at, updated_at FROM tenants ORDER BY created_at DESC LIMIT $1 OFFSET $2`, size, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -157,17 +162,22 @@ func (r *Repository) ListTenants(ctx context.Context) ([]*domain.Tenant, error) 
 	for rows.Next() {
 		var t domain.Tenant
 		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Plan, &t.Status, &t.CreatedAt, &t.UpdatedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		tenants = append(tenants, &t)
 	}
-	return tenants, nil
+	return tenants, total, nil
 }
 
 func (r *Repository) UpdateTenant(ctx context.Context, t *domain.Tenant) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE tenants SET name=$1, plan=$2, status=$3, updated_at=$4 WHERE id=$5`,
 		t.Name, t.Plan, t.Status, time.Now(), t.ID)
+	return err
+}
+
+func (r *Repository) DeleteTenant(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1`, id)
 	return err
 }
 
@@ -214,13 +224,18 @@ func (r *Repository) RemoveMember(ctx context.Context, tenantID, userID string) 
 	return err
 }
 
-func (r *Repository) GetMembersByTenantID(ctx context.Context, tenantID string) ([]*domain.TenantMember, error) {
+func (r *Repository) GetMembersByTenantID(ctx context.Context, tenantID string, page, size int) ([]*domain.TenantMember, int, error) {
+	var total int
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM tenant_members WHERE tenant_id=$1`, tenantID).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	offset := (page - 1) * size
 	rows, err := r.pool.Query(ctx,
 		`SELECT tm.tenant_id, tm.user_id, tm.role, tm.joined_at, u.id, u.email, u.name, u.created_at, u.updated_at
 		 FROM tenant_members tm JOIN users u ON tm.user_id = u.id
-		 WHERE tm.tenant_id=$1 ORDER BY tm.joined_at`, tenantID)
+		 WHERE tm.tenant_id=$1 ORDER BY tm.joined_at LIMIT $2 OFFSET $3`, tenantID, size, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -229,11 +244,11 @@ func (r *Repository) GetMembersByTenantID(ctx context.Context, tenantID string) 
 		m := &domain.TenantMember{User: &domain.User{}}
 		if err := rows.Scan(&m.TenantID, &m.UserID, &m.Role, &m.JoinedAt,
 			&m.User.ID, &m.User.Email, &m.User.Name, &m.User.CreatedAt, &m.User.UpdatedAt); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		members = append(members, m)
 	}
-	return members, nil
+	return members, total, nil
 }
 
 func (r *Repository) GetMembersByUserID(ctx context.Context, userID string) ([]*domain.TenantMember, error) {

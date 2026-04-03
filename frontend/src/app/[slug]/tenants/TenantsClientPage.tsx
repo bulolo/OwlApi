@@ -2,40 +2,35 @@
 
 import { useState, useEffect } from "react"
 import { 
-  Building2, 
-  Plus, 
-  Search, 
-  Shield, 
-  Activity,
-  Clock,
-  ChevronRight,
-  Settings,
-  Globe
+  Building2, Plus, Search, Shield, Activity, Clock,
+  ChevronRight, Trash2, Globe, Pencil, X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import Link from "next/link"
 import { motion } from "framer-motion"
 import { useUIStore } from "@/store/useUIStore"
 import { useRouter } from "next/navigation"
 import { useTenantStore } from "@/store/useTenantStore"
+import { apiDeleteTenant, apiUpdateTenant, type Tenant } from "@/lib/api-client"
+import { Pager } from "@/components/ui/pager"
 
 import TenantRegisterForm from "./TenantRegisterForm"
 
 export default function TenantsClientPage() {
   const [isRegistering, setIsRegistering] = useState(false)
   const [search, setSearch] = useState("")
+  const [editing, setEditing] = useState<Tenant | null>(null)
   const { setViewContext, setActiveTenant } = useUIStore()
-  const { tenants, fetchTenants, markTenantAsRecent } = useTenantStore()
+  const { tenants, fetchTenants, markTenantAsRecent, page, size, total } = useTenantStore()
   const router = useRouter()
 
   useEffect(() => { fetchTenants() }, [])
 
   if (isRegistering) {
-    return <TenantRegisterForm onCancel={() => setIsRegistering(false)} />
+    return <TenantRegisterForm onCancel={() => setIsRegistering(false)} onSuccess={() => { setIsRegistering(false); fetchTenants() }} />
   }
 
   const filteredTenants = tenants.filter(t => 
@@ -51,9 +46,9 @@ export default function TenantsClientPage() {
         <div>
           <h1 className="text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
             <Building2 className="w-5 h-5 text-zinc-400" />
-            租户管理 (Tenant Management)
+            租户管理
           </h1>
-          <p className="text-xs text-zinc-500 mt-1 font-medium">查看并管理全站所有企业租户、订阅状态及资源使用情况。</p>
+          <p className="text-xs text-zinc-500 mt-1 font-medium">查看并管理所有企业租户、订阅状态及资源使用情况。</p>
         </div>
         <Button 
           onClick={() => setIsRegistering(true)}
@@ -64,38 +59,31 @@ export default function TenantsClientPage() {
         </Button>
       </div>
 
-      {/* Stats Quick View */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatsCard title="累计企业租户" value="12" subValue="+2 本月" icon={Building2} />
-        <StatsCard title="本月 API 调用总量" value="1.2M" subValue="+12.5% 环比" icon={Activity} />
-        <StatsCard title="在线网关节点" value="48" subValue="2 节点异常" icon={Shield} />
-      </div>
+      {/* Edit Modal */}
+      {editing && (
+        <EditTenantModal
+          tenant={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); fetchTenants() }}
+        />
+      )}
 
-      {/* Filters & Table Placeholder */}
+      {/* List */}
       <div className="bg-white rounded-xl border border-zinc-200/60 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/30">
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <Input 
-              placeholder="搜索租户名称、域名或 ID..." 
+              placeholder="搜索租户名称、Slug 或 ID..." 
               className="pl-9 h-9 text-xs border-zinc-200 bg-white"
               value={search}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="h-9 text-xs font-bold border-zinc-200">
-              全部状态
-            </Button>
-            <Button variant="outline" className="h-9 text-xs font-bold border-zinc-200">
-              数据导出
-            </Button>
-          </div>
         </div>
 
         <div className="divide-y divide-zinc-100">
           {filteredTenants.map((tenant, i) => (
-
             <motion.div 
               key={tenant.id}
               initial={{ opacity: 0, y: 5 }}
@@ -127,66 +115,124 @@ export default function TenantsClientPage() {
                       </span>
                       <span className="w-1 h-1 rounded-full bg-zinc-200" />
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> 开通于 {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : '-'}
+                        <Clock className="w-3 h-3" /> {tenant.created_at ? new Date(tenant.created_at).toLocaleDateString() : '-'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-12 text-center">
-                  <div className="hidden md:block">
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">订阅计划</p>
+                <div className="flex items-center gap-2">
+                  <div className="hidden md:block text-right mr-6">
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">计划</p>
                     <p className="text-xs font-bold text-zinc-700">{tenant.plan || 'Free'}</p>
                   </div>
-                  <div className="flex items-center gap-2 pl-4">
-                    <Button 
-                      variant="ghost" 
-                      className="h-8 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                      onClick={() => {
-                        setViewContext('TENANT');
-                        setActiveTenant(tenant.slug);
-                        markTenantAsRecent(tenant.id);
-                        router.push(`/${tenant.slug}/overview`);
-                      }}
-                    >
-                      进入管理
-                      <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100">
-                      <Settings className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <Button 
+                    variant="ghost" 
+                    className="h-8 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    onClick={() => {
+                      setViewContext('TENANT');
+                      setActiveTenant(tenant.slug);
+                      markTenantAsRecent(tenant.id);
+                      router.push(`/${tenant.slug}/overview`);
+                    }}
+                  >
+                    进入管理
+                    <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-8 w-8 text-zinc-400 hover:text-blue-600 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all"
+                    onClick={() => setEditing(tenant)}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                    onClick={async () => {
+                      if (!confirm(`确认删除租户「${tenant.name}」？此操作不可恢复。`)) return
+                      try { await apiDeleteTenant(tenant.slug!); fetchTenants() } catch {}
+                    }}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               </div>
             </motion.div>
           ))}
+          {filteredTenants.length === 0 && (
+            <div className="p-12 text-center text-sm text-zinc-400">暂无租户</div>
+          )}
         </div>
         
-        <div className="p-4 border-t border-zinc-100 bg-zinc-50/30 text-center">
-           <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest leading-none">
-             显示 {filteredTenants.length} 个租户，共 {tenants.length} 个
-           </p>
-        </div>
+        <Pager page={page} size={size} total={total} onChange={(p, s) => fetchTenants(p, s)} />
       </div>
     </div>
   )
 }
 
-function StatsCard({ title, value, subValue, icon: Icon }: any) {
+// ---- Edit Tenant Modal ----
+
+function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState(tenant.name || "")
+  const [plan, setPlan] = useState(tenant.plan || "Free")
+  const [status, setStatus] = useState(tenant.status || "Active")
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+
+  const handleSave = async () => {
+    setSaving(true)
+    setError("")
+    try {
+      await apiUpdateTenant(tenant.slug!, { name, plan, status })
+      onSaved()
+    } catch (err: any) {
+      setError(err?.message || "保存失败")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
-    <Card className="border-zinc-200/60 shadow-sm">
-      <CardContent className="p-5 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">{title}</p>
-          <div className="flex items-baseline gap-2">
-            <h3 className="text-2xl font-bold text-zinc-900 tracking-tight">{value}</h3>
-            <span className="text-[10px] font-bold text-emerald-600">{subValue}</span>
-          </div>
+    <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-lg space-y-5">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-zinc-900">编辑租户 — {tenant.slug}</h3>
+        <Button variant="ghost" size="icon" className="w-7 h-7" onClick={onClose}>
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">租户名称</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-xs" />
         </div>
-        <div className="w-10 h-10 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center text-zinc-400">
-          <Icon className="w-5 h-5" />
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">订阅计划</label>
+          <select value={plan} onChange={(e) => setPlan(e.target.value)} className="w-full h-9 px-3 text-xs border border-zinc-200 rounded-lg bg-white">
+            <option value="Free">Free</option>
+            <option value="Pro">Pro</option>
+            <option value="Enterprise">Enterprise</option>
+          </select>
         </div>
-      </CardContent>
-    </Card>
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">状态</label>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full h-9 px-3 text-xs border border-zinc-200 rounded-lg bg-white">
+            <option value="Active">Active</option>
+            <option value="Warning">Warning</option>
+            <option value="Suspended">Suspended</option>
+          </select>
+        </div>
+      </div>
+
+      {error && <p className="text-xs text-red-500">{error}</p>}
+
+      <div className="flex justify-end gap-3">
+        <Button variant="outline" onClick={onClose} className="h-9 text-xs font-bold">取消</Button>
+        <Button onClick={handleSave} disabled={saving} className="h-9 px-6 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold">
+          {saving ? "保存中..." : "保存"}
+        </Button>
+      </div>
+    </div>
   )
 }

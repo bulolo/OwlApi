@@ -29,7 +29,7 @@ export default function LoginPage() {
       const slug = res.tenant?.slug || "default"
       router.push(`/${slug}/overview`)
     } catch (err: any) {
-      setError(err?.body?.error || err?.message || "登录失败，请检查账号密码")
+      setError(err?.message || "登录失败，请检查账号密码")
     } finally {
       setIsLoading(false)
     }

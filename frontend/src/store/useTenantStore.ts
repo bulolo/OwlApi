@@ -4,25 +4,33 @@ import { apiListTenants, apiCreateTenant, type Tenant } from '@/lib/api-client'
 interface TenantState {
   tenants: Tenant[]
   loading: boolean
+  page: number
+  size: number
+  total: number
   recentTenants: string[]
 
-  fetchTenants: () => Promise<void>
+  fetchTenants: (page?: number, size?: number) => Promise<void>
   addTenant: (name: string, slug: string, plan: string, userId: string) => Promise<Tenant>
   markTenantAsRecent: (id: string) => void
 }
 
-export const useTenantStore = create<TenantState>((set) => ({
+export const useTenantStore = create<TenantState>((set, get) => ({
   tenants: [],
   loading: false,
+  page: 1,
+  size: 10,
+  total: 0,
   recentTenants: [],
 
-  fetchTenants: async () => {
+  fetchTenants: async (page?: number, size?: number) => {
+    const p = page ?? get().page
+    const s = size ?? get().size
     set({ loading: true })
     try {
-      const tenants = await apiListTenants()
-      set({ tenants })
+      const res = await apiListTenants(p, s)
+      set({ tenants: res.list || [], page: res.pagination.page, size: res.pagination.size, total: res.pagination.total })
     } catch {
-      // fallback: keep current state
+      // keep current state
     } finally {
       set({ loading: false })
     }
@@ -30,7 +38,8 @@ export const useTenantStore = create<TenantState>((set) => ({
 
   addTenant: async (name, slug, plan, userId) => {
     const tenant = await apiCreateTenant({ name, slug, plan: plan as any, user_id: userId })
-    set((state) => ({ tenants: [...state.tenants, tenant] }))
+    // Refresh list
+    get().fetchTenants()
     return tenant
   },
 

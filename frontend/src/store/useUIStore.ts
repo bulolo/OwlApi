@@ -13,7 +13,7 @@ interface UIState {
   setViewContext: (context: ViewContext) => void
   setActiveTenant: (tenantId: string) => void
   login: (email: string, password: string) => Promise<AuthResponse>
-  register: (email: string, name: string, password: string, tenantName?: string, tenantDomain?: string) => Promise<AuthResponse>
+  register: (email: string, name: string, password: string, tenantName?: string, tenantSlug?: string) => Promise<AuthResponse>
   logout: () => void
   restoreSession: () => void
 }
@@ -29,26 +29,33 @@ export const useUIStore = create<UIState>((set) => ({
 
   login: async (email, password) => {
     const res = await apiLogin({ email, password })
+    localStorage.setItem('owlapi_user', JSON.stringify(res.user))
     set({ user: res.user, token: res.token })
     return res
   },
 
-  register: async (email, name, password, tenantName, tenantDomain) => {
-    const res = await apiRegister({ email, name, password, tenant_name: tenantName, tenant_slug: tenantDomain })
+  register: async (email, name, password, tenantName, tenantSlug) => {
+    const res = await apiRegister({ email, name, password, tenant_name: tenantName, tenant_slug: tenantSlug })
+    localStorage.setItem('owlapi_user', JSON.stringify(res.user))
     set({ user: res.user, token: res.token })
     return res
   },
 
   logout: () => {
     clearToken()
+    localStorage.removeItem('owlapi_user')
     set({ user: null, token: null, activeTenant: '' })
   },
 
   restoreSession: () => {
     const token = getToken()
     if (token) {
-      set({ token })
-      // TODO: call /api/v1/auth/me to restore user info
+      try {
+        const user = JSON.parse(localStorage.getItem('owlapi_user') || 'null')
+        set({ token, user })
+      } catch {
+        set({ token })
+      }
     }
   },
 }))

@@ -34,7 +34,7 @@ export class TenantsService {
             body: requestBody,
             mediaType: 'application/json',
             errors: {
-                409: `域名已存在`,
+                409: `slug 已存在`,
             },
         });
     }

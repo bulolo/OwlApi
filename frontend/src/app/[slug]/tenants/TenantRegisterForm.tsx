@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, ShieldCheck, CheckCircle2 } from "lucide-react"
 import { motion } from "framer-motion"
+import { apiCreateTenant } from "@/lib/api-client"
+import { useUIStore } from "@/store/useUIStore"
+import { useTenantStore } from "@/store/useTenantStore"
 
 interface TenantRegisterFormProps {
   onCancel: () => void
@@ -15,10 +18,15 @@ interface TenantRegisterFormProps {
 
 export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegisterFormProps) {
   const [step, setStep] = useState(1)
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [tenantId, setTenantId] = useState("")
+  const { user } = useUIStore()
+  const { fetchTenants } = useTenantStore()
   const [formData, setFormData] = useState({
     companyName: "",
     slug: "",
-    plan: "pro",
+    plan: "Free",
     adminEmail: "",
     region: "shanghai"
   })
@@ -127,33 +135,53 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                   <Label className="text-xs font-black uppercase text-zinc-400">选择服务等级</Label>
                   <div className="grid grid-cols-1 gap-3">
                     <PlanOption 
-                      active={formData.plan === 'standard'} 
-                      onClick={() => setFormData({...formData, plan: 'standard'})}
-                      title="Standard 版" 
-                      desc="适合 20 人以下的小型团队"
+                      active={formData.plan === 'Free'} 
+                      onClick={() => setFormData({...formData, plan: 'Free'})}
+                      title="Free" 
+                      desc="适合个人开发者和小型团队试用"
                     />
                     <PlanOption 
-                      active={formData.plan === 'pro'} 
-                      onClick={() => setFormData({...formData, plan: 'pro'})}
-                      title="Professional 版" 
+                      active={formData.plan === 'Pro'} 
+                      onClick={() => setFormData({...formData, plan: 'Pro'})}
+                      title="Pro" 
                       desc="支持私有网关节点部署与高级审计"
                     />
                     <PlanOption 
-                      active={formData.plan === 'enterprise'} 
-                      onClick={() => setFormData({...formData, plan: 'enterprise'})}
-                      title="Enterprise 版" 
+                      active={formData.plan === 'Enterprise'} 
+                      onClick={() => setFormData({...formData, plan: 'Enterprise'})}
+                      title="Enterprise" 
                       desc="独占集群、SSO 集成及 7x24 服务"
                     />
                   </div>
                 </div>
 
+                {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
                 <div className="flex gap-3 pt-4">
                   <Button variant="outline" onClick={() => setStep(1)} className="flex-1 h-11 font-bold">返回修改</Button>
                   <Button 
-                    onClick={() => setStep(3)}
+                    disabled={loading}
+                    onClick={async () => {
+                      setLoading(true)
+                      setError("")
+                      try {
+                        const tenant = await apiCreateTenant({
+                          name: formData.companyName,
+                          slug: formData.slug,
+                          plan: formData.plan as any,
+                          user_id: user?.id || "",
+                        })
+                        setTenantId(tenant.id || "")
+                        await fetchTenants()
+                        setStep(3)
+                      } catch (err: any) {
+                        setError(err?.message || "创建失败")
+                      } finally {
+                        setLoading(false)
+                      }
+                    }}
                     className="flex-[2] h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg"
                   >
-                    确认并初始化资源
+                    {loading ? "创建中..." : "确认并初始化资源"}
                   </Button>
                 </div>
               </motion.div>
@@ -182,7 +210,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                    </div>
                    <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-400">租户识别码 (Tenant ID):</span>
-                      <span className="font-mono font-bold text-zinc-900 uppercase">SH-T-{Math.floor(Math.random()*10000)}</span>
+                      <span className="font-mono font-bold text-zinc-900 uppercase">{tenantId}</span>
                    </div>
                 </div>
                 <Button 

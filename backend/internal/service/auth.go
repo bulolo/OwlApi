@@ -34,9 +34,10 @@ type RegisterRequest struct {
 }
 
 type AuthResponse struct {
-	User   *domain.User     `json:"user"`
-	Token  string           `json:"token"`
-	Tenant *domain.Tenant   `json:"tenant,omitempty"`
+	User    *domain.User     `json:"user"`
+	Token   string           `json:"token"`
+	Tenant  *domain.Tenant   `json:"tenant,omitempty"`
+	Tenants []*domain.Tenant `json:"tenants,omitempty"`
 }
 
 type authService struct {
@@ -111,15 +112,29 @@ func (s *authService) Login(ctx context.Context, email, password string) (*AuthR
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return nil, ErrInvalidCredentials
 	}
-	return &AuthResponse{User: user, Token: generateToken()}, nil
+	// Fetch user's tenants
+	memberships, _ := s.members.GetByUserID(ctx, user.ID)
+	tenants := make([]*domain.Tenant, 0, len(memberships))
+	for _, m := range memberships {
+		if t, err := s.tenants.GetByID(ctx, m.TenantID); err == nil {
+			tenants = append(tenants, t)
+		}
+	}
+	resp := &AuthResponse{User: user, Token: generateToken(), Tenants: tenants}
+	if len(tenants) > 0 {
+		resp.Tenant = tenants[0]
+	}
+	return resp, nil
 }
 
 // ==================== Tenant Service ====================
 
 type TenantService interface {
 	Create(ctx context.Context, tenant *domain.Tenant, creatorUserID string) error
-	List(ctx context.Context) ([]*domain.Tenant, error)
+	List(ctx context.Context, page, size int) ([]*domain.Tenant, int, error)
 	GetBySlug(ctx context.Context, slug string) (*domain.Tenant, error)
+	Update(ctx context.Context, slug string, name string, plan string, status string) (*domain.Tenant, error)
+	Delete(ctx context.Context, slug string) error
 	ListByUser(ctx context.Context, userID string) ([]*domain.Tenant, error)
 }
 
@@ -157,12 +172,41 @@ func (s *tenantService) Create(ctx context.Context, tenant *domain.Tenant, creat
 	})
 }
 
-func (s *tenantService) List(ctx context.Context) ([]*domain.Tenant, error) {
-	return s.tenants.List(ctx)
+func (s *tenantService) List(ctx context.Context, page, size int) ([]*domain.Tenant, int, error) {
+	return s.tenants.List(ctx, page, size)
 }
 
 func (s *tenantService) GetBySlug(ctx context.Context, slug string) (*domain.Tenant, error) {
 	return s.tenants.GetBySlug(ctx, slug)
+}
+
+func (s *tenantService) Update(ctx context.Context, slug string, name string, plan string, status string) (*domain.Tenant, error) {
+	t, err := s.tenants.GetBySlug(ctx, slug)
+	if err != nil {
+		return nil, err
+	}
+	if name != "" {
+		t.Name = name
+	}
+	if plan != "" {
+		t.Plan = domain.TenantPlan(plan)
+	}
+	if status != "" {
+		t.Status = domain.TenantStatus(status)
+	}
+	t.UpdatedAt = time.Now()
+	if err := s.tenants.Update(ctx, t); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
+func (s *tenantService) Delete(ctx context.Context, slug string) error {
+	t, err := s.tenants.GetBySlug(ctx, slug)
+	if err != nil {
+		return err
+	}
+	return s.tenants.Delete(ctx, t.ID)
 }
 
 func (s *tenantService) ListByUser(ctx context.Context, userID string) ([]*domain.Tenant, error) {
@@ -185,7 +229,7 @@ func (s *tenantService) ListByUser(ctx context.Context, userID string) ([]*domai
 type MemberService interface {
 	AddMember(ctx context.Context, tenantID, userEmail string, role domain.UserRole) error
 	RemoveMember(ctx context.Context, tenantID, userID string) error
-	ListMembers(ctx context.Context, tenantID string) ([]*domain.TenantMember, error)
+	ListMembers(ctx context.Context, tenantID string, page, size int) ([]*domain.TenantMember, int, error)
 	UpdateRole(ctx context.Context, tenantID, userID string, role domain.UserRole) error
 }
 
@@ -215,8 +259,8 @@ func (s *memberService) RemoveMember(ctx context.Context, tenantID, userID strin
 	return s.members.Remove(ctx, tenantID, userID)
 }
 
-func (s *memberService) ListMembers(ctx context.Context, tenantID string) ([]*domain.TenantMember, error) {
-	return s.members.GetByTenantID(ctx, tenantID)
+func (s *memberService) ListMembers(ctx context.Context, tenantID string, page, size int) ([]*domain.TenantMember, int, error) {
+	return s.members.GetByTenantID(ctx, tenantID, page, size)
 }
 
 func (s *memberService) UpdateRole(ctx context.Context, tenantID, userID string, role domain.UserRole) error {

@@ -26,7 +26,7 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
   
   useEffect(() => {
     setMounted(true)
-    fetchTenants()
+    fetchTenants(1, 100) // switcher loads all
   }, [])
 
   const currentTenantObj = tenants.find(t => t.slug === activeTenant) || tenants[0]

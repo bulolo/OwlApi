@@ -24,7 +24,7 @@ export class AuthService {
             body: requestBody,
             mediaType: 'application/json',
             errors: {
-                409: `邮箱或域名已存在`,
+                409: `邮箱或 slug 已存在`,
             },
         });
     }

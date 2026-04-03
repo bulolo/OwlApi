@@ -26,7 +26,7 @@ export function Pager({ page, size, total, sizeOptions = [10, 20, 50, 100], onCh
         <select
           value={size}
           onChange={(e) => onChange(1, Number(e.target.value))}
-          className="h-7 px-2 text-[10px] font-bold border border-zinc-200 rounded-md bg-white text-zinc-600 cursor-pointer"
+          className="h-7 px-2 text-[10px] font-bold border border-zinc-200 rounded-lg bg-white text-zinc-600 cursor-pointer"
         >
           {sizeOptions.map((s) => (
             <option key={s} value={s}>{s} 条/页</option>

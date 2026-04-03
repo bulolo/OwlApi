@@ -5,7 +5,6 @@ import { useUIStore } from "@/store/useUIStore"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
 import { LayoutGrid, Layers, Settings, FileCode, Activity, Terminal } from "lucide-react"
 
 export default function ProjectLayoutContent({

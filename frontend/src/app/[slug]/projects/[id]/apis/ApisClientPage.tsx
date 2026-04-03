@@ -9,7 +9,6 @@ import { Play, Save, Plus, Globe, FileJson, Terminal, ChevronRight, Search, Layo
 import { format } from "sql-formatter"
 import Editor from "@monaco-editor/react"
 import { cn } from "@/lib/utils"
-import { motion, AnimatePresence } from "framer-motion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { ResultTable } from "@/components/ResultTable"
@@ -206,7 +205,7 @@ export default function ApisPage({ projectId }: { projectId: string }) {
             >
               <div className="flex items-center justify-between mb-1">
                 <span className={cn(
-                  "font-bold text-[9px] px-1.5 py-0.5 rounded uppercase tracking-tighter border",
+                  "font-bold text-[10px] px-1.5 py-0.5 rounded uppercase tracking-tighter border",
                   api.method === 'GET' ? "bg-blue-50 text-blue-600 border-blue-100" :
                     api.method === 'POST' ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                       "bg-orange-50 text-orange-600 border-orange-100"
@@ -225,12 +224,10 @@ export default function ApisPage({ projectId }: { projectId: string }) {
 
       {/* Tighter Editor Workspace */}
       <div className="col-span-9">
-        <AnimatePresence mode="wait">
+        
           {isEditing ? (
-            <motion.div
+            <div
               key="editing"
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
               className="h-full flex flex-col border border-zinc-200 rounded-lg bg-white overflow-hidden shadow-sm"
             >
               {/* Workspace Header */}
@@ -275,12 +272,12 @@ export default function ApisPage({ projectId }: { projectId: string }) {
                     <div className="px-4 py-2 bg-zinc-50/30 border-b flex items-center justify-between text-[10px] font-bold text-zinc-400 tracking-tight h-8 uppercase">
                       <span>SQL 核心引擎</span>
                       <div className="flex items-center gap-2">
-                        <Button onClick={handleFormat} variant="ghost" size="sm" className="h-5 text-[9px] px-2 text-zinc-500 hover:text-blue-600 hover:bg-blue-50">
+                        <Button onClick={handleFormat} variant="ghost" size="sm" className="h-5 text-[10px] px-2 text-zinc-500 hover:text-blue-600 hover:bg-blue-50">
                           <AlignLeft className="w-3 h-3 mr-1" />
                           格式化
                         </Button>
                         <div className="w-[1px] h-3 bg-zinc-200" />
-                        <Button onClick={handleSyncParams} variant="ghost" size="sm" className="h-5 text-[9px] px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                        <Button onClick={handleSyncParams} variant="ghost" size="sm" className="h-5 text-[10px] px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
                           <Terminal className="w-3 h-3 mr-1" />
                           解析参数
                         </Button>
@@ -314,7 +311,7 @@ export default function ApisPage({ projectId }: { projectId: string }) {
                   <div className="col-span-4 flex flex-col bg-zinc-50/20">
                      <div className="px-4 py-2 border-b flex items-center justify-between text-[10px] font-bold text-zinc-400 tracking-tight h-8 uppercase bg-zinc-50/50">
                        <span>请求参数配置</span>
-                       <Badge variant="outline" className="text-[9px] h-4 border-zinc-200 text-zinc-500 bg-white">
+                       <Badge variant="outline" className="text-[10px] h-4 border-zinc-200 text-zinc-500 bg-white">
                          application/json
                        </Badge>
                     </div>
@@ -344,7 +341,7 @@ export default function ApisPage({ projectId }: { projectId: string }) {
                                   </TableCell>
                                   <TableCell className="py-1">
                                     <select 
-                                      className="h-6 w-full rounded border border-zinc-200 bg-white px-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      className="h-6 w-full rounded border border-zinc-200 bg-white px-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-600"
                                       value={param.type}
                                       onChange={(e) => {
                                         const newParams = [...(formData.parameters || [])];
@@ -373,7 +370,7 @@ export default function ApisPage({ projectId }: { projectId: string }) {
                        
                        {/* JSON Body Preview */}
                        <div className="h-[120px] bg-zinc-50 p-3 overflow-auto border-t border-zinc-100">
-                          <span className="text-[9px] font-bold text-zinc-400 uppercase mb-1 block">JSON 预览</span>
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase mb-1 block">JSON 预览</span>
                           <pre className="font-mono text-[10px] text-zinc-600 whitespace-pre-wrap break-all leading-tight">
                             {JSON.stringify(testValues, null, 2)}
                           </pre>
@@ -388,7 +385,7 @@ export default function ApisPage({ projectId }: { projectId: string }) {
                     <span>响应结果</span>
                   </div>
                   <div className="flex-1 p-0 overflow-hidden relative">
-                    <AnimatePresence mode="wait">
+                    
                       {executing ? (
                         <div className="flex flex-col items-center justify-center h-full space-y-3 opacity-50">
                           <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -410,11 +407,11 @@ export default function ApisPage({ projectId }: { projectId: string }) {
                           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-tighter">等待执行</p>
                         </div>
                       )}
-                    </AnimatePresence>
+                    
                   </div>
                 </div>
 
-            </motion.div>
+            </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-white border border-dashed border-zinc-200 rounded-lg shadow-inner">
                {/* Empty State */}
@@ -425,12 +422,12 @@ export default function ApisPage({ projectId }: { projectId: string }) {
               <p className="text-xs text-zinc-400 mt-2 max-w-xs font-medium leading-relaxed">
                 请从左侧列表选择一个 API 断点，或开始初始化全新的端点映射。
               </p>
-              <Button onClick={handleCreateNew} className="h-8 px-5 bg-zinc-900 hover:bg-zinc-800 text-white rounded text-[10px] font-bold mt-6 shadow-sm">
+              <Button onClick={handleCreateNew} className="h-8 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold mt-6 shadow-sm">
                 快速开始
               </Button>
             </div>
           )}
-        </AnimatePresence>
+        
       </div>
     </div>
   )

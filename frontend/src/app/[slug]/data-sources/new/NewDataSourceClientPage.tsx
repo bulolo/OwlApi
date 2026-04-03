@@ -67,7 +67,7 @@ export default function NewDataSourceClientPage() {
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => router.back()} className="h-10 px-6 font-bold text-zinc-600">取消</Button>
-          <Button onClick={handleSave} className="h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-500/20">
+          <Button onClick={handleSave} className="h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm">
             <Save className="w-4 h-4 mr-2" />
             建立连接推演
           </Button>
@@ -77,9 +77,9 @@ export default function NewDataSourceClientPage() {
       <div className="grid grid-cols-12 gap-8">
         {/* Left: Basic Info */}
         <div className="col-span-12 lg:col-span-4 space-y-6">
-          <Card className="p-6 border-zinc-200/60 shadow-sm relative overflow-hidden">
+          <Card className="p-6 border-zinc-100 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 p-2">
-               <Badge variant="secondary" className="bg-zinc-100 text-zinc-500 border-none text-[9px] font-bold">CONFIG</Badge>
+               <Badge variant="secondary" className="bg-zinc-100 text-zinc-500 border-none text-[10px] font-bold">CONFIG</Badge>
             </div>
             <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wide mb-6 flex items-center">
               <Info className="w-4 h-4 mr-2 text-blue-500" />
@@ -129,7 +129,7 @@ export default function NewDataSourceClientPage() {
             </div>
           </Card>
 
-          <div className="p-5 bg-blue-50/50 border border-blue-100 rounded-xl shadow-sm">
+          <div className="p-5 bg-blue-50/50 border border-blue-100 rounded-lg shadow-sm">
              <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2 flex items-center gap-2">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 安全与合规
@@ -143,7 +143,7 @@ export default function NewDataSourceClientPage() {
         {/* Right: Environment Configs */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
           {/* DEV Environment */}
-          <Card className="p-6 border-zinc-200/60 shadow-sm overflow-hidden relative">
+          <Card className="p-6 border-zinc-100 shadow-sm overflow-hidden relative">
             <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-3">
@@ -202,7 +202,7 @@ export default function NewDataSourceClientPage() {
 
           {/* PROD Environment */}
           {formData.isDual && (
-            <Card className="p-6 border-zinc-200/60 shadow-sm overflow-hidden relative">
+            <Card className="p-6 border-zinc-100 shadow-sm overflow-hidden relative">
               <div className="absolute top-0 left-0 w-1 h-full bg-blue-600" />
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
@@ -259,7 +259,7 @@ export default function NewDataSourceClientPage() {
           )}
 
           {!formData.isDual && (
-            <div className="p-10 border-2 border-dashed border-zinc-100 rounded-xl flex flex-col items-center justify-center text-center space-y-3">
+            <div className="p-10 border-2 border-dashed border-zinc-100 rounded-lg flex flex-col items-center justify-center text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-zinc-50 flex items-center justify-center">
                 <ArrowLeft className="w-6 h-6 text-zinc-200 rotate-180" />
               </div>

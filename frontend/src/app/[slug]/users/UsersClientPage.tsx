@@ -106,7 +106,7 @@ export default function UsersClientPage() {
         </div>
         <Button
           onClick={() => setShowAdd(true)}
-          className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-500/20"
+          className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm"
         >
           <Plus className="w-4 h-4 mr-2" />
           添加成员
@@ -115,7 +115,7 @@ export default function UsersClientPage() {
 
       {/* Add Member Form */}
       {showAdd && (
-        <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
+        <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-zinc-900">添加成员</h3>
             <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => { setShowAdd(false); setAddError("") }}>
@@ -153,7 +153,7 @@ export default function UsersClientPage() {
       )}
 
       {/* Search */}
-      <div className="bg-white border border-zinc-200/60 p-3 rounded-xl flex gap-2 shadow-sm">
+      <div className="bg-white border border-zinc-100 p-3 rounded-lg flex gap-2 shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <Input
@@ -175,12 +175,12 @@ export default function UsersClientPage() {
           filtered.map((m, i) => (
             <div
               key={m.user_id}
-              className="bg-white border border-zinc-200/60 rounded-xl p-4 shadow-sm hover:shadow-md transition-all group"
+              className="bg-white border border-zinc-100 rounded-lg p-4 shadow-sm hover:shadow-sm transition-all group"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold uppercase border",
+                    "w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold uppercase border",
                     roleColor(m.role)
                   )}>
                     {(m.user?.name || "?").charAt(0)}

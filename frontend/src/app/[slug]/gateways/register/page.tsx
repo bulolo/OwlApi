@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Terminal, Copy, Check, Server, Shield, ArrowRight, ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { motion } from "framer-motion"
 import { useUIStore } from "@/store/useUIStore"
 
 export default function RegisterGatewayPage() {
@@ -27,7 +26,7 @@ export default function RegisterGatewayPage() {
   return (
     <div className="max-w-3xl mx-auto py-10">
       <div className="mb-8 text-center">
-        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
+        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4 shadow-sm">
           <Server className="w-6 h-6 text-white" />
         </div>
         <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">部署新的网关节点</h1>
@@ -43,9 +42,8 @@ export default function RegisterGatewayPage() {
         <StepIndicator num={3} active={step >= 3} label="验证连接" />
       </div>
 
-      <div className="bg-white border border-zinc-200/60 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-zinc-100 rounded-lg shadow-sm overflow-hidden">
         {step === 1 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-8 space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>节点名称</Label>
@@ -70,11 +68,10 @@ export default function RegisterGatewayPage() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {step === 2 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-8 space-y-6">
             <div className="bg-zinc-900 rounded-lg p-4 font-mono text-sm text-white relative group">
               <div className="absolute top-3 right-3">
                  <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded" onClick={handleCopy}>
@@ -108,11 +105,10 @@ export default function RegisterGatewayPage() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {step === 3 && (
-           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-12 flex flex-col items-center text-center">
              <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-6 relative">
                <div className="absolute inset-0 rounded-full border-4 border-t-blue-600 border-zinc-200 animate-spin" />
                <Server className="w-6 h-6 text-zinc-400" />
@@ -134,7 +130,7 @@ export default function RegisterGatewayPage() {
                 </Button>
                </Link>
              </div>
-           </motion.div>
+           </div>
         )}
       </div>
     </div>
@@ -146,7 +142,7 @@ function StepIndicator({ num, active, label }: any) {
     <div className="flex flex-col items-center gap-2">
       <div className={`
         w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all
-        ${active ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30' : 'bg-zinc-100 text-zinc-400'}
+        ${active ? 'bg-blue-600 text-white shadow-sm' : 'bg-zinc-100 text-zinc-400'}
       `}>
         {num}
       </div>

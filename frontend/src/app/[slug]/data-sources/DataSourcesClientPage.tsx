@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
 import Link from "next/link"
 import {
   Database,
@@ -46,14 +45,14 @@ export default function DataSourcesClientPage() {
           <p className="text-sm text-zinc-500 mt-1 font-medium">通过自建网关节点实现跨网络数据库安全接入</p>
         </div>
         <Link href={`/${activeTenant}/data-sources/new`}>
-          <Button className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+          <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
             <Plus className="w-4 h-4 mr-2" />
             接入新数据源
           </Button>
         </Link>
       </div>
 
-      <div className="bg-white border border-zinc-200/60 rounded-xl p-3 flex flex-col md:flex-row gap-2 shadow-sm">
+      <div className="bg-white border border-zinc-100 rounded-lg p-3 flex flex-col md:flex-row gap-2 shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
           <Input
@@ -74,27 +73,26 @@ export default function DataSourcesClientPage() {
           const devRunner = gateways.find(g => g.id === ds.dev.gatewayId)
           
           return (
-            <motion.div
+            <div
               key={ds.id}
-              whileHover={{ y: -4 }}
               className="group"
             >
-              <Card className="bg-white border-zinc-200/60 rounded-xl shadow-sm hover:shadow-xl hover:border-blue-500/30 transition-all duration-300 flex flex-col h-full overflow-hidden">
+              <Card className="bg-white border-zinc-100 rounded-lg shadow-sm hover:shadow-sm hover:border-blue-600/30 transition-all duration-300 flex flex-col h-full overflow-hidden">
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center border shadow-sm transition-colors", DB_TYPE_COLORS[ds.type] || "text-zinc-600 border-zinc-100 bg-zinc-50/30")}>
+                    <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center border shadow-sm transition-colors", DB_TYPE_COLORS[ds.type] || "text-zinc-600 border-zinc-100 bg-zinc-50/30")}>
                       <Database className="w-6 h-6" />
                     </div>
                     <div className="flex gap-1.5">
                       <div className={cn(
-                        "px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-tight",
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-tight",
                         ds.dev.status === 'Connected' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
                       )}>
                         DEV: {ds.dev.status === 'Connected' ? "LIVE" : "FAIL"}
                       </div>
                       {ds.isDual && (
                         <div className={cn(
-                          "px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-tight",
+                          "px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-tight",
                           ds.prod?.status === 'Connected' ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-rose-50 text-rose-600 border-rose-100"
                         )}>
                           PROD: {ds.prod?.status === 'Connected' ? "LIVE" : "FAIL"}
@@ -114,7 +112,7 @@ export default function DataSourcesClientPage() {
 
                   <div className="mt-6 space-y-3">
                     <div className="flex flex-col gap-1.5">
-                       <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Environment Endpoints</span>
+                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Environment Endpoints</span>
                        <div className="flex items-center justify-between text-[11px] font-mono text-zinc-600 bg-zinc-50 px-2.5 py-1.5 rounded-lg border border-zinc-100">
                           <span className="truncate">{ds.dev.host}</span>
                           <span className="text-zinc-300 ml-2">:{ds.dev.port}</span>
@@ -133,12 +131,12 @@ export default function DataSourcesClientPage() {
                   </Button>
                 </div>
               </Card>
-            </motion.div>
+            </div>
           )
         })}
 
         <Link href={`/${activeTenant}/data-sources/new`} className="group">
-          <div className="border-2 border-dashed border-zinc-200 rounded-xl flex flex-col items-center justify-center p-6 bg-zinc-50/20 hover:bg-white hover:border-blue-400/50 hover:shadow-xl transition-all cursor-pointer h-full min-h-[220px]">
+          <div className="border-2 border-dashed border-zinc-200 rounded-lg flex flex-col items-center justify-center p-6 bg-zinc-50/20 hover:bg-white hover:border-blue-600/30 hover:shadow-sm transition-all cursor-pointer h-full min-h-[220px]">
             <div className="w-12 h-12 rounded-lg border border-zinc-100 flex items-center justify-center mb-4 bg-white shadow-sm group-hover:scale-110 group-hover:bg-blue-600 group-hover:border-blue-600 transition-all duration-300">
               <Plus className="w-6 h-6 text-zinc-300 group-hover:text-white" />
             </div>

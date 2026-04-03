@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { motion } from "framer-motion"
 import { useUIStore } from "@/store/useUIStore"
 import { useRouter } from "next/navigation"
 import { useTenantStore } from "@/store/useTenantStore"
@@ -42,7 +41,7 @@ export default function TenantsClientPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-200/60 pb-4">
+      <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
         <div>
           <h1 className="text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
             <Building2 className="w-5 h-5 text-zinc-400" />
@@ -69,7 +68,7 @@ export default function TenantsClientPage() {
       )}
 
       {/* List */}
-      <div className="bg-white rounded-xl border border-zinc-200/60 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-zinc-100 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/30">
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
@@ -84,11 +83,8 @@ export default function TenantsClientPage() {
 
         <div className="divide-y divide-zinc-100">
           {filteredTenants.map((tenant, i) => (
-            <motion.div 
+            <div 
               key={tenant.id}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
               className="p-4 hover:bg-zinc-50/50 transition-colors group"
             >
               <div className="flex items-center justify-between">
@@ -99,11 +95,11 @@ export default function TenantsClientPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-zinc-900">{tenant.name}</h3>
-                      <Badge variant="secondary" className="text-[9px] h-4 font-black uppercase tracking-tighter bg-zinc-100 text-zinc-500">
+                      <Badge variant="secondary" className="text-[10px] h-4 font-black uppercase tracking-tighter bg-zinc-100 text-zinc-500">
                         {tenant.id}
                       </Badge>
                       <Badge className={cn(
-                        "text-[9px] h-4 font-black uppercase",
+                        "text-[10px] h-4 font-black uppercase",
                         tenant.status === 'Active' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
                       )}>
                         {tenant.status}
@@ -158,7 +154,7 @@ export default function TenantsClientPage() {
                   </Button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
           {filteredTenants.length === 0 && (
             <div className="p-12 text-center text-sm text-zinc-400">暂无租户</div>
@@ -194,7 +190,7 @@ function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose
   }
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-lg space-y-5">
+    <div className="bg-white border border-zinc-200 rounded-lg p-6 shadow-sm space-y-5">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-zinc-900">编辑租户 — {tenant.slug}</h3>
         <Button variant="ghost" size="icon" className="w-7 h-7" onClick={onClose}>

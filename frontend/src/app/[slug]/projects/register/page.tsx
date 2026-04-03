@@ -63,7 +63,7 @@ export default function RegisterProjectPage() {
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => router.back()} className="h-10 px-6 font-bold text-zinc-600">取消</Button>
-          <Button className="h-10 px-8 bg-zinc-900 hover:bg-zinc-800 text-white font-bold shadow-lg shadow-zinc-500/20">
+          <Button className="h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm">
             <Save className="w-4 h-4 mr-2" />
             {isEdit ? "保存更改" : "创建项目"}
           </Button>
@@ -81,7 +81,7 @@ export default function RegisterProjectPage() {
                   placeholder="e.g. 电商核心业务系统" 
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="h-11 bg-zinc-50/50 border-zinc-200 transition-all focus:bg-white" 
+                  className="h-10 bg-zinc-50/50 border-zinc-200 transition-all focus:bg-white" 
                 />
               </div>
 
@@ -99,7 +99,7 @@ export default function RegisterProjectPage() {
                  <div className="space-y-2">
                   <Label className="text-xs font-black uppercase text-zinc-400">初始运行环境</Label>
                   <Select value={formData.environment} onValueChange={(val) => setFormData({...formData, environment: val})}>
-                    <SelectTrigger className="h-11 bg-zinc-50/50 border-zinc-200">
+                    <SelectTrigger className="h-10 bg-zinc-50/50 border-zinc-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -111,7 +111,7 @@ export default function RegisterProjectPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-black uppercase text-zinc-400">可见性策略</Label>
                   <Select value={formData.visibility} onValueChange={(val) => setFormData({...formData, visibility: val})}>
-                    <SelectTrigger className="h-11 bg-zinc-50/50 border-zinc-200">
+                    <SelectTrigger className="h-10 bg-zinc-50/50 border-zinc-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -124,7 +124,7 @@ export default function RegisterProjectPage() {
             </div>
           </Card>
 
-          <div className="bg-amber-50 border border-amber-100 rounded-xl p-5 flex items-start gap-3">
+          <div className="bg-amber-50 border border-amber-100 rounded-lg p-5 flex items-start gap-3">
              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
              <div>
                 <h4 className="text-xs font-bold text-amber-900 uppercase">环境隔离建议</h4>
@@ -138,7 +138,7 @@ export default function RegisterProjectPage() {
 
         {/* Sidebar Decor */}
         <div className="space-y-6">
-          <div className="bg-zinc-900 rounded-xl p-6 text-white shadow-xl">
+          <div className="bg-zinc-900 rounded-lg p-6 text-white shadow-sm">
              <Box className="w-10 h-10 mb-4 text-blue-500" />
              <h4 className="font-bold text-lg mb-2 italic text-zinc-100">API 引擎核心</h4>
              <p className="text-zinc-400 text-xs leading-relaxed">

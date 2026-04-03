@@ -24,12 +24,12 @@ export default function PlatformSettingsModal({ open, onOpenChange }: PlatformSe
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[1200px] h-[80vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-xl">
+      <DialogContent className="max-w-[1200px] h-[80vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-lg">
         <DialogTitle className="sr-only">平台设置</DialogTitle>
         <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar */}
           <div className="w-64 bg-zinc-50 border-r border-zinc-200 flex flex-col">
-            <div className="p-6 pb-4 border-b border-zinc-200/50">
+            <div className="p-6 pb-4 border-b border-zinc-100">
               <h2 className="text-sm font-bold text-zinc-900 tracking-tight">平台管理</h2>
               <p className="text-[10px] text-zinc-500 font-medium mt-1">Platform Administration</p>
             </div>

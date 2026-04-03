@@ -26,7 +26,7 @@ export default function DatabaseClientPage({ projectId }: { projectId: string })
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
             <input
               placeholder="Filter entities..."
-              className="w-full pl-7 h-7 text-[11px] bg-white border border-zinc-200 rounded outline-none focus:ring-1 focus:ring-blue-500/20"
+              className="w-full pl-7 h-7 text-[11px] bg-white border border-zinc-200 rounded outline-none focus:ring-1 focus:ring-blue-600/20"
             />
           </div>
         </div>
@@ -50,7 +50,7 @@ export default function DatabaseClientPage({ projectId }: { projectId: string })
 
       {/* Table Data View */}
       <div className="col-span-9 flex flex-col border border-zinc-200 rounded-lg bg-white overflow-hidden shadow-sm">
-        <div className="h-11 border-b px-4 flex items-center justify-between bg-zinc-50/30">
+        <div className="h-10 border-b px-4 flex items-center justify-between bg-zinc-50/30">
           <div className="flex items-center space-x-2">
             <span className="text-xs font-bold text-zinc-800">{selectedTable}</span>
             <span className="text-[10px] text-zinc-400 bg-white border px-1.5 py-0.5 rounded font-bold uppercase tracking-tight">

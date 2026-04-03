@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Building2, ArrowLeft, Save, ShieldCheck, Users, Globe, Zap, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
-import { motion } from "framer-motion"
 import { useUIStore } from "@/store/useUIStore"
 
 export default function RegisterTenantPage() {
@@ -68,11 +67,9 @@ export default function RegisterTenantPage() {
 
         {/* Main Content */}
         <div className="md:col-span-3">
-          <Card className="p-8 border-zinc-200/60 shadow-lg shadow-zinc-200/20">
+          <Card className="p-8 border-zinc-100 shadow-sm">
             {step === 1 && (
-              <motion.div 
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
+              <div 
                 className="space-y-6"
               >
                 <div className="space-y-2">
@@ -81,7 +78,7 @@ export default function RegisterTenantPage() {
                     placeholder="e.g. 阿里巴巴 (中国) 网络技术有限公司" 
                     value={formData.companyName}
                     onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-                    className="h-11 bg-zinc-50/50 focus:bg-white transition-all"
+                    className="h-10 bg-zinc-50/50 focus:bg-white transition-all"
                   />
                 </div>
 
@@ -93,7 +90,7 @@ export default function RegisterTenantPage() {
                       placeholder="aliyun" 
                       value={formData.slug}
                       onChange={(e) => setFormData({...formData, slug: e.target.value})}
-                      className="h-11 font-mono"
+                      className="h-10 font-mono"
                     />
                   </div>
                 </div>
@@ -105,23 +102,21 @@ export default function RegisterTenantPage() {
                     placeholder="it-admin@company.com" 
                     value={formData.adminEmail}
                     onChange={(e) => setFormData({...formData, adminEmail: e.target.value})}
-                    className="h-11 bg-zinc-50/50"
+                    className="h-10 bg-zinc-50/50"
                   />
                 </div>
 
                 <Button 
                   onClick={() => setStep(2)}
-                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md"
+                  className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm"
                 >
                   下一步: 选择订阅套餐
                 </Button>
-              </motion.div>
+              </div>
             )}
 
             {step === 2 && (
-              <motion.div 
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
+              <div 
                 className="space-y-6"
               >
                 <div className="space-y-4">
@@ -149,21 +144,19 @@ export default function RegisterTenantPage() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <Button variant="outline" onClick={() => setStep(1)} className="flex-1 h-11 font-bold">返回修改</Button>
+                  <Button variant="outline" onClick={() => setStep(1)} className="flex-1 h-10 font-bold">返回修改</Button>
                   <Button 
                     onClick={() => setStep(3)}
-                    className="flex-[2] h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg"
+                    className="flex-[2] h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg"
                   >
                     确认并初始化资源
                   </Button>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {step === 3 && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+              <div 
                 className="text-center py-6 space-y-6"
               >
                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -176,7 +169,7 @@ export default function RegisterTenantPage() {
                     管理员激活邮件已发送至 <strong>{formData.adminEmail}</strong>
                   </p>
                 </div>
-                <div className="p-4 bg-zinc-50 rounded-xl border border-dashed border-zinc-200 text-left">
+                <div className="p-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-200 text-left">
                    <div className="flex items-center justify-between text-xs mb-2">
                       <span className="text-zinc-400">专属访问 URL:</span>
                       <span className="font-mono font-bold text-blue-600">owlapi.cn/{formData.slug}</span>
@@ -188,11 +181,11 @@ export default function RegisterTenantPage() {
                 </div>
                 <Button 
                   onClick={() => router.push(`/${activeTenant}/users`)}
-                  className="w-full h-11 bg-zinc-900 hover:bg-zinc-800 text-white font-bold"
+                  className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold"
                 >
                   返回账号中心
                 </Button>
-              </motion.div>
+              </div>
             )}
           </Card>
         </div>
@@ -216,7 +209,7 @@ function PlanOption({ title, desc, active, onClick }: any) {
   return (
     <div 
       onClick={onClick}
-      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${active ? "border-blue-500 bg-blue-50/30 shadow-sm" : "border-zinc-100 hover:border-zinc-200"}`}
+      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${active ? "border-blue-600 bg-blue-50/30 shadow-sm" : "border-zinc-100 hover:border-zinc-200"}`}
     >
        <div className="flex items-center justify-between mb-1">
           <p className="font-bold text-sm text-zinc-900">{title}</p>

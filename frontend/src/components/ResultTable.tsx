@@ -26,7 +26,7 @@ export function ResultTable({ data }: ResultTableProps) {
   const firstRole = data[0]
   if (!firstRole || typeof firstRole !== 'object') {
      return (
-      <div className="h-full w-full rounded-md border border-zinc-200 bg-white p-4 font-mono text-xs text-zinc-600 overflow-auto">
+      <div className="h-full w-full rounded-lg border border-zinc-200 bg-white p-4 font-mono text-xs text-zinc-600 overflow-auto">
         <pre>{JSON.stringify(data, null, 2)}</pre>
       </div>
     )
@@ -36,7 +36,7 @@ export function ResultTable({ data }: ResultTableProps) {
   const columns = Object.keys(firstRole)
 
   return (
-    <div className="h-full w-full rounded-md border border-zinc-200 bg-white">
+    <div className="h-full w-full rounded-lg border border-zinc-200 bg-white">
       <ScrollArea className="h-full w-full">
         <Table>
           <TableHeader>

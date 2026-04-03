@@ -22,7 +22,7 @@ export default function ProjectLogsPage() {
           <input 
             type="text" 
             placeholder="搜索请求路径、状态码..." 
-            className="w-full pl-9 h-8 bg-zinc-50 border-none rounded text-[11px] focus:ring-1 focus:ring-blue-500 outline-none"
+            className="w-full pl-9 h-8 bg-zinc-50 border-none rounded text-[11px] focus:ring-1 focus:ring-blue-600 outline-none"
           />
         </div>
         <div className="flex gap-2">
@@ -37,7 +37,7 @@ export default function ProjectLogsPage() {
       </div>
 
       {/* Logs Table */}
-      <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white border border-zinc-200 rounded-lg overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -58,7 +58,7 @@ export default function ProjectLogsPage() {
                   </td>
                   <td className="px-4 py-3.5">
                     <span className={cn(
-                      "px-1.5 py-0.5 rounded text-[9px] font-black uppercase",
+                      "px-1.5 py-0.5 rounded text-[10px] font-black uppercase",
                       log.method === 'GET' ? "bg-blue-50 text-blue-600" :
                       log.method === 'POST' ? "bg-emerald-50 text-emerald-600" :
                       log.method === 'PUT' ? "bg-amber-50 text-amber-600" : "bg-zinc-100 text-zinc-500"
@@ -99,11 +99,11 @@ export default function ProjectLogsPage() {
         
         {/* Terminal Toggle Footer */}
         <div className="p-3 bg-zinc-950 border-t border-zinc-800 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-zinc-500 text-[9px] font-bold uppercase tracking-widest">
+          <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
             <Terminal className="w-3 h-3 text-emerald-500" />
             <span>实时流量监控已就绪</span>
           </div>
-          <button className="text-[9px] font-bold text-zinc-400 hover:text-white transition-colors uppercase">
+          <button className="text-[10px] font-bold text-zinc-400 hover:text-white transition-colors uppercase">
             展开终端视图
           </button>
         </div>

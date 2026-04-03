@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
 import {
   Server,
   Plus,
@@ -27,11 +26,11 @@ export default function GatewaysClientPage() {
           <p className="text-sm text-zinc-500 mt-1 font-medium">网关节点部署于数据库所在机器，提供安全的内网数据索引能力。</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="h-9 px-4 rounded-xl border-zinc-200 text-xs font-bold shadow-sm">
+          <Button variant="outline" className="h-9 px-4 rounded-lg border-zinc-200 text-xs font-bold shadow-sm">
             刷新心跳
           </Button>
           <Link href={`/${activeTenant}/gateways/register`}>
-            <Button className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+            <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
               <Plus className="w-4 h-4 mr-2" />
               安装新节点
             </Button>
@@ -41,10 +40,9 @@ export default function GatewaysClientPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {gateways.map((gw) => (
-          <motion.div 
+          <div 
             key={gw.id} 
-            whileHover={{ y: -2 }}
-            className="bg-white border border-zinc-200/60 rounded-xl p-5 flex flex-col shadow-sm hover:shadow-md transition-all group"
+            className="bg-white border border-zinc-100 rounded-lg p-5 flex flex-col shadow-sm hover:shadow-sm transition-all group"
           >
             <div className="flex items-start justify-between mb-5">
               <div className="flex items-center space-x-4">
@@ -89,7 +87,7 @@ export default function GatewaysClientPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-200/60 border-dashed">
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-100 border-dashed">
               <div className="flex items-center text-[11px] font-medium text-zinc-400">
                 服务状态正常
               </div>
@@ -102,7 +100,7 @@ export default function GatewaysClientPage() {
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>

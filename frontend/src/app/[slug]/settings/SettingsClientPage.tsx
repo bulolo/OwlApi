@@ -22,7 +22,7 @@ export default function SettingsClientPage() {
 
   return (
     <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between border-b border-zinc-200/60 pb-4">
+      <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
         <div>
           <h1 className="text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
             <Settings className="w-5 h-5 text-zinc-400" />
@@ -219,7 +219,7 @@ function SettingsTabLink({ icon: Icon, label, active, onClick }: { icon: any; la
     <div 
       onClick={onClick}
       className={cn(
-        "flex items-center space-x-3 px-4 py-2.5 rounded-md cursor-pointer transition-all",
+        "flex items-center space-x-3 px-4 py-2.5 rounded-lg cursor-pointer transition-all",
         active
           ? "bg-blue-50 text-blue-600 border border-blue-100 shadow-[0_1px_2px_rgba(59,130,246,0.1)]"
           : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
@@ -233,10 +233,10 @@ function SettingsTabLink({ icon: Icon, label, active, onClick }: { icon: any; la
 
 function SettingsCard({ title, children, icon: Icon, iconColor }: { title: string; children: React.ReactNode; icon?: any; iconColor?: string }) {
   return (
-    <section className="bg-white border border-zinc-200/60 rounded-xl p-6 shadow-sm space-y-5">
+    <section className="bg-white border border-zinc-100 rounded-lg p-6 shadow-sm space-y-5">
       {Icon && (
         <h3 className="text-sm font-bold text-zinc-900 flex items-center gap-2">
-          <div className={cn("p-1.5 rounded-md bg-zinc-50", iconColor)}>
+          <div className={cn("p-1.5 rounded-lg bg-zinc-50", iconColor)}>
             <Icon className="w-4 h-4" />
           </div>
           {title}

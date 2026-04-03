@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { Activity, Server, Users, Zap, ArrowUpRight, ArrowDownRight, Box } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
 import { useUIStore } from "@/store/useUIStore"
 
 const TRAFFIC_DATA = {
@@ -74,7 +73,7 @@ export default function OverviewPage() {
 
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-xl border border-zinc-200/60 shadow-sm p-6">
+        <div className="lg:col-span-2 bg-white rounded-lg border border-zinc-100 shadow-sm p-6">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h3 className="text-base font-bold text-zinc-900">流量趋势</h3>
@@ -85,7 +84,7 @@ export default function OverviewPage() {
                 <button 
                   key={r}
                   onClick={() => setRange(r)}
-                  className={`text-[10px] px-3 py-1 rounded-md font-black tracking-tighter uppercase transition-all ${
+                  className={`text-[10px] px-3 py-1 rounded-lg font-black tracking-tighter uppercase transition-all ${
                     range === r 
                       ? "bg-white shadow-sm border border-zinc-200 text-zinc-900" 
                       : "text-zinc-400 hover:bg-white/50 border border-transparent"
@@ -122,7 +121,7 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-zinc-200/60 shadow-sm p-6">
+        <div className="bg-white rounded-lg border border-zinc-100 shadow-sm p-6">
            <h3 className="text-base font-bold text-zinc-900 mb-4">最近动态</h3>
            <div className="space-y-6 relative before:absolute before:left-[15px] before:top-2 before:h-full before:w-[2px] before:bg-zinc-100">
              {[
@@ -196,29 +195,21 @@ function TrafficChart({ data, rangeType }: { data: number[], rangeType: string }
           />
         ))}
 
-        <AnimatePresence mode="wait">
-          <motion.g key={rangeType}>
+        
+          <g key={rangeType}>
             {/* Area Fill */}
-            <motion.path
+            <path
               d={areaD}
               fill="url(#chartGradient)"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
             />
 
             {/* Path */}
-            <motion.path
+            <path
               d={pathD}
               fill="none"
               stroke="#3b82f6"
               strokeWidth="3"
               strokeLinecap="round"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.8, ease: "easeInOut" }}
             />
 
             {/* Interaction Points */}
@@ -236,30 +227,27 @@ function TrafficChart({ data, rangeType }: { data: number[], rangeType: string }
 
               return (
                 <g key={i}>
-                  <motion.circle
+                  <circle
                     cx={p.x}
                     cy={p.y}
                     r="4"
                     fill="#3b82f6"
                     stroke="white"
                     strokeWidth="2"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.5 + i * 0.02 }}
                   />
                   <text 
                     x={p.x} 
                     y={height + 20} 
                     textAnchor="middle" 
-                    className="text-[9px] fill-zinc-400 font-bold uppercase tracking-tighter"
+                    className="text-[10px] fill-zinc-400 font-bold uppercase tracking-tighter"
                   >
                     {label}
                   </text>
                 </g>
               )
             })}
-          </motion.g>
-        </AnimatePresence>
+          </g>
+        
       </svg>
     </div>
   )
@@ -274,9 +262,8 @@ function StatCard({ title, value, change, trend, icon: Icon, color }: any) {
   }
 
   return (
-    <motion.div 
-      whileHover={{ y: -2 }}
-      className="bg-white rounded-xl border border-zinc-200/60 p-5 shadow-sm hover:shadow-md transition-all"
+    <div 
+      className="bg-white rounded-lg border border-zinc-100 p-5 shadow-sm hover:shadow-sm transition-all"
     >
       <div className="flex justify-between items-start mb-4">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorMap[color]}`}>
@@ -291,6 +278,6 @@ function StatCard({ title, value, change, trend, icon: Icon, color }: any) {
         <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{title}</p>
         <h3 className="text-2xl font-bold text-zinc-900 mt-1 tracking-tight">{value}</h3>
       </div>
-    </motion.div>
+    </div>
   )
 }

@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { motion } from "framer-motion"
 import {
   LayoutDashboard,
   Box,
@@ -53,7 +52,7 @@ export function Sidebar({ slug }: { slug?: string }) {
       {/* Premium Brand Section */}
       <div className="h-20 flex items-center px-8 mb-2">
         <Link href={`/${activeTenant}/overview`} className="flex items-center gap-4 group">
-          <div className="w-10 h-10 rounded-2xl bg-zinc-900 flex items-center justify-center transition-all duration-500 group-hover:bg-blue-600 group-hover:rotate-6 shadow-xl shadow-zinc-200 group-hover:shadow-blue-200">
+          <div className="w-10 h-10 rounded-lg bg-zinc-900 flex items-center justify-center transition-all duration-500 group-hover:bg-blue-600 group-hover:rotate-6 shadow-sm">
             <Hexagon className="w-5 h-5 text-white stroke-[2.5]" />
           </div>
           <div className="flex flex-col">
@@ -93,13 +92,13 @@ function NavItem({ href, icon: Icon, label }: { href: string; icon: any; label: 
   return (
     <Link href={href} className="block relative group">
       <div className={cn(
-        "flex items-center gap-3.5 px-3 py-2 rounded-2xl transition-all duration-300 relative",
+        "flex items-center gap-3.5 px-3 py-2 rounded-lg transition-all duration-300 relative",
         isActive 
-          ? "bg-blue-50/50 text-blue-600 shadow-sm shadow-blue-500/5" 
+          ? "bg-blue-50/50 text-blue-600 shadow-sm" 
           : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
       )}>
         <div className={cn(
-          "flex items-center justify-center w-6 h-6 shrink-0 rounded-xl transition-all duration-300",
+          "flex items-center justify-center w-6 h-6 shrink-0 rounded-lg transition-all duration-300",
           isActive ? "bg-white shadow-sm" : "bg-transparent"
         )}>
           <Icon className={cn(
@@ -108,18 +107,15 @@ function NavItem({ href, icon: Icon, label }: { href: string; icon: any; label: 
           )} />
         </div>
         <span className={cn(
-          "text-[13px] font-medium tracking-tight transition-all duration-200",
+          "text-xs font-medium tracking-tight transition-all duration-200",
           isActive ? "text-blue-600 font-bold translate-x-0.5" : "text-zinc-600 group-hover:translate-x-0.5"
         )}>
           {label}
         </span>
 
         {isActive && (
-          <motion.div 
-            layoutId="sidebar-active-indicator"
+          <div 
             className="absolute -left-2 w-1.5 h-6 bg-blue-600 rounded-full shadow-[2px_0_12px_rgba(37,99,235,0.4)]"
-            initial={false}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
           />
         )}
       </div>

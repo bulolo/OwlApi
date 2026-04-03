@@ -39,7 +39,7 @@ export default function SettingsClientPage({ projectId }: { projectId: string })
                 className={cn(
                   "p-4 cursor-pointer border rounded-lg transition-all duration-200 flex items-center justify-between group",
                   project?.dataSourceId === ds.id
-                    ? "border-blue-500 bg-blue-50/20 ring-1 ring-blue-500/10"
+                    ? "border-blue-600 bg-blue-50/20 ring-1 ring-blue-600/10"
                     : "bg-white border-zinc-200 hover:border-zinc-300"
                 )}
               >
@@ -66,7 +66,7 @@ export default function SettingsClientPage({ projectId }: { projectId: string })
           </div>
 
           <div className="pt-2 flex justify-end">
-            <Button className="h-10 px-6 bg-zinc-900 hover:bg-zinc-800 text-white rounded text-[11px] font-bold shadow-md shadow-zinc-200 group">
+            <Button className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-bold shadow-sm group">
               <Save className="w-3.5 h-3.5 mr-2" />
               保存同步配置
             </Button>

@@ -6,17 +6,33 @@ import { motion } from "framer-motion"
 import { Hexagon, ArrowRight, ShieldCheck, Mail, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useUIStore } from "@/store/useUIStore"
+import { useTenantStore } from "@/store/useTenantStore"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useUIStore()
+  const { fetchTenants } = useTenantStore()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setTimeout(() => {
-      router.push("/sh-rd/overview")
-    }, 800)
+    setError("")
+    try {
+      const res = await login(email, password)
+      await fetchTenants()
+      // Navigate to first tenant or default
+      const slug = res.tenant?.slug || "default"
+      router.push(`/${slug}/overview`)
+    } catch (err: any) {
+      setError(err?.body?.error || err?.message || "登录失败，请检查账号密码")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -27,7 +43,6 @@ export default function LoginPage() {
         className="w-full max-w-[400px] p-6 lg:p-0"
       >
         <div className="bg-white border border-zinc-200 rounded-xl p-8 shadow-xl shadow-zinc-200/50 space-y-8">
-          {/* Logo & Info */}
           <div className="flex flex-col items-center space-y-4">
             <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
               <Hexagon className="w-6 h-6 text-white" />
@@ -48,6 +63,8 @@ export default function LoginPage() {
                     type="email"
                     placeholder="admin@corp.com"
                     required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 h-11 bg-zinc-50 border-zinc-200 rounded-md focus:bg-white text-sm"
                   />
                 </div>
@@ -60,11 +77,17 @@ export default function LoginPage() {
                     type="password"
                     placeholder="••••••••"
                     required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="pl-10 h-11 bg-zinc-50 border-zinc-200 rounded-md focus:bg-white text-sm"
                   />
                 </div>
               </div>
             </div>
+
+            {error && (
+              <p className="text-xs text-red-500 font-medium px-1">{error}</p>
+            )}
 
             <Button
               disabled={isLoading}

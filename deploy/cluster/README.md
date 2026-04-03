@@ -47,7 +47,7 @@ docker compose up -d
 docker compose ps
 
 # 备份数据库
-docker exec owlapi_db pg_dump -U postgres owlapi > backup.sql
+docker exec owlapi_postgres pg_dump -U postgres owlapi > backup.sql
 ```
 
 ## 生产建议

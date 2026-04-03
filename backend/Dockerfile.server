@@ -12,6 +12,7 @@ COPY . .
 
 # Build the server binary
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /init ./cmd/init
 
 # Runtime stage
 FROM alpine:3.19
@@ -22,6 +23,7 @@ RUN apk --no-cache add ca-certificates tzdata \
 WORKDIR /app
 
 COPY --from=builder /server .
+COPY --from=builder /init .
 
 RUN chown owlapi:owlapi /app/server
 

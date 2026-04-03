@@ -34,7 +34,7 @@ func LoadFromEnv() *Config {
 		RunnerToken: getEnv("OWLAPI_RUNNER_TOKEN", ""),
 		TenantID:    getEnv("OWLAPI_TENANT_ID", "default"),
 		
-		HTTPPort:    getEnv("OWLAPI_HTTP_PORT", ":8080"),
+		HTTPPort:    getEnv("OWLAPI_HTTP_PORT", ":3000"),
 		GRPCPort:    getEnv("OWLAPI_GRPC_PORT", ":9090"),
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/owlapi?sslmode=disable"),
 	}

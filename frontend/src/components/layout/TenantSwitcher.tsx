@@ -16,20 +16,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export function TenantSwitcher({ domain }: { domain?: string }) {
+export function TenantSwitcher({ slug }: { slug?: string }) {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const { activeTenant: storeTenant, setActiveTenant } = useUIStore()
   
-  // Directly derive from props if possible to avoid hydration flash
-  const activeTenant = domain !== 'system' ? (domain || storeTenant) : storeTenant
-  const { tenants, markTenantAsRecent } = useTenantStore()
+  const activeTenant = slug !== 'system' ? (slug || storeTenant) : storeTenant
+  const { tenants, fetchTenants, markTenantAsRecent } = useTenantStore()
   
   useEffect(() => {
     setMounted(true)
+    fetchTenants()
   }, [])
 
-  const currentTenantObj = tenants.find(t => t.domain === activeTenant) || tenants[0]
+  const currentTenantObj = tenants.find(t => t.slug === activeTenant) || tenants[0]
 
   // Safe Hydration: Render a static placeholder that looks identical to the real trigger
   // to prevent Radix ID mismatches during hydration.
@@ -78,22 +78,22 @@ export function TenantSwitcher({ domain }: { domain?: string }) {
               key={tenant.id}
               onClick={() => {
                 markTenantAsRecent(tenant.id)
-                router.push(`/${tenant.domain}/overview`)
+                router.push(`/${tenant.slug}/overview`)
               }}
               className="text-xs font-medium py-2 px-2 cursor-pointer"
             >
               <div className="flex items-center gap-2 w-full">
                 <div className={cn(
                   "w-6 h-6 rounded flex items-center justify-center shrink-0",
-                  activeTenant === tenant.domain ? "bg-blue-600 text-white" : "bg-zinc-100 text-zinc-400"
+                  activeTenant === tenant.slug ? "bg-blue-600 text-white" : "bg-zinc-100 text-zinc-400"
                 )}>
-                  {activeTenant === tenant.domain ? (
+                  {activeTenant === tenant.slug ? (
                     <Check className="w-3.5 h-3.5" />
                   ) : (
                     <Building2 className="w-3.5 h-3.5" />
                   )}
                 </div>
-                <span className={cn("truncate flex-1", activeTenant === tenant.domain && "text-blue-600")}>
+                <span className={cn("truncate flex-1", activeTenant === tenant.slug && "text-blue-600")}>
                   {tenant.name}
                 </span>
               </div>

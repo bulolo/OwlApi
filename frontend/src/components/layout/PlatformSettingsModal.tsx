@@ -9,8 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import TenantsClientPage from "@/app/[domain]/tenants/TenantsClientPage"
-import SettingsClientPage from "@/app/[domain]/settings/SettingsClientPage"
+import TenantsClientPage from "@/app/[slug]/tenants/TenantsClientPage"
+import SettingsClientPage from "@/app/[slug]/settings/SettingsClientPage"
 
 interface PlatformSettingsModalProps {
   open: boolean

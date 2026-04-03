@@ -1,25 +1,26 @@
-version: "3.8"
-
 services:
-  # Control Plane Server (Hot Reload)
-  server:
+  # Control Plane Backend (Hot Reload)
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: owlapi_server_dev
+    container_name: owlapi_backend_dev
     command: air -c .air.server.toml
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "3000:3000"
       - "9090:9090"
     volumes:
       - ./backend:/app
       - /app/tmp # Mount tmp as anonymous volume to avoid host permission issues and conflicts
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/owlapi?sslmode=disable
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
+      - OWLAPI_HTTP_PORT=:3000
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
+      backend-init:
+        condition: service_completed_successfully
 
   # Frontend (Hot Reload)
   frontend:
@@ -27,44 +28,44 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.dev
     container_name: owlapi_frontend_dev
-    command: sh -c "pnpm install && pnpm dev"
+    command: sh -c "pnpm install && PORT=8000 pnpm dev"
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "8000:8000"
     volumes:
       - ./frontend:/app
       - /app/node_modules # Anonymous volume for container dependencies
       - /app/.next # Anonymous volume for build cache
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
     depends_on:
-      server:
+      backend:
         condition: service_started
 
-  # Local Runner Node (Hot Reload)
-  runner:
+  # Local Gateway Node (Hot Reload)
+  gateway:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
-    container_name: owlapi_runner_dev
+    container_name: owlapi_gateway_dev
     command: air -c .air.runner.toml
     restart: unless-stopped
     volumes:
       - ./backend:/app
       - /app/tmp
     environment:
-      - OWLAPI_SERVER_URL=dns:///server:9090
+      - OWLAPI_SERVER_URL=dns:///backend:9090
       - OWLAPI_RUNNER_ID=dev-docker-runner
       - OWLAPI_RUNNER_TOKEN=dev-token
       - TZ=Asia/Shanghai
     depends_on:
-      server:
+      backend:
         condition: service_started
 
   # PostgreSQL Database
-  db:
-    image: postgres:16-alpine
-    container_name: owlapi_db
+  postgres:
+    image: postgres:18-alpine
+    container_name: owlapi_postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=postgres
@@ -79,6 +80,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Backend Init: schema + seed demo data (runs every startup)
+  backend-init:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: owlapi_init_dev
+    command: go run cmd/init/main.go
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   postgres_data:

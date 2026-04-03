@@ -4,7 +4,7 @@
 
 ## 1. 总体概览
 
-OwlApi 采用 **云端控制面 (Control Plane)** + **边缘执行节点 (Gateway Runner)** 的分布式架构。这种设计旨在解决跨网络环境的数据访问与 AI 推理需求。
+OwlApi 采用 **云端控制面 (Control Plane)** + **边缘执行节点 (Gateway Runner)** 的分布式架构。这种设计旨在解决跨网络环境的数据访问需求。
 
 ### 1.1 核心组件
 
@@ -14,7 +14,7 @@ OwlApi 采用 **云端控制面 (Control Plane)** + **边缘执行节点 (Gatewa
     - 维护与所有 Gateway Runner 的长连接并进行任务分发。
 - **Gateway Runner**:
     - 轻量级代理，部署在受防火墙保护的私有网络（IDC/VPC）。
-    - 负责执行具体数据库查询、本地 LLM 转发及 AI Proxy 逻辑。
+    - 负责执行具体数据库查询。
 
 ## 2. 通信模型 (Communication Model)
 
@@ -74,8 +74,3 @@ sequenceDiagram
 Gateway Runner 内部采用插拔式驱动设计：
 - `Mock`: 用于全链路联通性测试。
 - `Generic SQL`: 基于 `database/sql` 支持主流关系型数据库。
-
-### 4.2 AI Proxy 转发
-充当内网 LLM 的安全网关：
-- 支持 **OpenAI 协议兼容** 的流式转发。
-- 支持自动将边缘推理结果同步回云端控制面。

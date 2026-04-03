@@ -1,0 +1,414 @@
+openapi: "3.0.3"
+info:
+  title: OwlApi
+  version: 0.1.0
+  description: OwlApi 云平台 API
+
+servers:
+  - url: http://localhost:3000
+    description: Local dev
+
+paths:
+  # ==================== Auth ====================
+  /api/v1/auth/register:
+    post:
+      operationId: register
+      tags: [Auth]
+      summary: 注册账号
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: 邮箱或 slug 已存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/login:
+    post:
+      operationId: login
+      tags: [Auth]
+      summary: 登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: 认证失败
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ==================== Tenants ====================
+  /api/v1/tenants:
+    get:
+      operationId: listTenants
+      tags: [Tenants]
+      summary: 租户列表
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tenant"
+    post:
+      operationId: createTenant
+      tags: [Tenants]
+      summary: 创建租户
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTenantRequest"
+      responses:
+        "201":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+        "409":
+          description: slug 已存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/tenants/{slug}:
+    get:
+      operationId: getTenant
+      tags: [Tenants]
+      summary: 获取租户详情
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+        "404":
+          description: 租户不存在
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ==================== Members ====================
+  /api/v1/tenants/{slug}/members:
+    get:
+      operationId: listMembers
+      tags: [Members]
+      summary: 成员列表
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TenantMember"
+    post:
+      operationId: addMember
+      tags: [Members]
+      summary: 邀请成员
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMemberRequest"
+      responses:
+        "201":
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/v1/tenants/{slug}/members/{userId}/role:
+    put:
+      operationId: updateMemberRole
+      tags: [Members]
+      summary: 修改成员角色
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoleRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /api/v1/tenants/{slug}/members/{userId}:
+    delete:
+      operationId: removeMember
+      tags: [Members]
+      summary: 移除成员
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  # ==================== Query ====================
+  /api/v1/query/{path}:
+    get:
+      operationId: executeQueryGet
+      tags: [Query]
+      summary: 执行 SQL 查询 (GET)
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Tenant-ID
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: X-Runner-ID
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 查询结果 (JSON)
+    post:
+      operationId: executeQueryPost
+      tags: [Query]
+      summary: 执行 SQL 查询 (POST)
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Tenant-ID
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: X-Runner-ID
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 查询结果 (JSON)
+
+# ==================== Schemas ====================
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    StatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+
+    RegisterRequest:
+      type: object
+      required: [email, name, password]
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        password:
+          type: string
+          format: password
+        tenant_name:
+          type: string
+        tenant_slug:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+        tenant:
+          $ref: "#/components/schemas/Tenant"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        plan:
+          type: string
+          enum: [Free, Pro, Enterprise]
+        status:
+          type: string
+          enum: [Active, Warning, Suspended]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateTenantRequest:
+      type: object
+      required: [name, slug, user_id]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        plan:
+          type: string
+          enum: [Free, Pro, Enterprise]
+        user_id:
+          type: string
+
+    TenantMember:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+        role:
+          type: string
+          enum: [Admin, Developer, Viewer]
+        joined_at:
+          type: string
+          format: date-time
+        user:
+          $ref: "#/components/schemas/User"
+
+    AddMemberRequest:
+      type: object
+      required: [email, role]
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [Admin, Developer, Viewer]
+
+    UpdateRoleRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [Admin, Developer, Viewer]

@@ -5,9 +5,9 @@
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](docker-compose.yml)
 
 > **企业级 SQL to API 智能网关平台**
-> 旨在帮助开发者和企业快速构建及管理数据接口与 AI 服务。
+> 旨在帮助开发者和企业快速构建及管理数据接口。
 
-OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单的 SQL 查询，即可一键生成标准的 RESTful API。同时，通过集成的混合云网关与 AI 模型网关，打破网络边界，实现全域数据与算力的统一管理。
+OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单的 SQL 查询，即可一键生成标准的 RESTful API。同时，通过集成的混合云网关，打破网络边界，实现全域数据的统一管理。
 
 ---
 
@@ -25,11 +25,6 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
 - **内网穿透**：自动建立加密隧道，无需公网 IP 即可安全访问内网数据库与服务。
 - **服务发布**：将内网微服务安全暴露给公网或第三方调用。
 
-### 🤖 AI 模型网关 (AI Model Gateway)
-*释放内网算力，统一模型接口。*
-- **私有模型代理**：将内网部署的 DeepSeek, Llama, ChatGLM 等大模型安全代理至公网。
-- **统一接口管控**：提供兼容 OpenAI 协议的统一 API，内置鉴权、计费与流控功能。
-
 ---
 
 ## 🛠️ 技术栈 (Tech Stack)
@@ -38,7 +33,6 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
 - **Frontend**: Next.js 14, React, TailwindCSS, Framer Motion
 - **Database**: PostgreSQL (TimescaleDB optional), Redis
 - **Infra**: Docker, Docker Compose
-- **AI Integration**: OpenAI Compatible SDK
 
 ---
 
@@ -50,7 +44,7 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
 │  ┌─────────────────┐    ┌─────────────────┐    ┌────────────────┐  │
 │  │   Frontend      │    │  Control Plane  │    │   Database     │  │
 │  │   (Next.js)     │◄──►│   (Go + gRPC)   │◄──►│  (PostgreSQL)  │  │
-│  │   :3000         │    │  HTTP :8080     │    │   :5432        │  │
+│  │   :8000         │    │  HTTP :3000     │    │   :5432        │  │
 │  └─────────────────┘    │  gRPC :9090     │    └────────────────┘  │
 │                         └────────┬────────┘                        │
 └──────────────────────────────────┼──────────────────────────────────┘
@@ -64,8 +58,8 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
 │   (公司 IDC)    │      │  (阿里云 ECS)   │      │   (树莓派)      │
 ├─────────────────┤      ├─────────────────┤      ├─────────────────┤
 │ ┌─────────────┐ │      │ ┌─────────────┐ │      │ ┌─────────────┐ │
-│ │ MySQL       │ │      │ │ PostgreSQL  │ │      │ │ DeepSeek    │ │
-│ │ Oracle      │ │      │ │ MongoDB     │ │      │ │ (本地LLM)   │ │
+│ │ MySQL       │ │      │ │ PostgreSQL  │ │      │ │ SQLite      │ │
+│ │ Oracle      │ │      │ │ MongoDB     │ │      │ │ MariaDB     │ │
 │ └─────────────┘ │      │ └─────────────┘ │      │ └─────────────┘ │
 └─────────────────┘      └─────────────────┘      └─────────────────┘
 ```
@@ -78,10 +72,9 @@ OwlApi 是一个强大的 **SQL to API** 平台。它允许您通过编写简单
 - **流量路由**：将 API 请求路由到正确的 Gateway Runner
 
 ### 🔌 Gateway Runner (网关执行节点)
-部署在用户内网的轻量级代理，负责：
+部署在用户内网的轻量级代理，负责：  
 - **反向隧道**：主动连接 Control Plane，无需公网 IP
 - **数据库执行**：接收 SQL 指令，执行查询，返回结果
-- **AI 代理**：转发 LLM 请求到内网模型服务
 - **安全隔离**：敏感数据不出内网，仅传输查询结果
 
 ### 🔄 数据流示例
@@ -105,8 +98,8 @@ cd owlapi
 make docker-up
 
 # 访问
-# - 前端: http://localhost:3000
-# - API: http://localhost:8080
+# - 前端: http://localhost:8000
+# - API: http://localhost:3000
 ```
 
 ### 部署分发版

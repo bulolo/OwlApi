@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gen-sdk": "openapi --input ../docs/openapi.yaml --output ./src/lib/sdk --client fetch --exportSchemas true --exportServices true"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -40,6 +41,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
+    "openapi-typescript-codegen": "^0.30.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

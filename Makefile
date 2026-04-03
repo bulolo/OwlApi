@@ -8,8 +8,8 @@
 # ==============================================================================
 
 .PHONY: help
-.PHONY: gen-proto clean
-.PHONY: dev-up dev-down dev-build
+.PHONY: gen-proto gen-sdk clean
+.PHONY: dev-up dev-down dev-build dev-clean
 .PHONY: prod-up prod-down prod-build prod-logs
 
 # ------------------------------------------------------------------------------
@@ -23,6 +23,7 @@ help:
 	@echo "  make dev-up            启动全栈热更新环境 (Air + Next.js HMR)"
 	@echo "  make dev-down          停止并移除开发容器"
 	@echo "  make dev-build         构建开发镜像"
+	@echo "  make dev-clean         停止并清除开发数据 (含数据库)"
 	@echo ""
 	@echo "🚀 生产环境 (Production):"
 	@echo "  make prod-up           启动生产级集群 (Docker Compose Cluster)"
@@ -32,6 +33,7 @@ help:
 	@echo ""
 	@echo "🛠️  通用工具 (Utils):"
 	@echo "  make gen-proto         生成 gRPC 代码"
+	@echo "  make gen-sdk           从 OpenAPI 生成前端 TypeScript SDK"
 	@echo "  make clean             清理所有环境与缓存"
 
 # ------------------------------------------------------------------------------
@@ -44,14 +46,18 @@ dev-build:
 
 dev-up:
 	@echo ">>> 🐳 [DEV] 正在启动热更新环境 (前台日志模式)..."
-	@echo "    - Frontend: http://localhost:3000"
-	@echo "    - API:      http://localhost:8080"
+	@echo "    - Frontend: http://localhost:8000"
+	@echo "    - API:      http://localhost:3000"
 	@echo "    (按 Ctrl+C 停止服务)"
 	docker compose -f docker-compose.dev.yml up
 
 dev-down:
 	@echo ">>> 🛑 [DEV] 正在停止开发环境..."
 	docker compose -f docker-compose.dev.yml down
+
+dev-clean:
+	@echo ">>> 🧹 [DEV] 停止并清除开发数据 (含数据库 volume)..."
+	docker compose -f docker-compose.dev.yml down -v
 
 # ------------------------------------------------------------------------------
 # 3. 生产环境 (Production - Cluster)
@@ -80,6 +86,11 @@ prod-logs:
 gen-proto:
 	@echo ">>> 🔄 生成 gRPC 代码..."
 	cd backend/proto && buf generate
+
+gen-sdk:
+	@echo ">>> 🔄 从 OpenAPI spec 生成前端 SDK..."
+	cd frontend && pnpm run gen-sdk
+	@echo "✅ SDK 已生成至 frontend/src/lib/sdk/"
 
 clean:
 	@echo ">>> 🧹 清理环境..."

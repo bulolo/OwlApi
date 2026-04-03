@@ -6,7 +6,7 @@
 # 3. 运行: docker compose up -d
 #
 # 获取 RUNNER_ID 和 RUNNER_TOKEN：
-# 登录 OwlApi 控制台 -> 项目设置 -> 执行节点管理 -> 创建执行节点
+# 登录 OwlApi 控制台 -> 项目设置 -> 网关节点管理 -> 创建执行节点
 
 version: "3.8"
 

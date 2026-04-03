@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useParams } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
 import {
   LayoutDashboard,
@@ -9,21 +9,16 @@ import {
   Server,
   Database,
   Users,
-  BrainCircuit,
-  Hexagon,
-  Activity,
-  ShieldCheck,
-  ChevronRight
+  Hexagon
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/store/useUIStore"
 
-export function Sidebar({ domain }: { domain?: string }) {
-  const pathname = usePathname()
+export function Sidebar({ slug }: { slug?: string }) {
   const { activeTenant: storeTenant } = useUIStore()
   
-  // Use domain from props as primary source for tenant, fallback to store
-  const activeTenant = domain !== 'system' ? (domain || storeTenant) : storeTenant
+  // Use slug from props as primary source for tenant, fallback to store
+  const activeTenant = slug !== 'system' ? (slug || storeTenant) : storeTenant
   
   const MENUS = [
     {
@@ -35,15 +30,14 @@ export function Sidebar({ domain }: { domain?: string }) {
     {
       group: "核心资源",
       items: [
-        { href: `/${activeTenant}/gateways`, label: "执行节点", icon: Server },
-        { href: `/${activeTenant}/data-sources`, label: "基础数据", icon: Database },
+        { href: `/${activeTenant}/gateways`, label: "网关", icon: Server },
+        { href: `/${activeTenant}/data-sources`, label: "数据源", icon: Database },
       ]
     },
     {
       group: "服务中心",
       items: [
         { href: `/${activeTenant}/projects`, label: "接口中心", icon: Box },
-        { href: `/${activeTenant}/models`, label: "智能中心", icon: BrainCircuit },
       ]
     },
     {
@@ -84,6 +78,10 @@ export function Sidebar({ domain }: { domain?: string }) {
           </div>
         ))}
       </nav>
+
+      <div className="px-8 py-4 border-t border-zinc-100">
+        <span className="text-[10px] font-bold text-zinc-300 tracking-widest">v0.1.0</span>
+      </div>
     </aside>
   )
 }

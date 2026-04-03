@@ -1,35 +1,36 @@
-# OwlApi Server 生产部署配置
+# OwlApi 生产部署配置
 #
 # 使用方法：
 # 1. 配置环境变量（.env 文件或直接修改）
 # 2. 运行: docker compose up -d
 
-version: "3.8"
-
 services:
-  # Control Plane Server
-  server:
+  # Control Plane Backend
+  backend:
     build:
       context: ../../backend
       dockerfile: Dockerfile.server
     image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:latest
-    container_name: owlapi_server
+    container_name: owlapi_backend
     restart: unless-stopped
     ports:
-      - "8080:8080"   # HTTP API
-      - "9090:9090"   # gRPC (Agent 连接)
+      - "3000:3000"   # HTTP API
+      - "9090:9090"   # gRPC (Gateway 连接)
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@db:5432/owlapi?sslmode=disable
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
+      - OWLAPI_HTTP_PORT=:3000
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
       - TZ=Asia/Shanghai
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
+      backend-init:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:
@@ -42,16 +43,16 @@ services:
       context: ../../frontend
       dockerfile: Dockerfile.frontend
       args:
-        - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:8080}
+        - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}
     image: registry.cn-hangzhou.aliyuncs.com/owlapi/frontend:latest
     container_name: owlapi_frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "8000:8000"
     environment:
-      - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:8080}
+      - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}
     depends_on:
-      server:
+      backend:
         condition: service_healthy
     deploy:
       resources:
@@ -59,21 +60,21 @@ services:
           memory: 256M
           cpus: '0.5'
 
-  # Local Runner Node (Automatically connected to this cluster)
-  runner:
+  # Local Gateway Node (Automatically connected to this cluster)
+  gateway:
     build:
       context: ../../backend
       dockerfile: Dockerfile.runner
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/runner:latest
-    container_name: owlapi_runner_local
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:latest
+    container_name: owlapi_gateway_local
     restart: unless-stopped
     environment:
-      - OWLAPI_SERVER_URL=http://server:9090
-      - OWLAPI_RUNNER_ID=default-local-runner
+      - OWLAPI_SERVER_URL=http://backend:9090
+      - OWLAPI_RUNNER_ID=default-local-gateway
       - OWLAPI_RUNNER_TOKEN=change-me-in-production
       - TZ=Asia/Shanghai
     depends_on:
-      server:
+      backend:
         condition: service_healthy
     deploy:
       resources:
@@ -82,9 +83,9 @@ services:
           cpus: '0.5'
 
   # PostgreSQL Database
-  db:
-    image: postgres:16-alpine
-    container_name: owlapi_db
+  postgres:
+    image: postgres:18-alpine
+    container_name: owlapi_postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=postgres
@@ -103,6 +104,21 @@ services:
         limits:
           memory: 512M
           cpus: '0.5'
+
+  # Backend Init: schema + seed demo data (runs every startup)
+  backend-init:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.server
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:latest
+    container_name: owlapi_init
+    command: ["./init"]
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   postgres_data:

@@ -18,7 +18,6 @@ message RunnerMessage {
     RegisterRequest register = 1;
     HeartbeatRequest heartbeat = 2;
     QueryResult query_result = 3;
-    AIStreamChunk ai_chunk = 4;
   }
 }
 
@@ -53,14 +52,6 @@ message QueryResult {
   int64 execution_time_ms = 6;
 }
 
-// AI 流式响应块
-message AIStreamChunk {
-  string request_id = 1;
-  string content = 2;
-  bool is_done = 3;
-  string error = 4;
-}
-
 // ==================== Server → Runner ====================
 
 message ServerMessage {
@@ -68,7 +59,6 @@ message ServerMessage {
     RegisterResponse register_ack = 1;
     HeartbeatResponse heartbeat_ack = 2;
     ExecuteQueryRequest execute_query = 3;
-    AIRequest ai_request = 4;
   }
 }
 
@@ -91,13 +81,4 @@ message ExecuteQueryRequest {
   string sql = 3;
   map<string, string> params = 4;
   int32 timeout_seconds = 5;
-}
-
-// AI 请求
-message AIRequest {
-  string request_id = 1;
-  string model = 2;
-  string endpoint = 3;  // 内网 LLM 服务地址
-  bytes body = 4;       // OpenAI 兼容的请求体
-  bool stream = 5;
 }

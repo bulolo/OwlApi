@@ -313,7 +313,7 @@ export default function ApisPage({ projectId }: { projectId: string }) {
                   {/* RIGHT: Params & Body Preview */}
                   <div className="col-span-4 flex flex-col bg-zinc-50/20">
                      <div className="px-4 py-2 border-b flex items-center justify-between text-[10px] font-bold text-zinc-400 tracking-tight h-8 uppercase bg-zinc-50/50">
-                       <span>请求参数配置 (Body)</span>
+                       <span>请求参数配置</span>
                        <Badge variant="outline" className="text-[9px] h-4 border-zinc-200 text-zinc-500 bg-white">
                          application/json
                        </Badge>

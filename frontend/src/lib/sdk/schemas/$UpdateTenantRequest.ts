@@ -2,11 +2,16 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $ErrorResponse = {
+export const $UpdateTenantRequest = {
     properties: {
-        error: {
+        name: {
             type: 'string',
-            isRequired: true,
+        },
+        plan: {
+            type: 'Enum',
+        },
+        status: {
+            type: 'Enum',
         },
     },
 } as const;

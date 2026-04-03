@@ -13,9 +13,13 @@ export default function DashboardLayout({
   children: React.ReactNode
   params: Promise<{ slug: string }>
 }) {
-  const { viewContext, setViewContext, setActiveTenant, activeTenant } = useUIStore()
+  const { viewContext, setViewContext, setActiveTenant, activeTenant, restoreSession } = useUIStore()
   const { slug } = use(params)
   
+  useEffect(() => {
+    restoreSession()
+  }, [])
+
   useEffect(() => {
     if (slug) {
       if (slug === 'system') {

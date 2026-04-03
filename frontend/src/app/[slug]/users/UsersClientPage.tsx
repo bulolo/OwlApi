@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+
 import {
   Users,
   Plus,
@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/store/useUIStore"
-import { apiListMembers, apiAddMember, apiRemoveMember, apiUpdateMemberRole, type TenantMember } from "@/lib/api-client"
+import { apiListUsers, apiAddUser, apiRemoveUser, apiUpdateUserRole, type TenantMember } from "@/lib/api-client"
 import { Pager } from "@/components/ui/pager"
 
 export default function UsersClientPage() {
@@ -24,9 +24,10 @@ export default function UsersClientPage() {
   const [members, setMembers] = useState<TenantMember[]>([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
-  const [showInvite, setShowInvite] = useState(false)
-  const [inviteEmail, setInviteEmail] = useState("")
-  const [inviteRole, setInviteRole] = useState("Developer")
+  const [showAdd, setShowAdd] = useState(false)
+  const [form, setForm] = useState({ email: "", name: "", password: "", role: "Viewer" })
+  const [addError, setAddError] = useState("")
+  const [adding, setAdding] = useState(false)
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(10)
   const [total, setTotal] = useState(0)
@@ -36,7 +37,7 @@ export default function UsersClientPage() {
     const currentPage = p ?? page
     const currentSize = s ?? size
     try {
-      const res = await apiListMembers(activeTenant, currentPage, currentSize)
+      const res = await apiListUsers(activeTenant, currentPage, currentSize)
       setMembers(res.list || [])
       setTotal(res.pagination.total)
       setPage(res.pagination.page)
@@ -48,22 +49,32 @@ export default function UsersClientPage() {
 
   useEffect(() => { fetchMembers() }, [activeTenant])
 
-  const handleInvite = async () => {
-    if (!inviteEmail || !activeTenant) return
+  const handleAdd = async () => {
+    if (!form.email || !form.name || !form.password || !activeTenant) return
+    setAdding(true)
+    setAddError("")
     try {
-      await apiAddMember(activeTenant, { email: inviteEmail, role: inviteRole as any })
-      setInviteEmail("")
-      setShowInvite(false)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/v1/tenants/${activeTenant}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const json = await res.json()
+      if (json.code !== 0) throw new Error(json.msg)
+      setForm({ email: "", name: "", password: "", role: "Viewer" })
+      setShowAdd(false)
       fetchMembers()
     } catch (err: any) {
-      alert(err?.message || "邀请失败")
+      setAddError(err?.message || "添加失败")
+    } finally {
+      setAdding(false)
     }
   }
 
   const handleRemove = async (userId: string) => {
     if (!activeTenant || !confirm("确认移除该成员？")) return
     try {
-      await apiRemoveMember(activeTenant, userId)
+      await apiRemoveUser(activeTenant, userId)
       fetchMembers()
     } catch { /* ignore */ }
   }
@@ -71,7 +82,7 @@ export default function UsersClientPage() {
   const handleRoleChange = async (userId: string, role: string) => {
     if (!activeTenant) return
     try {
-      await apiUpdateMemberRole(activeTenant, userId, role)
+      await apiUpdateUserRole(activeTenant, userId, role)
       fetchMembers()
     } catch { /* ignore */ }
   }
@@ -83,7 +94,6 @@ export default function UsersClientPage() {
 
   const roleColor = (role?: string) => {
     if (role === "Admin") return "bg-blue-50 text-blue-600 border-blue-100"
-    if (role === "Developer") return "bg-emerald-50 text-emerald-600 border-emerald-100"
     return "bg-zinc-50 text-zinc-500 border-zinc-200"
   }
 
@@ -95,41 +105,48 @@ export default function UsersClientPage() {
           <p className="text-sm text-zinc-500 mt-1 font-medium">管理当前租户的成员及角色</p>
         </div>
         <Button
-          onClick={() => setShowInvite(true)}
+          onClick={() => setShowAdd(true)}
           className="h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-500/20"
         >
           <Plus className="w-4 h-4 mr-2" />
-          邀请新成员
+          添加成员
         </Button>
       </div>
 
-      {/* Invite Modal */}
-      {showInvite && (
+      {/* Add Member Form */}
+      {showAdd && (
         <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-zinc-900">邀请成员</h3>
-            <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => setShowInvite(false)}>
+            <h3 className="text-sm font-bold text-zinc-900">添加成员</h3>
+            <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => { setShowAdd(false); setAddError("") }}>
               <X className="w-4 h-4" />
             </Button>
           </div>
-          <div className="flex gap-3">
-            <Input
-              placeholder="输入邮箱地址"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              className="flex-1 h-9 text-xs"
-            />
-            <select
-              value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value)}
-              className="h-9 px-3 text-xs border border-zinc-200 rounded-lg bg-white"
-            >
-              <option value="Admin">Admin</option>
-              <option value="Developer">Developer</option>
-              <option value="Viewer">Viewer</option>
-            </select>
-            <Button onClick={handleInvite} className="h-9 px-4 bg-blue-600 text-white text-xs font-bold">
-              发送邀请
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase">邮箱</label>
+              <Input placeholder="user@company.com" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="h-9 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase">姓名</label>
+              <Input placeholder="张三" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="h-9 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase">密码</label>
+              <Input type="password" placeholder="••••••••" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} className="h-9 text-xs" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase">角色</label>
+              <select value={form.role} onChange={(e) => setForm({...form, role: e.target.value})} className="w-full h-9 px-3 text-xs border border-zinc-200 rounded-lg bg-white">
+                <option value="Admin">Admin</option>
+                <option value="Viewer">Viewer</option>
+              </select>
+            </div>
+          </div>
+          {addError && <p className="text-xs text-red-500">{addError}</p>}
+          <div className="flex justify-end">
+            <Button onClick={handleAdd} disabled={adding} className="h-9 px-6 bg-blue-600 text-white text-xs font-bold">
+              {adding ? "添加中..." : "确认添加"}
             </Button>
           </div>
         </div>
@@ -156,11 +173,8 @@ export default function UsersClientPage() {
           <div className="text-center py-12 text-sm text-zinc-400">暂无成员</div>
         ) : (
           filtered.map((m, i) => (
-            <motion.div
+            <div
               key={m.user_id}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
               className="bg-white border border-zinc-200/60 rounded-xl p-4 shadow-sm hover:shadow-md transition-all group"
             >
               <div className="flex items-center justify-between">
@@ -189,7 +203,6 @@ export default function UsersClientPage() {
                     )}
                   >
                     <option value="Admin">Admin</option>
-                    <option value="Developer">Developer</option>
                     <option value="Viewer">Viewer</option>
                   </select>
                   <Button
@@ -202,7 +215,7 @@ export default function UsersClientPage() {
                   </Button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))
         )}
       </div>

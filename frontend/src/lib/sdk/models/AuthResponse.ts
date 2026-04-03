@@ -8,5 +8,6 @@ export type AuthResponse = {
     user?: User;
     token?: string;
     tenant?: Tenant;
+    tenants?: Array<Tenant>;
 };
 

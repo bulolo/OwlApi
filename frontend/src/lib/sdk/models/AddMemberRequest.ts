@@ -4,12 +4,13 @@
 /* eslint-disable */
 export type AddMemberRequest = {
     email: string;
+    name: string;
+    password: string;
     role: AddMemberRequest.role;
 };
 export namespace AddMemberRequest {
     export enum role {
         ADMIN = 'Admin',
-        DEVELOPER = 'Developer',
         VIEWER = 'Viewer',
     }
 }

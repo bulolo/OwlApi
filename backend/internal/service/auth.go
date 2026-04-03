@@ -112,12 +112,17 @@ func (s *authService) Login(ctx context.Context, email, password string) (*AuthR
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
 		return nil, ErrInvalidCredentials
 	}
-	// Fetch user's tenants
-	memberships, _ := s.members.GetByUserID(ctx, user.ID)
-	tenants := make([]*domain.Tenant, 0, len(memberships))
-	for _, m := range memberships {
-		if t, err := s.tenants.GetByID(ctx, m.TenantID); err == nil {
-			tenants = append(tenants, t)
+	// Fetch user's tenants (superadmin sees all)
+	var tenants []*domain.Tenant
+	if user.IsSuperAdmin {
+		tenants, _, _ = s.tenants.List(ctx, 1, 10000)
+	} else {
+		memberships, _ := s.members.GetByUserID(ctx, user.ID)
+		tenants = make([]*domain.Tenant, 0, len(memberships))
+		for _, m := range memberships {
+			if t, err := s.tenants.GetByID(ctx, m.TenantID); err == nil {
+				tenants = append(tenants, t)
+			}
 		}
 	}
 	resp := &AuthResponse{User: user, Token: generateToken(), Tenants: tenants}
@@ -227,7 +232,7 @@ func (s *tenantService) ListByUser(ctx context.Context, userID string) ([]*domai
 // ==================== Member Service ====================
 
 type MemberService interface {
-	AddMember(ctx context.Context, tenantID, userEmail string, role domain.UserRole) error
+	AddMember(ctx context.Context, tenantID string, req AddMemberRequest) error
 	RemoveMember(ctx context.Context, tenantID, userID string) error
 	ListMembers(ctx context.Context, tenantID string, page, size int) ([]*domain.TenantMember, int, error)
 	UpdateRole(ctx context.Context, tenantID, userID string, role domain.UserRole) error
@@ -242,16 +247,31 @@ func NewMemberService(users domain.UserRepository, members domain.TenantMemberRe
 	return &memberService{users: users, members: members}
 }
 
-func (s *memberService) AddMember(ctx context.Context, tenantID, userEmail string, role domain.UserRole) error {
-	user, err := s.users.GetByEmail(ctx, userEmail)
-	if err != nil || user == nil {
-		return errors.New("user not found")
+type AddMemberRequest struct {
+	Email    string
+	Name     string
+	Password string
+	Role     domain.UserRole
+}
+
+func (s *memberService) AddMember(ctx context.Context, tenantID string, req AddMemberRequest) error {
+	user, _ := s.users.GetByEmail(ctx, req.Email)
+	if user == nil {
+		// Auto-create user
+		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		user = &domain.User{
+			ID: generateID("u"), Email: req.Email, Name: req.Name,
+			PasswordHash: string(hash), CreatedAt: time.Now(), UpdatedAt: time.Now(),
+		}
+		if err := s.users.Create(ctx, user); err != nil {
+			return err
+		}
 	}
 	return s.members.Add(ctx, &domain.TenantMember{
-		TenantID: tenantID,
-		UserID:   user.ID,
-		Role:     role,
-		JoinedAt: time.Now(),
+		TenantID: tenantID, UserID: user.ID, Role: req.Role, JoinedAt: time.Now(),
 	})
 }
 

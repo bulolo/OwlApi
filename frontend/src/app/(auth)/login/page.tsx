@@ -17,12 +17,33 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [remember, setRemember] = useState(false)
+
+  // Restore saved credentials
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('owlapi_remember')
+      if (saved) {
+        try {
+          const { email: e, password: p } = JSON.parse(saved)
+          setEmail(e)
+          setPassword(p)
+          setRemember(true)
+        } catch {}
+      }
+    }
+  })
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
     try {
+      if (remember) {
+        localStorage.setItem('owlapi_remember', JSON.stringify({ email, password }))
+      } else {
+        localStorage.removeItem('owlapi_remember')
+      }
       const res = await login(email, password)
       await fetchTenants()
       // Navigate to first tenant or default
@@ -84,6 +105,16 @@ export default function LoginPage() {
                 </div>
               </div>
             </div>
+
+            <label className="flex items-center gap-2 px-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                className="w-3.5 h-3.5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-[11px] text-zinc-500 font-medium">记住账号密码</span>
+            </label>
 
             {error && (
               <p className="text-xs text-red-500 font-medium px-1">{error}</p>

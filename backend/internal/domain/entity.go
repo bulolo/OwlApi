@@ -35,9 +35,8 @@ type Tenant struct {
 type UserRole string
 
 const (
-	RoleAdmin     UserRole = "Admin"
-	RoleDeveloper UserRole = "Developer"
-	RoleViewer    UserRole = "Viewer"
+	RoleAdmin  UserRole = "Admin"
+	RoleViewer UserRole = "Viewer"
 )
 
 type User struct {
@@ -45,6 +44,7 @@ type User struct {
 	Email        string    `json:"email"`
 	Name         string    `json:"name"`
 	PasswordHash string    `json:"-"`
+	IsSuperAdmin bool      `json:"is_superadmin"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }

@@ -38,7 +38,7 @@ export default function RegisterTenantPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
-            开通新租户 (Tenant Onboarding)
+            开通新租户
           </h1>
           <p className="text-sm text-zinc-500 mt-0.5 font-medium">
             为新的合作伙伴或企业客户分配独立的资源空间与访问路径。

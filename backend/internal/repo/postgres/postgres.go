@@ -53,6 +53,7 @@ func (r *Repository) initSchema(ctx context.Context) error {
 			email TEXT NOT NULL UNIQUE,
 			name TEXT NOT NULL,
 			password_hash TEXT NOT NULL,
+			is_superadmin BOOLEAN NOT NULL DEFAULT FALSE,
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			updated_at TIMESTAMPTZ DEFAULT NOW()
 		)`,
@@ -112,6 +113,9 @@ func (r *Repository) initSchema(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// Migration: add is_superadmin column if not exists
+	r.pool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_superadmin BOOLEAN NOT NULL DEFAULT FALSE`)
 
 	slog.Info("Database schema initialized")
 	return nil
@@ -185,15 +189,15 @@ func (r *Repository) DeleteTenant(ctx context.Context, id string) error {
 
 func (r *Repository) CreateUser(ctx context.Context, u *domain.User) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO users (id, email, name, password_hash, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6)`,
-		u.ID, u.Email, u.Name, u.PasswordHash, u.CreatedAt, u.UpdatedAt)
+		`INSERT INTO users (id, email, name, password_hash, is_superadmin, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+		u.ID, u.Email, u.Name, u.PasswordHash, u.IsSuperAdmin, u.CreatedAt, u.UpdatedAt)
 	return err
 }
 
 func (r *Repository) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
 	var u domain.User
-	err := r.pool.QueryRow(ctx, `SELECT id, email, name, password_hash, created_at, updated_at FROM users WHERE id=$1`, id).
-		Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
+	err := r.pool.QueryRow(ctx, `SELECT id, email, name, password_hash, is_superadmin, created_at, updated_at FROM users WHERE id=$1`, id).
+		Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.IsSuperAdmin, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -202,8 +206,8 @@ func (r *Repository) GetUserByID(ctx context.Context, id string) (*domain.User, 
 
 func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var u domain.User
-	err := r.pool.QueryRow(ctx, `SELECT id, email, name, password_hash, created_at, updated_at FROM users WHERE email=$1`, email).
-		Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.CreatedAt, &u.UpdatedAt)
+	err := r.pool.QueryRow(ctx, `SELECT id, email, name, password_hash, is_superadmin, created_at, updated_at FROM users WHERE email=$1`, email).
+		Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.IsSuperAdmin, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -231,7 +235,7 @@ func (r *Repository) GetMembersByTenantID(ctx context.Context, tenantID string, 
 	}
 	offset := (page - 1) * size
 	rows, err := r.pool.Query(ctx,
-		`SELECT tm.tenant_id, tm.user_id, tm.role, tm.joined_at, u.id, u.email, u.name, u.created_at, u.updated_at
+		`SELECT tm.tenant_id, tm.user_id, tm.role, tm.joined_at, u.id, u.email, u.name, u.is_superadmin, u.created_at, u.updated_at
 		 FROM tenant_members tm JOIN users u ON tm.user_id = u.id
 		 WHERE tm.tenant_id=$1 ORDER BY tm.joined_at LIMIT $2 OFFSET $3`, tenantID, size, offset)
 	if err != nil {
@@ -243,7 +247,7 @@ func (r *Repository) GetMembersByTenantID(ctx context.Context, tenantID string, 
 	for rows.Next() {
 		m := &domain.TenantMember{User: &domain.User{}}
 		if err := rows.Scan(&m.TenantID, &m.UserID, &m.Role, &m.JoinedAt,
-			&m.User.ID, &m.User.Email, &m.User.Name, &m.User.CreatedAt, &m.User.UpdatedAt); err != nil {
+			&m.User.ID, &m.User.Email, &m.User.Name, &m.User.IsSuperAdmin, &m.User.CreatedAt, &m.User.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		members = append(members, m)

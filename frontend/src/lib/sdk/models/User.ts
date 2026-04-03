@@ -6,6 +6,7 @@ export type User = {
     id?: string;
     email?: string;
     name?: string;
+    is_superadmin?: boolean;
     created_at?: string;
     updated_at?: string;
 };

@@ -78,7 +78,7 @@ export default function GatewaysClientPage() {
 
             <div className="space-y-3">
               <div className="flex justify-between items-center text-xs font-medium text-zinc-500">
-                <span>机器负载 (Load)</span>
+                <span>机器负载</span>
                 <span className={cn("font-bold", gw.load > 50 ? "text-orange-500" : "text-blue-600")}>{gw.load}%</span>
               </div>
               <div className="h-2 bg-zinc-100/50 rounded-full overflow-hidden border border-zinc-100">

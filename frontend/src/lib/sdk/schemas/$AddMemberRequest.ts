@@ -9,6 +9,15 @@ export const $AddMemberRequest = {
             isRequired: true,
             format: 'email',
         },
+        name: {
+            type: 'string',
+            isRequired: true,
+        },
+        password: {
+            type: 'string',
+            isRequired: true,
+            format: 'password',
+        },
         role: {
             type: 'Enum',
             isRequired: true,

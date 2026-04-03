@@ -19,15 +19,18 @@ import {
 export function TenantSwitcher({ slug }: { slug?: string }) {
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
-  const { activeTenant: storeTenant, setActiveTenant } = useUIStore()
+  const { activeTenant: storeTenant, setActiveTenant, user } = useUIStore()
   
   const activeTenant = slug !== 'system' ? (slug || storeTenant) : storeTenant
   const { tenants, fetchTenants, markTenantAsRecent } = useTenantStore()
+  const isSuperAdmin = user?.is_superadmin === true
   
   useEffect(() => {
     setMounted(true)
-    fetchTenants(1, 100) // switcher loads all
-  }, [])
+    if (isSuperAdmin) {
+      fetchTenants(1, 100)
+    }
+  }, [isSuperAdmin])
 
   const currentTenantObj = tenants.find(t => t.slug === activeTenant) || tenants[0]
 
@@ -47,6 +50,18 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
         </span>
         <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
       </Button>
+    )
+  }
+
+  // Non-superadmin: show current tenant name only (no switcher)
+  if (!isSuperAdmin) {
+    return (
+      <div className="flex items-center gap-2 px-3 h-9">
+        <span className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center shrink-0">
+          <Building2 className="w-3 h-3 text-blue-600" />
+        </span>
+        <span className="text-xs font-bold text-zinc-900">{slug || activeTenant}</span>
+      </div>
     )
   }
 

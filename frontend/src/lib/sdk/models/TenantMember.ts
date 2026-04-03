@@ -13,7 +13,6 @@ export type TenantMember = {
 export namespace TenantMember {
     export enum role {
         ADMIN = 'Admin',
-        DEVELOPER = 'Developer',
         VIEWER = 'Viewer',
     }
 }

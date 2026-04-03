@@ -26,7 +26,7 @@ export default function SettingsClientPage() {
         <div>
           <h1 className="text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
             <Settings className="w-5 h-5 text-zinc-400" />
-            系统设置 (System Settings)
+            系统设置
           </h1>
           <p className="text-xs text-zinc-500 mt-1 font-medium">配置平台全局行为及网关节点集群参数。</p>
         </div>
@@ -170,7 +170,7 @@ export default function SettingsClientPage() {
                         </SelectContent>
                       </Select>
                     </FormItem>
-                    <FormItem label="安全密钥 (Secret)" description="可选：用于签名校验或 WeCom 的密钥验证">
+                    <FormItem label="安全密钥" description="可选：用于签名校验或 WeCom 的密钥验证">
                       <Input type="password" placeholder="••••••••••••••••" className="h-9 text-xs" />
                     </FormItem>
                   </div>

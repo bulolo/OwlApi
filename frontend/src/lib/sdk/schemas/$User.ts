@@ -13,6 +13,9 @@ export const $User = {
         name: {
             type: 'string',
         },
+        is_superadmin: {
+            type: 'boolean',
+        },
         created_at: {
             type: 'string',
             format: 'date-time',

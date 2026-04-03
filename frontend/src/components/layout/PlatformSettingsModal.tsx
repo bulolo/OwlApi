@@ -60,7 +60,7 @@ export default function PlatformSettingsModal({ open, onOpenChange }: PlatformSe
                 )}
               >
                 <Settings className={cn("w-4 h-4", activeTab === "settings" ? "text-blue-500" : "text-zinc-400")} />
-                全局配置 (Settings)
+                全局配置
               </button>
             </nav>
           </div>

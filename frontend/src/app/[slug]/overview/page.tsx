@@ -27,7 +27,7 @@ export default function OverviewPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">
-          {isSystem ? "平台总览 (Global Overview)" : "项目概览 (Workspace Dashboard)"}
+          {isSystem ? "平台总览" : "项目概览"}
         </h1>
         <p className="text-sm text-zinc-500 mt-1 font-medium">
           {isSystem 
@@ -77,7 +77,7 @@ export default function OverviewPage() {
         <div className="lg:col-span-2 bg-white rounded-xl border border-zinc-200/60 shadow-sm p-6">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-base font-bold text-zinc-900">流量趋势 (Traffic Trend)</h3>
+              <h3 className="text-base font-bold text-zinc-900">流量趋势</h3>
               <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tight mt-0.5">{RANGE_LABELS[range]}</p>
             </div>
             <div className="flex gap-1 bg-zinc-50 p-1 rounded-lg border border-zinc-100">

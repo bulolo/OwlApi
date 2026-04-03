@@ -8,7 +8,6 @@ export type UpdateRoleRequest = {
 export namespace UpdateRoleRequest {
     export enum role {
         ADMIN = 'Admin',
-        DEVELOPER = 'Developer',
         VIEWER = 'Viewer',
     }
 }

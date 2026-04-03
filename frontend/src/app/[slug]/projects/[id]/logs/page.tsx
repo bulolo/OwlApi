@@ -42,7 +42,7 @@ export default function ProjectLogsPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-zinc-50/50 border-b border-zinc-100">
-                <th className="px-4 py-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest">时间戳 (Timestamp)</th>
+                <th className="px-4 py-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest">时间戳</th>
                 <th className="px-4 py-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest">方法</th>
                 <th className="px-4 py-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest">路径</th>
                 <th className="px-4 py-3 text-[10px] font-black text-zinc-400 uppercase tracking-widest">状态</th>

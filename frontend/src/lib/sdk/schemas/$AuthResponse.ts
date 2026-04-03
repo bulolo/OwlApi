@@ -13,5 +13,11 @@ export const $AuthResponse = {
         tenant: {
             type: 'Tenant',
         },
+        tenants: {
+            type: 'array',
+            contains: {
+                type: 'Tenant',
+            },
+        },
     },
 } as const;

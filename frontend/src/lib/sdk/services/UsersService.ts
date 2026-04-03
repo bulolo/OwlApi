@@ -3,44 +3,50 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AddMemberRequest } from '../models/AddMemberRequest';
-import type { StatusResponse } from '../models/StatusResponse';
-import type { TenantMember } from '../models/TenantMember';
 import type { UpdateRoleRequest } from '../models/UpdateRoleRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
-export class MembersService {
+export class UsersService {
     /**
-     * 成员列表
+     * 用户列表 (分页)
      * @param slug
-     * @returns TenantMember OK
+     * @param page
+     * @param size
+     * @returns any OK
      * @throws ApiError
      */
-    public static listMembers(
+    public static listUsers(
         slug: string,
-    ): CancelablePromise<Array<TenantMember>> {
+        page: number = 1,
+        size: number = 10,
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/v1/tenants/{slug}/members',
+            url: '/api/v1/tenants/{slug}/users',
             path: {
                 'slug': slug,
+            },
+            query: {
+                'page': page,
+                'size': size,
             },
         });
     }
     /**
-     * 邀请成员
+     * 添加用户
      * @param slug
      * @param requestBody
-     * @returns StatusResponse 添加成功
+     * @returns any 添加成功
      * @throws ApiError
      */
-    public static addMember(
+    public static addUser(
         slug: string,
         requestBody: AddMemberRequest,
-    ): CancelablePromise<StatusResponse> {
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/v1/tenants/{slug}/members',
+            url: '/api/v1/tenants/{slug}/users',
             path: {
                 'slug': slug,
             },
@@ -49,21 +55,21 @@ export class MembersService {
         });
     }
     /**
-     * 修改成员角色
+     * 修改用户角色
      * @param slug
      * @param userId
      * @param requestBody
-     * @returns StatusResponse OK
+     * @returns any OK
      * @throws ApiError
      */
-    public static updateMemberRole(
+    public static updateUserRole(
         slug: string,
         userId: string,
         requestBody: UpdateRoleRequest,
-    ): CancelablePromise<StatusResponse> {
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/api/v1/tenants/{slug}/members/{userId}/role',
+            url: '/api/v1/tenants/{slug}/users/{userId}/role',
             path: {
                 'slug': slug,
                 'userId': userId,
@@ -73,19 +79,19 @@ export class MembersService {
         });
     }
     /**
-     * 移除成员
+     * 移除用户
      * @param slug
      * @param userId
-     * @returns StatusResponse OK
+     * @returns any OK
      * @throws ApiError
      */
-    public static removeMember(
+    public static removeUser(
         slug: string,
         userId: string,
-    ): CancelablePromise<StatusResponse> {
+    ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/api/v1/tenants/{slug}/members/{userId}',
+            url: '/api/v1/tenants/{slug}/users/{userId}',
             path: {
                 'slug': slug,
                 'userId': userId,

@@ -2,7 +2,7 @@ import {
   OpenAPI,
   AuthService,
   TenantsService,
-  MembersService,
+  UsersService,
   type RegisterRequest,
   type LoginRequest,
   type AuthResponse,
@@ -116,25 +116,25 @@ export async function apiDeleteTenant(slug: string): Promise<void> {
   if (json.code !== 0) throw new Error(json.msg)
 }
 
-// ---- Members ----
+// ---- Users (tenant-scoped) ----
 
-export async function apiListMembers(slug: string, page = 1, size = 20): Promise<PaginatedData<TenantMember>> {
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/tenants/${slug}/members?page=${page}&size=${size}`)
+export async function apiListUsers(slug: string, page = 1, size = 10): Promise<PaginatedData<TenantMember>> {
+  const res = await fetch(`${OpenAPI.BASE}/api/v1/tenants/${slug}/users?page=${page}&size=${size}`)
   const json = await res.json()
   if (json.code !== 0) throw new Error(json.msg)
   return json.data
 }
 
-export async function apiAddMember(slug: string, req: AddMemberRequest) {
-  return unwrap<any>(MembersService.addMember(slug, req))
+export async function apiAddUser(slug: string, req: AddMemberRequest) {
+  return unwrap<any>(UsersService.addUser(slug, req))
 }
 
-export async function apiUpdateMemberRole(slug: string, userId: string, role: string) {
-  return unwrap<any>(MembersService.updateMemberRole(slug, userId, { role: role as any }))
+export async function apiUpdateUserRole(slug: string, userId: string, role: string) {
+  return unwrap<any>(UsersService.updateUserRole(slug, userId, { role: role as any }))
 }
 
-export async function apiRemoveMember(slug: string, userId: string) {
-  return unwrap<any>(MembersService.removeMember(slug, userId))
+export async function apiRemoveUser(slug: string, userId: string) {
+  return unwrap<any>(UsersService.removeUser(slug, userId))
 }
 
 // Re-export types for convenience

@@ -22,18 +22,8 @@ paths:
             schema:
               $ref: "#/components/schemas/RegisterRequest"
       responses:
-        "201":
+        "200":
           description: 注册成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthResponse"
-        "409":
-          description: 邮箱或 slug 已存在
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/auth/login:
     post:
@@ -49,32 +39,27 @@ paths:
       responses:
         "200":
           description: 登录成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthResponse"
-        "401":
-          description: 认证失败
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
 
   # ==================== Tenants ====================
   /api/v1/tenants:
     get:
       operationId: listTenants
       tags: [Tenants]
-      summary: 租户列表
+      summary: 租户列表 (分页)
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 10 }
+        - name: is_pager
+          in: query
+          schema: { type: integer, default: 1 }
+          description: "0=不分页返回全量, 1=分页"
       responses:
         "200":
           description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Tenant"
     post:
       operationId: createTenant
       tags: [Tenants]
@@ -86,18 +71,8 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateTenantRequest"
       responses:
-        "201":
+        "200":
           description: 创建成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Tenant"
-        "409":
-          description: slug 已存在
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/tenants/{slug}:
     get:
@@ -108,53 +83,70 @@ paths:
         - name: slug
           in: path
           required: true
-          schema:
-            type: string
+          schema: { type: string }
       responses:
         "200":
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Tenant"
-        "404":
-          description: 租户不存在
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateTenant
+      tags: [Tenants]
+      summary: 编辑租户
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTenantRequest"
+      responses:
+        "200":
+          description: OK
+    delete:
+      operationId: deleteTenant
+      tags: [Tenants]
+      summary: 删除租户
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
 
-  # ==================== Members ====================
-  /api/v1/tenants/{slug}/members:
+  # ==================== Users ====================
+  /api/v1/tenants/{slug}/users:
     get:
-      operationId: listMembers
-      tags: [Members]
-      summary: 成员列表
+      operationId: listUsers
+      tags: [Users]
+      summary: 用户列表 (分页)
       parameters:
         - name: slug
           in: path
           required: true
-          schema:
-            type: string
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: size
+          in: query
+          schema: { type: integer, default: 10 }
       responses:
         "200":
           description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/TenantMember"
     post:
-      operationId: addMember
-      tags: [Members]
-      summary: 邀请成员
+      operationId: addUser
+      tags: [Users]
+      summary: 添加用户
       parameters:
         - name: slug
           in: path
           required: true
-          schema:
-            type: string
+          schema: { type: string }
       requestBody:
         required: true
         content:
@@ -162,29 +154,23 @@ paths:
             schema:
               $ref: "#/components/schemas/AddMemberRequest"
       responses:
-        "201":
+        "200":
           description: 添加成功
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StatusResponse"
 
-  /api/v1/tenants/{slug}/members/{userId}/role:
+  /api/v1/tenants/{slug}/users/{userId}/role:
     put:
-      operationId: updateMemberRole
-      tags: [Members]
-      summary: 修改成员角色
+      operationId: updateUserRole
+      tags: [Users]
+      summary: 修改用户角色
       parameters:
         - name: slug
           in: path
           required: true
-          schema:
-            type: string
+          schema: { type: string }
         - name: userId
           in: path
           required: true
-          schema:
-            type: string
+          schema: { type: string }
       requestBody:
         required: true
         content:
@@ -194,100 +180,28 @@ paths:
       responses:
         "200":
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StatusResponse"
 
-  /api/v1/tenants/{slug}/members/{userId}:
+  /api/v1/tenants/{slug}/users/{userId}:
     delete:
-      operationId: removeMember
-      tags: [Members]
-      summary: 移除成员
+      operationId: removeUser
+      tags: [Users]
+      summary: 移除用户
       parameters:
         - name: slug
           in: path
           required: true
-          schema:
-            type: string
+          schema: { type: string }
         - name: userId
           in: path
           required: true
-          schema:
-            type: string
+          schema: { type: string }
       responses:
         "200":
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StatusResponse"
-
-  # ==================== Query ====================
-  /api/v1/query/{path}:
-    get:
-      operationId: executeQueryGet
-      tags: [Query]
-      summary: 执行 SQL 查询 (GET)
-      parameters:
-        - name: path
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: X-Tenant-ID
-          in: header
-          required: true
-          schema:
-            type: string
-        - name: X-Runner-ID
-          in: header
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: 查询结果 (JSON)
-    post:
-      operationId: executeQueryPost
-      tags: [Query]
-      summary: 执行 SQL 查询 (POST)
-      parameters:
-        - name: path
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: X-Tenant-ID
-          in: header
-          required: true
-          schema:
-            type: string
-        - name: X-Runner-ID
-          in: header
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: 查询结果 (JSON)
 
 # ==================== Schemas ====================
 components:
   schemas:
-    ErrorResponse:
-      type: object
-      required: [error]
-      properties:
-        error:
-          type: string
-
-    StatusResponse:
-      type: object
-      properties:
-        status:
-          type: string
-
     RegisterRequest:
       type: object
       required: [email, name, password]
@@ -325,6 +239,10 @@ components:
           type: string
         tenant:
           $ref: "#/components/schemas/Tenant"
+        tenants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tenant"
 
     User:
       type: object
@@ -335,6 +253,8 @@ components:
           type: string
         name:
           type: string
+        is_superadmin:
+          type: boolean
         created_at:
           type: string
           format: date-time
@@ -378,6 +298,18 @@ components:
         user_id:
           type: string
 
+    UpdateTenantRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        plan:
+          type: string
+          enum: [Free, Pro, Enterprise]
+        status:
+          type: string
+          enum: [Active, Warning, Suspended]
+
     TenantMember:
       type: object
       properties:
@@ -387,7 +319,7 @@ components:
           type: string
         role:
           type: string
-          enum: [Admin, Developer, Viewer]
+          enum: [Admin, Viewer]
         joined_at:
           type: string
           format: date-time
@@ -396,14 +328,19 @@ components:
 
     AddMemberRequest:
       type: object
-      required: [email, role]
+      required: [email, name, password, role]
       properties:
         email:
           type: string
           format: email
+        name:
+          type: string
+        password:
+          type: string
+          format: password
         role:
           type: string
-          enum: [Admin, Developer, Viewer]
+          enum: [Admin, Viewer]
 
     UpdateRoleRequest:
       type: object
@@ -411,4 +348,4 @@ components:
       properties:
         role:
           type: string
-          enum: [Admin, Developer, Viewer]
+          enum: [Admin, Viewer]

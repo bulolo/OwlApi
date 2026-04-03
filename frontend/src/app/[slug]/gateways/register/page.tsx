@@ -30,7 +30,7 @@ export default function RegisterGatewayPage() {
         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
           <Server className="w-6 h-6 text-white" />
         </div>
-        <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">部署新的网关节点 (Runner)</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">部署新的网关节点</h1>
         <p className="text-sm text-zinc-500 mt-1 font-medium">只需两步，将您的私有网络/本地环境安全接入 OwlApi。</p>
       </div>
 
@@ -48,7 +48,7 @@ export default function RegisterGatewayPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-8 space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>节点名称 (Node Name)</Label>
+                <Label>节点名称</Label>
                 <Input placeholder="e.g. Aliyun-Shanghai-01" className="bg-zinc-50" />
                 <p className="text-[11px] text-zinc-400">仅用于在控制台中识别该节点，建议包含位置和用途。</p>
               </div>

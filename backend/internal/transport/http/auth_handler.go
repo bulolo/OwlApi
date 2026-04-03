@@ -28,10 +28,10 @@ func (h *AuthHandler) RegisterRoutes(r *gin.Engine) {
 	r.PUT("/api/v1/tenants/:slug", h.UpdateTenant)
 	r.DELETE("/api/v1/tenants/:slug", h.DeleteTenant)
 
-	r.GET("/api/v1/tenants/:slug/members", h.ListMembers)
-	r.POST("/api/v1/tenants/:slug/members", h.AddMember)
-	r.PUT("/api/v1/tenants/:slug/members/:userId/role", h.UpdateMemberRole)
-	r.DELETE("/api/v1/tenants/:slug/members/:userId", h.RemoveMember)
+	r.GET("/api/v1/tenants/:slug/users", h.ListMembers)
+	r.POST("/api/v1/tenants/:slug/users", h.AddMember)
+	r.PUT("/api/v1/tenants/:slug/users/:userId/role", h.UpdateMemberRole)
+	r.DELETE("/api/v1/tenants/:slug/users/:userId", h.RemoveMember)
 }
 
 // ==================== Auth ====================
@@ -187,14 +187,18 @@ func (h *AuthHandler) AddMember(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Email string `json:"email" binding:"required"`
-		Role  string `json:"role" binding:"required"`
+		Email    string `json:"email" binding:"required"`
+		Name     string `json:"name" binding:"required"`
+		Password string `json:"password" binding:"required"`
+		Role     string `json:"role" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := h.members.AddMember(c.Request.Context(), tenant.ID, req.Email, domain.UserRole(req.Role)); err != nil {
+	if err := h.members.AddMember(c.Request.Context(), tenant.ID, service.AddMemberRequest{
+		Email: req.Email, Name: req.Name, Password: req.Password, Role: domain.UserRole(req.Role),
+	}); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}

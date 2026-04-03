@@ -35,7 +35,7 @@ export default function TenantsClientPage() {
   const filteredTenants = tenants.filter(t => 
     (t.name || '').toLowerCase().includes(search.toLowerCase()) || 
     (t.slug || '').toLowerCase().includes(search.toLowerCase()) ||
-    (t.id || '').toLowerCase().includes(search.toLowerCase())
+    String(t.id || '').toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -127,8 +127,8 @@ export default function TenantsClientPage() {
                     className="h-8 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     onClick={() => {
                       setViewContext('TENANT');
-                      setActiveTenant(tenant.slug);
-                      markTenantAsRecent(tenant.id);
+                      setActiveTenant(tenant.slug!);
+                      markTenantAsRecent(String(tenant.id));
                       router.push(`/${tenant.slug}/overview`);
                     }}
                   >

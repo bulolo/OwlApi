@@ -5,7 +5,8 @@
 export const $Tenant = {
     properties: {
         id: {
-            type: 'string',
+            type: 'number',
+            format: 'int64',
         },
         name: {
             type: 'string',

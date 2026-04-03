@@ -44,7 +44,7 @@ export default function RegisterGatewayPage() {
 
       <div className="bg-white border border-zinc-100 rounded-lg shadow-sm overflow-hidden">
         {step === 1 && (
-            <div className="space-y-4">
+          <div className="p-6 space-y-4">
               <div className="space-y-2">
                 <Label>节点名称</Label>
                 <Input placeholder="e.g. Aliyun-Shanghai-01" className="bg-zinc-50" />
@@ -61,7 +61,6 @@ export default function RegisterGatewayPage() {
                   </p>
                 </div>
               </div>
-            </div>
             <div className="pt-4 flex justify-end">
               <Button onClick={() => setStep(2)} className="bg-blue-600 hover:bg-blue-700 font-bold">
                 生成安装命令
@@ -72,6 +71,7 @@ export default function RegisterGatewayPage() {
         )}
 
         {step === 2 && (
+          <div className="p-6 space-y-4">
             <div className="bg-zinc-900 rounded-lg p-4 font-mono text-sm text-white relative group">
               <div className="absolute top-3 right-3">
                  <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded" onClick={handleCopy}>
@@ -109,6 +109,7 @@ export default function RegisterGatewayPage() {
         )}
 
         {step === 3 && (
+          <div className="p-6 flex flex-col items-center text-center">
              <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mb-6 relative">
                <div className="absolute inset-0 rounded-full border-4 border-t-blue-600 border-zinc-200 animate-spin" />
                <Server className="w-6 h-6 text-zinc-400" />

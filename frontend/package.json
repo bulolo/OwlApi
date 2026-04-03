@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "gen-sdk": "openapi --input ../docs/openapi.yaml --output ./src/lib/sdk --client fetch --exportSchemas true --exportServices true"
+    "gen-sdk": "openapi --input ../backend/internal/transport/http/openapi.yaml --output ./src/lib/sdk --client fetch --exportSchemas true --exportServices true"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

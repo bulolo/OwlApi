@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type User = {
-    id?: string;
+    id?: number;
     email?: string;
     name?: string;
     is_superadmin?: boolean;

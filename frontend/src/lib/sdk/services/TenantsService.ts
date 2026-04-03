@@ -9,10 +9,30 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class TenantsService {
     /**
-     * 租户列表 (分页)
+     * 当前用户的租户列表
      * @param page
      * @param size
-     * @param isPager 0=不分页返回全量, 1=分页
+     * @returns any OK
+     * @throws ApiError
+     */
+    public static myTenants(
+        page: number = 1,
+        size: number = 10,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/my/tenants',
+            query: {
+                'page': page,
+                'size': size,
+            },
+        });
+    }
+    /**
+     * 租户列表 (SuperAdmin)
+     * @param page
+     * @param size
+     * @param isPager
      * @returns any OK
      * @throws ApiError
      */
@@ -34,7 +54,7 @@ export class TenantsService {
     /**
      * 创建租户
      * @param requestBody
-     * @returns any 创建成功
+     * @returns any OK
      * @throws ApiError
      */
     public static createTenant(

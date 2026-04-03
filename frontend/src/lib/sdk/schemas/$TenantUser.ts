@@ -2,13 +2,15 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $TenantMember = {
+export const $TenantUser = {
     properties: {
         tenant_id: {
-            type: 'string',
+            type: 'number',
+            format: 'int64',
         },
         user_id: {
-            type: 'string',
+            type: 'number',
+            format: 'int64',
         },
         role: {
             type: 'Enum',

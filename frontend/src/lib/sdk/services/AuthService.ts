@@ -11,7 +11,7 @@ export class AuthService {
     /**
      * 注册账号
      * @param requestBody
-     * @returns any 注册成功
+     * @returns any OK
      * @throws ApiError
      */
     public static register(
@@ -27,7 +27,7 @@ export class AuthService {
     /**
      * 登录
      * @param requestBody
-     * @returns any 登录成功
+     * @returns any OK
      * @throws ApiError
      */
     public static login(

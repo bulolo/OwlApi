@@ -7,24 +7,24 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
-export { AddMemberRequest } from './models/AddMemberRequest';
+export { AddUserRequest } from './models/AddUserRequest';
 export type { AuthResponse } from './models/AuthResponse';
 export { CreateTenantRequest } from './models/CreateTenantRequest';
 export type { LoginRequest } from './models/LoginRequest';
 export type { RegisterRequest } from './models/RegisterRequest';
 export { Tenant } from './models/Tenant';
-export { TenantMember } from './models/TenantMember';
+export { TenantUser } from './models/TenantUser';
 export { UpdateRoleRequest } from './models/UpdateRoleRequest';
 export { UpdateTenantRequest } from './models/UpdateTenantRequest';
 export type { User } from './models/User';
 
-export { $AddMemberRequest } from './schemas/$AddMemberRequest';
+export { $AddUserRequest } from './schemas/$AddUserRequest';
 export { $AuthResponse } from './schemas/$AuthResponse';
 export { $CreateTenantRequest } from './schemas/$CreateTenantRequest';
 export { $LoginRequest } from './schemas/$LoginRequest';
 export { $RegisterRequest } from './schemas/$RegisterRequest';
 export { $Tenant } from './schemas/$Tenant';
-export { $TenantMember } from './schemas/$TenantMember';
+export { $TenantUser } from './schemas/$TenantUser';
 export { $UpdateRoleRequest } from './schemas/$UpdateRoleRequest';
 export { $UpdateTenantRequest } from './schemas/$UpdateTenantRequest';
 export { $User } from './schemas/$User';

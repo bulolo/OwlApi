@@ -8,13 +8,16 @@ servers:
   - url: http://localhost:3000
     description: Local dev
 
+security:
+  - BearerAuth: []
+
 paths:
-  # ==================== Auth ====================
   /api/v1/auth/register:
     post:
       operationId: register
       tags: [Auth]
       summary: 注册账号
+      security: []
       requestBody:
         required: true
         content:
@@ -23,13 +26,14 @@ paths:
               $ref: "#/components/schemas/RegisterRequest"
       responses:
         "200":
-          description: 注册成功
+          description: OK
 
   /api/v1/auth/login:
     post:
       operationId: login
       tags: [Auth]
       summary: 登录
+      security: []
       requestBody:
         required: true
         content:
@@ -38,25 +42,29 @@ paths:
               $ref: "#/components/schemas/LoginRequest"
       responses:
         "200":
-          description: 登录成功
+          description: OK
 
-  # ==================== Tenants ====================
+  /api/v1/my/tenants:
+    get:
+      operationId: myTenants
+      tags: [Tenants]
+      summary: 当前用户的租户列表
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: size, in: query, schema: { type: integer, default: 10 } }
+      responses:
+        "200":
+          description: OK
+
   /api/v1/tenants:
     get:
       operationId: listTenants
       tags: [Tenants]
-      summary: 租户列表 (分页)
+      summary: 租户列表 (SuperAdmin)
       parameters:
-        - name: page
-          in: query
-          schema: { type: integer, default: 1 }
-        - name: size
-          in: query
-          schema: { type: integer, default: 10 }
-        - name: is_pager
-          in: query
-          schema: { type: integer, default: 1 }
-          description: "0=不分页返回全量, 1=分页"
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: size, in: query, schema: { type: integer, default: 10 } }
+        - { name: is_pager, in: query, schema: { type: integer, default: 1 } }
       responses:
         "200":
           description: OK
@@ -72,7 +80,7 @@ paths:
               $ref: "#/components/schemas/CreateTenantRequest"
       responses:
         "200":
-          description: 创建成功
+          description: OK
 
   /api/v1/tenants/{slug}:
     get:
@@ -80,10 +88,7 @@ paths:
       tags: [Tenants]
       summary: 获取租户详情
       parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+        - { name: slug, in: path, required: true, schema: { type: string } }
       responses:
         "200":
           description: OK
@@ -92,10 +97,7 @@ paths:
       tags: [Tenants]
       summary: 编辑租户
       parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+        - { name: slug, in: path, required: true, schema: { type: string } }
       requestBody:
         required: true
         content:
@@ -110,31 +112,20 @@ paths:
       tags: [Tenants]
       summary: 删除租户
       parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+        - { name: slug, in: path, required: true, schema: { type: string } }
       responses:
         "200":
           description: OK
 
-  # ==================== Users ====================
   /api/v1/tenants/{slug}/users:
     get:
       operationId: listUsers
       tags: [Users]
-      summary: 用户列表 (分页)
+      summary: 用户列表
       parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
-        - name: page
-          in: query
-          schema: { type: integer, default: 1 }
-        - name: size
-          in: query
-          schema: { type: integer, default: 10 }
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: size, in: query, schema: { type: integer, default: 10 } }
       responses:
         "200":
           description: OK
@@ -143,19 +134,16 @@ paths:
       tags: [Users]
       summary: 添加用户
       parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
+        - { name: slug, in: path, required: true, schema: { type: string } }
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AddMemberRequest"
+              $ref: "#/components/schemas/AddUserRequest"
       responses:
         "200":
-          description: 添加成功
+          description: OK
 
   /api/v1/tenants/{slug}/users/{userId}/role:
     put:
@@ -163,14 +151,8 @@ paths:
       tags: [Users]
       summary: 修改用户角色
       parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
-        - name: userId
-          in: path
-          required: true
-          schema: { type: string }
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: userId, in: path, required: true, schema: { type: integer, format: int64 } }
       requestBody:
         required: true
         content:
@@ -187,165 +169,103 @@ paths:
       tags: [Users]
       summary: 移除用户
       parameters:
-        - name: slug
-          in: path
-          required: true
-          schema: { type: string }
-        - name: userId
-          in: path
-          required: true
-          schema: { type: string }
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: userId, in: path, required: true, schema: { type: integer, format: int64 } }
       responses:
         "200":
           description: OK
 
-# ==================== Schemas ====================
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     RegisterRequest:
       type: object
       required: [email, name, password]
       properties:
-        email:
-          type: string
-          format: email
-        name:
-          type: string
-        password:
-          type: string
-          format: password
-        tenant_name:
-          type: string
-        tenant_slug:
-          type: string
+        email: { type: string, format: email }
+        name: { type: string }
+        password: { type: string, format: password }
+        tenant_name: { type: string }
+        tenant_slug: { type: string }
 
     LoginRequest:
       type: object
       required: [email, password]
       properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          format: password
+        email: { type: string, format: email }
+        password: { type: string, format: password }
 
     AuthResponse:
       type: object
       properties:
-        user:
-          $ref: "#/components/schemas/User"
-        token:
-          type: string
-        tenant:
-          $ref: "#/components/schemas/Tenant"
+        user: { $ref: "#/components/schemas/User" }
+        token: { type: string }
+        tenant: { $ref: "#/components/schemas/Tenant" }
         tenants:
           type: array
-          items:
-            $ref: "#/components/schemas/Tenant"
+          items: { $ref: "#/components/schemas/Tenant" }
 
     User:
       type: object
       properties:
-        id:
-          type: string
-        email:
-          type: string
-        name:
-          type: string
-        is_superadmin:
-          type: boolean
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
+        id: { type: integer, format: int64 }
+        email: { type: string }
+        name: { type: string }
+        is_superadmin: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
 
     Tenant:
       type: object
       properties:
-        id:
-          type: string
-        name:
-          type: string
-        slug:
-          type: string
-        plan:
-          type: string
-          enum: [Free, Pro, Enterprise]
-        status:
-          type: string
-          enum: [Active, Warning, Suspended]
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        slug: { type: string }
+        plan: { type: string, enum: [Free, Pro, Enterprise] }
+        status: { type: string, enum: [Active, Warning, Suspended] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
 
     CreateTenantRequest:
       type: object
-      required: [name, slug, user_id]
+      required: [name, slug]
       properties:
-        name:
-          type: string
-        slug:
-          type: string
-        plan:
-          type: string
-          enum: [Free, Pro, Enterprise]
-        user_id:
-          type: string
+        name: { type: string }
+        slug: { type: string }
+        plan: { type: string, enum: [Free, Pro, Enterprise] }
 
     UpdateTenantRequest:
       type: object
       properties:
-        name:
-          type: string
-        plan:
-          type: string
-          enum: [Free, Pro, Enterprise]
-        status:
-          type: string
-          enum: [Active, Warning, Suspended]
+        name: { type: string }
+        plan: { type: string, enum: [Free, Pro, Enterprise] }
+        status: { type: string, enum: [Active, Warning, Suspended] }
 
-    TenantMember:
+    TenantUser:
       type: object
       properties:
-        tenant_id:
-          type: string
-        user_id:
-          type: string
-        role:
-          type: string
-          enum: [Admin, Viewer]
-        joined_at:
-          type: string
-          format: date-time
-        user:
-          $ref: "#/components/schemas/User"
+        tenant_id: { type: integer, format: int64 }
+        user_id: { type: integer, format: int64 }
+        role: { type: string, enum: [Admin, Viewer] }
+        joined_at: { type: string, format: date-time }
+        user: { $ref: "#/components/schemas/User" }
 
-    AddMemberRequest:
+    AddUserRequest:
       type: object
       required: [email, name, password, role]
       properties:
-        email:
-          type: string
-          format: email
-        name:
-          type: string
-        password:
-          type: string
-          format: password
-        role:
-          type: string
-          enum: [Admin, Viewer]
+        email: { type: string, format: email }
+        name: { type: string }
+        password: { type: string, format: password }
+        role: { type: string, enum: [Admin, Viewer] }
 
     UpdateRoleRequest:
       type: object
       required: [role]
       properties:
-        role:
-          type: string
-          enum: [Admin, Viewer]
+        role: { type: string, enum: [Admin, Viewer] }

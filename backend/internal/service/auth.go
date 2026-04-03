@@ -2,12 +2,11 @@ package service
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"errors"
 	"time"
 
 	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/hongjunyao/owlapi/internal/pkg/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,7 +14,6 @@ var (
 	ErrInvalidCredentials = errors.New("invalid email or password")
 	ErrEmailExists        = errors.New("email already registered")
 	ErrSlugExists         = errors.New("tenant slug already exists")
-	ErrNotMember          = errors.New("user is not a member of this tenant")
 )
 
 // ==================== Auth Service ====================
@@ -41,13 +39,13 @@ type AuthResponse struct {
 }
 
 type authService struct {
-	users   domain.UserRepository
-	tenants domain.TenantRepository
-	members domain.TenantMemberRepository
+	users       domain.UserRepository
+	tenants     domain.TenantRepository
+	tenantUsers domain.TenantUserRepository
 }
 
-func NewAuthService(users domain.UserRepository, tenants domain.TenantRepository, members domain.TenantMemberRepository) AuthService {
-	return &authService{users: users, tenants: tenants, members: members}
+func NewAuthService(users domain.UserRepository, tenants domain.TenantRepository, tenantUsers domain.TenantUserRepository) AuthService {
+	return &authService{users: users, tenants: tenants, tenantUsers: tenantUsers}
 }
 
 func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthResponse, error) {
@@ -62,7 +60,6 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 	}
 
 	user := &domain.User{
-		ID:           generateID("u"),
 		Email:        req.Email,
 		Name:         req.Name,
 		PasswordHash: string(hash),
@@ -73,7 +70,11 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 		return nil, err
 	}
 
-	resp := &AuthResponse{User: user, Token: generateToken()}
+	token, err := auth.GenerateToken(user.ID, user.Email, user.IsSuperAdmin)
+	if err != nil {
+		return nil, err
+	}
+	resp := &AuthResponse{User: user, Token: token}
 
 	// If tenant info provided, create tenant and add user as Admin
 	if req.TenantSlug != "" {
@@ -81,7 +82,6 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 			return nil, ErrSlugExists
 		}
 		tenant := &domain.Tenant{
-			ID:        generateID("t"),
 			Name:      req.TenantName,
 			Slug:      req.TenantSlug,
 			Plan:      domain.PlanFree,
@@ -92,7 +92,7 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 		if err := s.tenants.Create(ctx, tenant); err != nil {
 			return nil, err
 		}
-		_ = s.members.Add(ctx, &domain.TenantMember{
+		_ = s.tenantUsers.Add(ctx, &domain.TenantUser{
 			TenantID: tenant.ID,
 			UserID:   user.ID,
 			Role:     domain.RoleAdmin,
@@ -117,15 +117,19 @@ func (s *authService) Login(ctx context.Context, email, password string) (*AuthR
 	if user.IsSuperAdmin {
 		tenants, _, _ = s.tenants.List(ctx, 1, 10000)
 	} else {
-		memberships, _ := s.members.GetByUserID(ctx, user.ID)
-		tenants = make([]*domain.Tenant, 0, len(memberships))
-		for _, m := range memberships {
-			if t, err := s.tenants.GetByID(ctx, m.TenantID); err == nil {
+		tenantUsers, _ := s.tenantUsers.GetByUserID(ctx, user.ID)
+		tenants = make([]*domain.Tenant, 0, len(tenantUsers))
+		for _, tu := range tenantUsers {
+			if t, err := s.tenants.GetByID(ctx, tu.TenantID); err == nil {
 				tenants = append(tenants, t)
 			}
 		}
 	}
-	resp := &AuthResponse{User: user, Token: generateToken(), Tenants: tenants}
+	token, err := auth.GenerateToken(user.ID, user.Email, user.IsSuperAdmin)
+	if err != nil {
+		return nil, err
+	}
+	resp := &AuthResponse{User: user, Token: token, Tenants: tenants}
 	if len(tenants) > 0 {
 		resp.Tenant = tenants[0]
 	}
@@ -135,28 +139,28 @@ func (s *authService) Login(ctx context.Context, email, password string) (*AuthR
 // ==================== Tenant Service ====================
 
 type TenantService interface {
-	Create(ctx context.Context, tenant *domain.Tenant, creatorUserID string) error
+	Create(ctx context.Context, tenant *domain.Tenant, creatorUserID int64) error
 	List(ctx context.Context, page, size int) ([]*domain.Tenant, int, error)
 	GetBySlug(ctx context.Context, slug string) (*domain.Tenant, error)
 	Update(ctx context.Context, slug string, name string, plan string, status string) (*domain.Tenant, error)
 	Delete(ctx context.Context, slug string) error
-	ListByUser(ctx context.Context, userID string) ([]*domain.Tenant, error)
+	ListByUser(ctx context.Context, userID int64) ([]*domain.Tenant, error)
 }
 
 type tenantService struct {
-	tenants domain.TenantRepository
-	members domain.TenantMemberRepository
+	tenants     domain.TenantRepository
+	tenantUsers domain.TenantUserRepository
 }
 
-func NewTenantService(tenants domain.TenantRepository, members domain.TenantMemberRepository) TenantService {
-	return &tenantService{tenants: tenants, members: members}
+func NewTenantService(tenants domain.TenantRepository, tenantUsers domain.TenantUserRepository) TenantService {
+	return &tenantService{tenants: tenants, tenantUsers: tenantUsers}
 }
 
-func (s *tenantService) Create(ctx context.Context, tenant *domain.Tenant, creatorUserID string) error {
+func (s *tenantService) Create(ctx context.Context, tenant *domain.Tenant, creatorUserID int64) error {
 	if existing, _ := s.tenants.GetBySlug(ctx, tenant.Slug); existing != nil {
 		return ErrSlugExists
 	}
-	tenant.ID = generateID("t")
+	
 	tenant.CreatedAt = time.Now()
 	tenant.UpdatedAt = time.Now()
 	if tenant.Status == "" {
@@ -169,7 +173,7 @@ func (s *tenantService) Create(ctx context.Context, tenant *domain.Tenant, creat
 		return err
 	}
 	// Creator becomes Admin
-	return s.members.Add(ctx, &domain.TenantMember{
+	return s.tenantUsers.Add(ctx, &domain.TenantUser{
 		TenantID: tenant.ID,
 		UserID:   creatorUserID,
 		Role:     domain.RoleAdmin,
@@ -214,14 +218,14 @@ func (s *tenantService) Delete(ctx context.Context, slug string) error {
 	return s.tenants.Delete(ctx, t.ID)
 }
 
-func (s *tenantService) ListByUser(ctx context.Context, userID string) ([]*domain.Tenant, error) {
-	memberships, err := s.members.GetByUserID(ctx, userID)
+func (s *tenantService) ListByUser(ctx context.Context, userID int64) ([]*domain.Tenant, error) {
+	tenantUsers, err := s.tenantUsers.GetByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	tenants := make([]*domain.Tenant, 0, len(memberships))
-	for _, m := range memberships {
-		t, err := s.tenants.GetByID(ctx, m.TenantID)
+	tenants := make([]*domain.Tenant, 0, len(tenantUsers))
+	for _, tu := range tenantUsers {
+		t, err := s.tenants.GetByID(ctx, tu.TenantID)
 		if err == nil && t != nil {
 			tenants = append(tenants, t)
 		}
@@ -229,74 +233,59 @@ func (s *tenantService) ListByUser(ctx context.Context, userID string) ([]*domai
 	return tenants, nil
 }
 
-// ==================== Member Service ====================
+// ==================== User Service ====================
 
-type MemberService interface {
-	AddMember(ctx context.Context, tenantID string, req AddMemberRequest) error
-	RemoveMember(ctx context.Context, tenantID, userID string) error
-	ListMembers(ctx context.Context, tenantID string, page, size int) ([]*domain.TenantMember, int, error)
-	UpdateRole(ctx context.Context, tenantID, userID string, role domain.UserRole) error
+type TenantUserService interface {
+	AddTenantUser(ctx context.Context, tenantID int64, req AddTenantUserRequest) error
+	RemoveTenantUser(ctx context.Context, tenantID, userID int64) error
+	ListTenantUsers(ctx context.Context, tenantID int64, page, size int) ([]*domain.TenantUser, int, error)
+	UpdateTenantUserRole(ctx context.Context, tenantID, userID int64, role domain.UserRole) error
 }
 
-type memberService struct {
-	users   domain.UserRepository
-	members domain.TenantMemberRepository
+type tenantUserService struct {
+	users       domain.UserRepository
+	tenantUsers domain.TenantUserRepository
 }
 
-func NewMemberService(users domain.UserRepository, members domain.TenantMemberRepository) MemberService {
-	return &memberService{users: users, members: members}
+func NewTenantUserService(users domain.UserRepository, tenantUsers domain.TenantUserRepository) TenantUserService {
+	return &tenantUserService{users: users, tenantUsers: tenantUsers}
 }
 
-type AddMemberRequest struct {
+type AddTenantUserRequest struct {
 	Email    string
 	Name     string
 	Password string
 	Role     domain.UserRole
 }
 
-func (s *memberService) AddMember(ctx context.Context, tenantID string, req AddMemberRequest) error {
+func (s *tenantUserService) AddTenantUser(ctx context.Context, tenantID int64, req AddTenantUserRequest) error {
 	user, _ := s.users.GetByEmail(ctx, req.Email)
 	if user == nil {
-		// Auto-create user
 		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return err
 		}
 		user = &domain.User{
-			ID: generateID("u"), Email: req.Email, Name: req.Name,
+			Email: req.Email, Name: req.Name,
 			PasswordHash: string(hash), CreatedAt: time.Now(), UpdatedAt: time.Now(),
 		}
 		if err := s.users.Create(ctx, user); err != nil {
 			return err
 		}
 	}
-	return s.members.Add(ctx, &domain.TenantMember{
+	return s.tenantUsers.Add(ctx, &domain.TenantUser{
 		TenantID: tenantID, UserID: user.ID, Role: req.Role, JoinedAt: time.Now(),
 	})
 }
 
-func (s *memberService) RemoveMember(ctx context.Context, tenantID, userID string) error {
-	return s.members.Remove(ctx, tenantID, userID)
+func (s *tenantUserService) RemoveTenantUser(ctx context.Context, tenantID, userID int64) error {
+	return s.tenantUsers.Remove(ctx, tenantID, userID)
 }
 
-func (s *memberService) ListMembers(ctx context.Context, tenantID string, page, size int) ([]*domain.TenantMember, int, error) {
-	return s.members.GetByTenantID(ctx, tenantID, page, size)
+func (s *tenantUserService) ListTenantUsers(ctx context.Context, tenantID int64, page, size int) ([]*domain.TenantUser, int, error) {
+	return s.tenantUsers.GetByTenantID(ctx, tenantID, page, size)
 }
 
-func (s *memberService) UpdateRole(ctx context.Context, tenantID, userID string, role domain.UserRole) error {
-	return s.members.UpdateRole(ctx, tenantID, userID, role)
-}
-
-// ==================== Helpers ====================
-
-func generateID(prefix string) string {
-	b := make([]byte, 8)
-	rand.Read(b)
-	return prefix + "_" + hex.EncodeToString(b)
-}
-
-func generateToken() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return hex.EncodeToString(b)
+func (s *tenantUserService) UpdateTenantUserRole(ctx context.Context, tenantID, userID int64, role domain.UserRole) error {
+	return s.tenantUsers.UpdateRole(ctx, tenantID, userID, role)
 }

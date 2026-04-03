@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type Tenant = {
-    id?: string;
+    id?: number;
     name?: string;
     slug?: string;
     plan?: Tenant.plan;

@@ -5,7 +5,8 @@
 export const $User = {
     properties: {
         id: {
-            type: 'string',
+            type: 'number',
+            format: 'int64',
         },
         email: {
             type: 'string',

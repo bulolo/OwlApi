@@ -7,9 +7,9 @@ import {
   type LoginRequest,
   type AuthResponse,
   type Tenant,
-  type TenantMember,
+  type TenantUser,
   type CreateTenantRequest,
-  type AddMemberRequest,
+  type AddUserRequest,
 } from '@/lib/sdk'
 
 // ---- 配置 ----
@@ -58,10 +58,12 @@ async function unwrap<T>(promise: Promise<any>): Promise<T> {
 
 export function setToken(token: string) {
   localStorage.setItem('owlapi_token', token)
+  document.cookie = `owlapi_token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`
 }
 
 export function clearToken() {
   localStorage.removeItem('owlapi_token')
+  document.cookie = 'owlapi_token=; path=/; max-age=0'
 }
 
 export function getToken(): string | null {
@@ -85,10 +87,7 @@ export async function apiRegister(req: RegisterRequest): Promise<AuthResponse> {
 // ---- Tenants ----
 
 export async function apiListTenants(page = 1, size = 20): Promise<PaginatedData<Tenant>> {
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/tenants?page=${page}&size=${size}`)
-  const json = await res.json()
-  if (json.code !== 0) throw new Error(json.msg)
-  return json.data
+  return unwrap<PaginatedData<Tenant>>(TenantsService.myTenants(page, size))
 }
 
 export async function apiGetTenant(slug: string): Promise<Tenant> {
@@ -100,42 +99,30 @@ export async function apiCreateTenant(req: CreateTenantRequest): Promise<Tenant>
 }
 
 export async function apiUpdateTenant(slug: string, data: { name?: string; plan?: string; status?: string }): Promise<Tenant> {
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/tenants/${slug}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  const json = await res.json()
-  if (json.code !== 0) throw new Error(json.msg)
-  return json.data
+  return unwrap<Tenant>(TenantsService.updateTenant(slug, data as any))
 }
 
 export async function apiDeleteTenant(slug: string): Promise<void> {
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/tenants/${slug}`, { method: 'DELETE' })
-  const json = await res.json()
-  if (json.code !== 0) throw new Error(json.msg)
+  await unwrap<any>(TenantsService.deleteTenant(slug))
 }
 
 // ---- Users (tenant-scoped) ----
 
-export async function apiListUsers(slug: string, page = 1, size = 10): Promise<PaginatedData<TenantMember>> {
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/tenants/${slug}/users?page=${page}&size=${size}`)
-  const json = await res.json()
-  if (json.code !== 0) throw new Error(json.msg)
-  return json.data
+export async function apiListUsers(slug: string, page = 1, size = 10): Promise<PaginatedData<TenantUser>> {
+  return unwrap<PaginatedData<TenantUser>>(UsersService.listUsers(slug, page, size))
 }
 
-export async function apiAddUser(slug: string, req: AddMemberRequest) {
+export async function apiAddUser(slug: string, req: AddUserRequest) {
   return unwrap<any>(UsersService.addUser(slug, req))
 }
 
-export async function apiUpdateUserRole(slug: string, userId: string, role: string) {
+export async function apiUpdateUserRole(slug: string, userId: number, role: string) {
   return unwrap<any>(UsersService.updateUserRole(slug, userId, { role: role as any }))
 }
 
-export async function apiRemoveUser(slug: string, userId: string) {
+export async function apiRemoveUser(slug: string, userId: number) {
   return unwrap<any>(UsersService.removeUser(slug, userId))
 }
 
 // Re-export types for convenience
-export type { AuthResponse, Tenant, TenantMember, RegisterRequest, LoginRequest, PaginatedData, PaginationInfo }
+export type { AuthResponse, Tenant, TenantUser, RegisterRequest, LoginRequest, PaginatedData, PaginationInfo }

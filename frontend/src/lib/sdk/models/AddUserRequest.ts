@@ -2,15 +2,13 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { User } from './User';
-export type TenantMember = {
-    tenant_id?: string;
-    user_id?: string;
-    role?: TenantMember.role;
-    joined_at?: string;
-    user?: User;
+export type AddUserRequest = {
+    email: string;
+    name: string;
+    password: string;
+    role: AddUserRequest.role;
 };
-export namespace TenantMember {
+export namespace AddUserRequest {
     export enum role {
         ADMIN = 'Admin',
         VIEWER = 'Viewer',

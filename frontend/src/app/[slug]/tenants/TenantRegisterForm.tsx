@@ -163,9 +163,8 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                           name: formData.companyName,
                           slug: formData.slug,
                           plan: formData.plan as any,
-                          user_id: user?.id || "",
                         })
-                        setTenantId(tenant.id || "")
+                        setTenantId(String(tenant.id || ""))
                         await fetchTenants()
                         setStep(3)
                       } catch (err: any) {

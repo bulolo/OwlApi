@@ -6,7 +6,6 @@ export type CreateTenantRequest = {
     name: string;
     slug: string;
     plan?: CreateTenantRequest.plan;
-    user_id: string;
 };
 export namespace CreateTenantRequest {
     export enum plan {

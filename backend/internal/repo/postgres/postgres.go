@@ -40,7 +40,7 @@ func NewRepository(ctx context.Context, dsn string) (*Repository, error) {
 func (r *Repository) initSchema(ctx context.Context) error {
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS tenants (
-			id TEXT PRIMARY KEY,
+			id BIGSERIAL PRIMARY KEY,
 			name TEXT NOT NULL,
 			slug TEXT NOT NULL UNIQUE,
 			plan TEXT NOT NULL DEFAULT 'Free',
@@ -49,7 +49,7 @@ func (r *Repository) initSchema(ctx context.Context) error {
 			updated_at TIMESTAMPTZ DEFAULT NOW()
 		)`,
 		`CREATE TABLE IF NOT EXISTS users (
-			id TEXT PRIMARY KEY,
+			id BIGSERIAL PRIMARY KEY,
 			email TEXT NOT NULL UNIQUE,
 			name TEXT NOT NULL,
 			password_hash TEXT NOT NULL,
@@ -57,16 +57,16 @@ func (r *Repository) initSchema(ctx context.Context) error {
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			updated_at TIMESTAMPTZ DEFAULT NOW()
 		)`,
-		`CREATE TABLE IF NOT EXISTS tenant_members (
-			tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-			user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		`CREATE TABLE IF NOT EXISTS tenant_users (
+			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+			user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			role TEXT NOT NULL DEFAULT 'Viewer',
 			joined_at TIMESTAMPTZ DEFAULT NOW(),
 			PRIMARY KEY (tenant_id, user_id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS runners (
-			id TEXT NOT NULL,
-			tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+			id BIGSERIAL NOT NULL,
+			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
 			name TEXT NOT NULL,
 			token TEXT NOT NULL,
 			status TEXT NOT NULL DEFAULT 'offline',
@@ -76,17 +76,17 @@ func (r *Repository) initSchema(ctx context.Context) error {
 			PRIMARY KEY (tenant_id, id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS projects (
-			id TEXT NOT NULL,
-			tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+			id BIGSERIAL NOT NULL,
+			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
 			name TEXT NOT NULL,
 			description TEXT DEFAULT '',
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			PRIMARY KEY (tenant_id, id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS datasources (
-			id TEXT NOT NULL,
-			tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-			project_id TEXT NOT NULL,
+			id BIGSERIAL NOT NULL,
+			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+			project_id BIGINT NOT NULL,
 			name TEXT NOT NULL,
 			type TEXT NOT NULL,
 			dsn TEXT NOT NULL,
@@ -94,12 +94,12 @@ func (r *Repository) initSchema(ctx context.Context) error {
 			PRIMARY KEY (tenant_id, id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS api_endpoints (
-			id TEXT NOT NULL,
-			tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-			project_id TEXT NOT NULL,
+			id BIGSERIAL NOT NULL,
+			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+			project_id BIGINT NOT NULL,
 			path TEXT NOT NULL,
 			methods TEXT[] NOT NULL,
-			datasource_id TEXT NOT NULL,
+			datasource_id BIGINT NOT NULL,
 			sql_query TEXT NOT NULL,
 			params TEXT[] DEFAULT '{}',
 			created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -124,13 +124,12 @@ func (r *Repository) initSchema(ctx context.Context) error {
 // ==================== TenantRepository ====================
 
 func (r *Repository) CreateTenant(ctx context.Context, t *domain.Tenant) error {
-	_, err := r.pool.Exec(ctx,
-		`INSERT INTO tenants (id, name, slug, plan, status, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-		t.ID, t.Name, t.Slug, t.Plan, t.Status, t.CreatedAt, t.UpdatedAt)
-	return err
+	return r.pool.QueryRow(ctx,
+		`INSERT INTO tenants (name, slug, plan, status, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+		t.Name, t.Slug, t.Plan, t.Status, t.CreatedAt, t.UpdatedAt).Scan(&t.ID)
 }
 
-func (r *Repository) GetTenantByID(ctx context.Context, id string) (*domain.Tenant, error) {
+func (r *Repository) GetTenantByID(ctx context.Context, id int64) (*domain.Tenant, error) {
 	var t domain.Tenant
 	err := r.pool.QueryRow(ctx, `SELECT id, name, slug, plan, status, created_at, updated_at FROM tenants WHERE id=$1`, id).
 		Scan(&t.ID, &t.Name, &t.Slug, &t.Plan, &t.Status, &t.CreatedAt, &t.UpdatedAt)
@@ -180,7 +179,7 @@ func (r *Repository) UpdateTenant(ctx context.Context, t *domain.Tenant) error {
 	return err
 }
 
-func (r *Repository) DeleteTenant(ctx context.Context, id string) error {
+func (r *Repository) DeleteTenant(ctx context.Context, id int64) error {
 	_, err := r.pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1`, id)
 	return err
 }
@@ -188,13 +187,12 @@ func (r *Repository) DeleteTenant(ctx context.Context, id string) error {
 // ==================== UserRepository ====================
 
 func (r *Repository) CreateUser(ctx context.Context, u *domain.User) error {
-	_, err := r.pool.Exec(ctx,
-		`INSERT INTO users (id, email, name, password_hash, is_superadmin, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-		u.ID, u.Email, u.Name, u.PasswordHash, u.IsSuperAdmin, u.CreatedAt, u.UpdatedAt)
-	return err
+	return r.pool.QueryRow(ctx,
+		`INSERT INTO users (email, name, password_hash, is_superadmin, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+		u.Email, u.Name, u.PasswordHash, u.IsSuperAdmin, u.CreatedAt, u.UpdatedAt).Scan(&u.ID)
 }
 
-func (r *Repository) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
+func (r *Repository) GetUserByID(ctx context.Context, id int64) (*domain.User, error) {
 	var u domain.User
 	err := r.pool.QueryRow(ctx, `SELECT id, email, name, password_hash, is_superadmin, created_at, updated_at FROM users WHERE id=$1`, id).
 		Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.IsSuperAdmin, &u.CreatedAt, &u.UpdatedAt)
@@ -214,70 +212,70 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*domain.
 	return &u, nil
 }
 
-// ==================== TenantMemberRepository ====================
+// ==================== TenantUserRepository ====================
 
-func (r *Repository) AddMember(ctx context.Context, m *domain.TenantMember) error {
+func (r *Repository) AddTenantUser(ctx context.Context, m *domain.TenantUser) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO tenant_members (tenant_id, user_id, role, joined_at) VALUES ($1,$2,$3,$4) ON CONFLICT (tenant_id, user_id) DO NOTHING`,
+		`INSERT INTO tenant_users (tenant_id, user_id, role, joined_at) VALUES ($1,$2,$3,$4) ON CONFLICT (tenant_id, user_id) DO NOTHING`,
 		m.TenantID, m.UserID, m.Role, m.JoinedAt)
 	return err
 }
 
-func (r *Repository) RemoveMember(ctx context.Context, tenantID, userID string) error {
-	_, err := r.pool.Exec(ctx, `DELETE FROM tenant_members WHERE tenant_id=$1 AND user_id=$2`, tenantID, userID)
+func (r *Repository) RemoveTenantUser(ctx context.Context, tenantID, userID int64) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM tenant_users WHERE tenant_id=$1 AND user_id=$2`, tenantID, userID)
 	return err
 }
 
-func (r *Repository) GetMembersByTenantID(ctx context.Context, tenantID string, page, size int) ([]*domain.TenantMember, int, error) {
+func (r *Repository) GetTenantUsersByTenantID(ctx context.Context, tenantID int64, page, size int) ([]*domain.TenantUser, int, error) {
 	var total int
-	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM tenant_members WHERE tenant_id=$1`, tenantID).Scan(&total); err != nil {
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM tenant_users WHERE tenant_id=$1`, tenantID).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	offset := (page - 1) * size
 	rows, err := r.pool.Query(ctx,
 		`SELECT tm.tenant_id, tm.user_id, tm.role, tm.joined_at, u.id, u.email, u.name, u.is_superadmin, u.created_at, u.updated_at
-		 FROM tenant_members tm JOIN users u ON tm.user_id = u.id
+		 FROM tenant_users tm JOIN users u ON tm.user_id = u.id
 		 WHERE tm.tenant_id=$1 ORDER BY tm.joined_at LIMIT $2 OFFSET $3`, tenantID, size, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
 
-	var members []*domain.TenantMember
+	var users []*domain.TenantUser
 	for rows.Next() {
-		m := &domain.TenantMember{User: &domain.User{}}
+		m := &domain.TenantUser{User: &domain.User{}}
 		if err := rows.Scan(&m.TenantID, &m.UserID, &m.Role, &m.JoinedAt,
 			&m.User.ID, &m.User.Email, &m.User.Name, &m.User.IsSuperAdmin, &m.User.CreatedAt, &m.User.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
-		members = append(members, m)
+		users = append(users, m)
 	}
-	return members, total, nil
+	return users, total, nil
 }
 
-func (r *Repository) GetMembersByUserID(ctx context.Context, userID string) ([]*domain.TenantMember, error) {
+func (r *Repository) GetTenantUsersByUserID(ctx context.Context, userID int64) ([]*domain.TenantUser, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT tenant_id, user_id, role, joined_at FROM tenant_members WHERE user_id=$1`, userID)
+		`SELECT tenant_id, user_id, role, joined_at FROM tenant_users WHERE user_id=$1`, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var members []*domain.TenantMember
+	var users []*domain.TenantUser
 	for rows.Next() {
-		var m domain.TenantMember
+		var m domain.TenantUser
 		if err := rows.Scan(&m.TenantID, &m.UserID, &m.Role, &m.JoinedAt); err != nil {
 			return nil, err
 		}
-		members = append(members, &m)
+		users = append(users, &m)
 	}
-	return members, nil
+	return users, nil
 }
 
-func (r *Repository) GetMembership(ctx context.Context, tenantID, userID string) (*domain.TenantMember, error) {
-	var m domain.TenantMember
+func (r *Repository) GetTenantUserByTenantAndUser(ctx context.Context, tenantID, userID int64) (*domain.TenantUser, error) {
+	var m domain.TenantUser
 	err := r.pool.QueryRow(ctx,
-		`SELECT tenant_id, user_id, role, joined_at FROM tenant_members WHERE tenant_id=$1 AND user_id=$2`,
+		`SELECT tenant_id, user_id, role, joined_at FROM tenant_users WHERE tenant_id=$1 AND user_id=$2`,
 		tenantID, userID).Scan(&m.TenantID, &m.UserID, &m.Role, &m.JoinedAt)
 	if err != nil {
 		return nil, err
@@ -285,8 +283,8 @@ func (r *Repository) GetMembership(ctx context.Context, tenantID, userID string)
 	return &m, nil
 }
 
-func (r *Repository) UpdateMemberRole(ctx context.Context, tenantID, userID string, role domain.UserRole) error {
-	_, err := r.pool.Exec(ctx, `UPDATE tenant_members SET role=$1 WHERE tenant_id=$2 AND user_id=$3`, role, tenantID, userID)
+func (r *Repository) UpdateTenantUserRole(ctx context.Context, tenantID, userID int64, role domain.UserRole) error {
+	_, err := r.pool.Exec(ctx, `UPDATE tenant_users SET role=$1 WHERE tenant_id=$2 AND user_id=$3`, role, tenantID, userID)
 	return err
 }
 
@@ -294,13 +292,13 @@ func (r *Repository) UpdateMemberRole(ctx context.Context, tenantID, userID stri
 
 func (r *Repository) CreateRunner(ctx context.Context, runner *domain.Runner) error {
 	_, err := r.pool.Exec(ctx,
-		`INSERT INTO runners (id, tenant_id, name, token, status, version) VALUES ($1,$2,$3,$4,$5,$6)
-		 ON CONFLICT (tenant_id, id) DO UPDATE SET name=$3, status=$5, version=$6`,
-		runner.ID, runner.TenantID, runner.Name, runner.Token, runner.Status, runner.Version)
+		`INSERT INTO runners (tenant_id, name, token, status, version) VALUES ($1,$2,$3,$4,$5)
+		 ON CONFLICT (tenant_id, id) DO UPDATE SET name=$2, status=$4, version=$5`,
+		runner.TenantID, runner.Name, runner.Token, runner.Status, runner.Version)
 	return err
 }
 
-func (r *Repository) GetRunnerByID(ctx context.Context, tenantID, id string) (*domain.Runner, error) {
+func (r *Repository) GetRunnerByID(ctx context.Context, tenantID, id int64) (*domain.Runner, error) {
 	var runner domain.Runner
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, tenant_id, name, status, ip, last_seen, version FROM runners WHERE tenant_id=$1 AND id=$2`,
@@ -311,18 +309,18 @@ func (r *Repository) GetRunnerByID(ctx context.Context, tenantID, id string) (*d
 	return &runner, nil
 }
 
-func (r *Repository) UpdateRunnerStatus(ctx context.Context, tenantID, id, status string) error {
+func (r *Repository) UpdateRunnerStatus(ctx context.Context, tenantID, id int64, status string) error {
 	_, err := r.pool.Exec(ctx, `UPDATE runners SET status=$1, last_seen=$2 WHERE tenant_id=$3 AND id=$4`, status, time.Now(), tenantID, id)
 	return err
 }
 
-func (r *Repository) RunnerHeartbeat(ctx context.Context, tenantID, id string) error {
+func (r *Repository) RunnerHeartbeat(ctx context.Context, tenantID, id int64) error {
 	return r.UpdateRunnerStatus(ctx, tenantID, id, "online")
 }
 
 // ==================== ProjectRepository ====================
 
-func (r *Repository) GetAPIEndpointByPath(ctx context.Context, tenantID, path string) (*domain.APIEndpoint, error) {
+func (r *Repository) GetAPIEndpointByPath(ctx context.Context, tenantID int64, path string) (*domain.APIEndpoint, error) {
 	var ep domain.APIEndpoint
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, tenant_id, project_id, path, methods, datasource_id, sql_query, params FROM api_endpoints WHERE tenant_id=$1 AND path=$2`,
@@ -333,7 +331,7 @@ func (r *Repository) GetAPIEndpointByPath(ctx context.Context, tenantID, path st
 	return &ep, nil
 }
 
-func (r *Repository) GetDataSourceByID(ctx context.Context, tenantID, id string) (*domain.DataSource, error) {
+func (r *Repository) GetDataSourceByID(ctx context.Context, tenantID, id int64) (*domain.DataSource, error) {
 	var ds domain.DataSource
 	err := r.pool.QueryRow(ctx,
 		`SELECT id, tenant_id, project_id, name, type, dsn FROM datasources WHERE tenant_id=$1 AND id=$2`,

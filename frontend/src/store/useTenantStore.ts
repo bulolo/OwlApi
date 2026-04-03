@@ -10,7 +10,7 @@ interface TenantState {
   recentTenants: string[]
 
   fetchTenants: (page?: number, size?: number) => Promise<void>
-  addTenant: (name: string, slug: string, plan: string, userId: string) => Promise<Tenant>
+  addTenant: (name: string, slug: string, plan: string) => Promise<Tenant>
   markTenantAsRecent: (id: string) => void
 }
 
@@ -36,8 +36,8 @@ export const useTenantStore = create<TenantState>((set, get) => ({
     }
   },
 
-  addTenant: async (name, slug, plan, userId) => {
-    const tenant = await apiCreateTenant({ name, slug, plan: plan as any, user_id: userId })
+  addTenant: async (name, slug, plan) => {
+    const tenant = await apiCreateTenant({ name, slug, plan: plan as any })
     // Refresh list
     get().fetchTenants()
     return tenant

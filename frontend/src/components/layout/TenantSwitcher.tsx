@@ -92,7 +92,7 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
             <DropdownMenuItem
               key={tenant.id}
               onClick={() => {
-                markTenantAsRecent(tenant.id)
+                markTenantAsRecent(String(tenant.id))
                 router.push(`/${tenant.slug}/overview`)
               }}
               className="text-xs font-medium py-2 px-2 cursor-pointer"

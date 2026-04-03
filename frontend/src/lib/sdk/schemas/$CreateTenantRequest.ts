@@ -15,9 +15,5 @@ export const $CreateTenantRequest = {
         plan: {
             type: 'Enum',
         },
-        user_id: {
-            type: 'string',
-            isRequired: true,
-        },
     },
 } as const;

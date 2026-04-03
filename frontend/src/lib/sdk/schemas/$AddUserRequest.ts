@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $AddMemberRequest = {
+export const $AddUserRequest = {
     properties: {
         email: {
             type: 'string',

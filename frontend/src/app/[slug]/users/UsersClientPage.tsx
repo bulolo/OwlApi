@@ -16,12 +16,12 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/store/useUIStore"
-import { apiListUsers, apiAddUser, apiRemoveUser, apiUpdateUserRole, type TenantMember } from "@/lib/api-client"
+import { apiListUsers, apiAddUser, apiRemoveUser, apiUpdateUserRole, type TenantUser } from "@/lib/api-client"
 import { Pager } from "@/components/ui/pager"
 
 export default function UsersClientPage() {
   const { activeTenant } = useUIStore()
-  const [members, setMembers] = useState<TenantMember[]>([])
+  const [users, setUsers] = useState<TenantUser[]>([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -32,13 +32,13 @@ export default function UsersClientPage() {
   const [size, setSize] = useState(10)
   const [total, setTotal] = useState(0)
 
-  const fetchMembers = async (p?: number, s?: number) => {
+  const fetchUsers = async (p?: number, s?: number) => {
     if (!activeTenant) return
     const currentPage = p ?? page
     const currentSize = s ?? size
     try {
       const res = await apiListUsers(activeTenant, currentPage, currentSize)
-      setMembers(res.list || [])
+      setUsers(res.list || [])
       setTotal(res.pagination.total)
       setPage(res.pagination.page)
       setSize(res.pagination.size)
@@ -47,23 +47,17 @@ export default function UsersClientPage() {
     }
   }
 
-  useEffect(() => { fetchMembers() }, [activeTenant])
+  useEffect(() => { fetchUsers() }, [activeTenant])
 
   const handleAdd = async () => {
     if (!form.email || !form.name || !form.password || !activeTenant) return
     setAdding(true)
     setAddError("")
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/v1/tenants/${activeTenant}/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      const json = await res.json()
-      if (json.code !== 0) throw new Error(json.msg)
+      await apiAddUser(activeTenant, { ...form, role: form.role as any })
       setForm({ email: "", name: "", password: "", role: "Viewer" })
       setShowAdd(false)
-      fetchMembers()
+      fetchUsers()
     } catch (err: any) {
       setAddError(err?.message || "添加失败")
     } finally {
@@ -71,23 +65,23 @@ export default function UsersClientPage() {
     }
   }
 
-  const handleRemove = async (userId: string) => {
+  const handleRemove = async (userId: number) => {
     if (!activeTenant || !confirm("确认移除该成员？")) return
     try {
       await apiRemoveUser(activeTenant, userId)
-      fetchMembers()
+      fetchUsers()
     } catch { /* ignore */ }
   }
 
-  const handleRoleChange = async (userId: string, role: string) => {
+  const handleRoleChange = async (userId: number, role: string) => {
     if (!activeTenant) return
     try {
       await apiUpdateUserRole(activeTenant, userId, role)
-      fetchMembers()
+      fetchUsers()
     } catch { /* ignore */ }
   }
 
-  const filtered = members.filter(m =>
+  const filtered = users.filter(m =>
     (m.user?.name || "").toLowerCase().includes(search.toLowerCase()) ||
     (m.user?.email || "").toLowerCase().includes(search.toLowerCase())
   )
@@ -113,7 +107,7 @@ export default function UsersClientPage() {
         </Button>
       </div>
 
-      {/* Add Member Form */}
+      {/* Add User Form */}
       {showAdd && (
         <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -165,7 +159,7 @@ export default function UsersClientPage() {
         </div>
       </div>
 
-      {/* Member List */}
+      {/* User List */}
       <div className="space-y-3">
         {loading ? (
           <div className="text-center py-12 text-sm text-zinc-400">加载中...</div>
@@ -220,7 +214,7 @@ export default function UsersClientPage() {
         )}
       </div>
 
-      <Pager page={page} size={size} total={total} onChange={(p, s) => fetchMembers(p, s)} />
+      <Pager page={page} size={size} total={total} onChange={(p, s) => fetchUsers(p, s)} />
     </div>
   )
 }

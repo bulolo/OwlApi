@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Hexagon, ArrowRight, ShieldCheck, Mail, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,16 @@ import { useUIStore } from "@/store/useUIStore"
 import { useTenantStore } from "@/store/useTenantStore"
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login } = useUIStore()
   const { fetchTenants } = useTenantStore()
   const [email, setEmail] = useState("")
@@ -45,9 +54,13 @@ export default function LoginPage() {
       }
       const res = await login(email, password)
       await fetchTenants()
-      // Navigate to first tenant or default
-      const slug = res.tenant?.slug || "default"
-      router.push(`/${slug}/overview`)
+      const redirect = searchParams.get('redirect')
+      if (redirect) {
+        router.push(redirect)
+      } else {
+        const slug = res.tenant?.slug || "default"
+        router.push(`/${slug}/overview`)
+      }
     } catch (err: any) {
       setError(err?.message || "登录失败，请检查账号密码")
     } finally {

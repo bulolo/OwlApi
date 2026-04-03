@@ -21,6 +21,7 @@ type Config struct {
 	HTTPPort    string
 	GRPCPort    string
 	DatabaseURL string
+	JWTSecret   string
 }
 
 // LoadFromEnv loads configuration from environment variables
@@ -37,6 +38,7 @@ func LoadFromEnv() *Config {
 		HTTPPort:    getEnv("OWLAPI_HTTP_PORT", ":3000"),
 		GRPCPort:    getEnv("OWLAPI_GRPC_PORT", ":9090"),
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/owlapi?sslmode=disable"),
+		JWTSecret:   getEnv("OWLAPI_JWT_SECRET", "owlapi-dev-secret-change-me"),
 	}
 }
 

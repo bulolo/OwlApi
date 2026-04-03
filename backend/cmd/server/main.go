@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/hongjunyao/owlapi/internal/config"
+	"github.com/hongjunyao/owlapi/internal/pkg/auth"
 	"github.com/hongjunyao/owlapi/internal/pkg/logger"
 	"github.com/hongjunyao/owlapi/internal/repo/postgres"
 	"github.com/hongjunyao/owlapi/internal/service"
@@ -20,6 +21,9 @@ func main() {
 	cfg := config.LoadFromEnv()
 	logger.Init(cfg.LogLevel)
 	slog.Info("Starting OwlApi Control Plane...")
+
+	// 0. Init JWT
+	auth.Init(cfg.JWTSecret)
 
 	// 1. Init Database
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -34,12 +38,12 @@ func main() {
 	// 2. Build repo adapters
 	tenantRepo := &postgres.TenantRepo{R: pgRepo}
 	userRepo := &postgres.UserRepo{R: pgRepo}
-	memberRepo := &postgres.MemberRepo{R: pgRepo}
+	tenantUserRepo := &postgres.TenantUserRepo{R: pgRepo}
 
 	// 3. Init Services
-	authService := service.NewAuthService(userRepo, tenantRepo, memberRepo)
-	tenantService := service.NewTenantService(tenantRepo, memberRepo)
-	memberService := service.NewMemberService(userRepo, memberRepo)
+	authService := service.NewAuthService(userRepo, tenantRepo, tenantUserRepo)
+	tenantService := service.NewTenantService(tenantRepo, tenantUserRepo)
+	tenantUserService := service.NewTenantUserService(userRepo, tenantUserRepo)
 
 	// 4. Start HTTP Server
 	r := gin.Default()
@@ -60,8 +64,8 @@ func main() {
 
 	transport_http.RegisterSwagger(r)
 
-	authHandler := transport_http.NewAuthHandler(authService, tenantService, memberService)
-	authHandler.RegisterRoutes(r)
+	authHandler := transport_http.NewAuthHandler(authService, tenantService, tenantUserService)
+	authHandler.RegisterRoutes(r, tenantRepo, tenantUserRepo)
 
 	// TODO: gRPC server + query handler will be added after proto generation
 	slog.Info("HTTP Server listening", "port", cfg.HTTPPort)

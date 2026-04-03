@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hongjunyao/owlapi/internal/domain"
@@ -9,29 +10,43 @@ import (
 )
 
 type AuthHandler struct {
-	auth    service.AuthService
-	tenants service.TenantService
-	members service.MemberService
+	auth        service.AuthService
+	tenants     service.TenantService
+	tenantUsers service.TenantUserService
 }
 
-func NewAuthHandler(auth service.AuthService, tenants service.TenantService, members service.MemberService) *AuthHandler {
-	return &AuthHandler{auth: auth, tenants: tenants, members: members}
+func NewAuthHandler(auth service.AuthService, tenants service.TenantService, tenantUsers service.TenantUserService) *AuthHandler {
+	return &AuthHandler{auth: auth, tenants: tenants, tenantUsers: tenantUsers}
 }
 
-func (h *AuthHandler) RegisterRoutes(r *gin.Engine) {
+func (h *AuthHandler) RegisterRoutes(r *gin.Engine, tenants domain.TenantRepository, tenantUsers domain.TenantUserRepository) {
+	// Public
 	r.POST("/api/v1/auth/register", h.Register)
 	r.POST("/api/v1/auth/login", h.Login)
 
-	r.GET("/api/v1/tenants", h.ListTenants)
-	r.POST("/api/v1/tenants", h.CreateTenant)
-	r.GET("/api/v1/tenants/:slug", h.GetTenant)
-	r.PUT("/api/v1/tenants/:slug", h.UpdateTenant)
-	r.DELETE("/api/v1/tenants/:slug", h.DeleteTenant)
+	// Authenticated
+	authed := r.Group("", JWTAuth())
 
-	r.GET("/api/v1/tenants/:slug/users", h.ListMembers)
-	r.POST("/api/v1/tenants/:slug/users", h.AddMember)
-	r.PUT("/api/v1/tenants/:slug/users/:userId/role", h.UpdateMemberRole)
-	r.DELETE("/api/v1/tenants/:slug/users/:userId", h.RemoveMember)
+	// Current user's tenants
+	authed.GET("/api/v1/my/tenants", h.MyTenants)
+
+	// Tenant CRUD — SuperAdmin only
+	sa := authed.Group("", RequireSuperAdmin())
+	sa.GET("/api/v1/tenants", h.ListTenants)
+	sa.POST("/api/v1/tenants", h.CreateTenant)
+	sa.PUT("/api/v1/tenants/:slug", h.UpdateTenant)
+	sa.DELETE("/api/v1/tenants/:slug", h.DeleteTenant)
+
+	// Tenant read — any authenticated user (viewer+)
+	viewer := authed.Group("", RequireTenantRole(tenants, tenantUsers, domain.RoleViewer))
+	viewer.GET("/api/v1/tenants/:slug", h.GetTenant)
+	viewer.GET("/api/v1/tenants/:slug/users", h.ListTenantUsers)
+
+	// Tenant user management — Admin+
+	admin := authed.Group("", RequireTenantRole(tenants, tenantUsers, domain.RoleAdmin))
+	admin.POST("/api/v1/tenants/:slug/users", h.AddTenantUser)
+	admin.PUT("/api/v1/tenants/:slug/users/:userId/role", h.UpdateTenantUserRole)
+	admin.DELETE("/api/v1/tenants/:slug/users/:userId", h.RemoveTenantUser)
 }
 
 // ==================== Auth ====================
@@ -81,6 +96,27 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // ==================== Tenants ====================
 
+func (h *AuthHandler) MyTenants(c *gin.Context) {
+	claims := GetClaims(c)
+	if claims.IsSuperAdmin {
+		// SuperAdmin sees all tenants
+		tenants, total, err := h.tenants.List(c.Request.Context(), 1, 10000)
+		if err != nil {
+			Fail(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+		OK(c, gin.H{"list": tenants, "pagination": PaginationInfo{IsPager: 0, Page: 1, Size: total, Total: total}})
+		return
+	}
+	tenants, err := h.tenants.ListByUser(c.Request.Context(), claims.UserID)
+	if err != nil {
+		Fail(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	total := len(tenants)
+	OK(c, gin.H{"list": tenants, "pagination": PaginationInfo{IsPager: 0, Page: 1, Size: total, Total: total}})
+}
+
 func (h *AuthHandler) ListTenants(c *gin.Context) {
 	page, size, isPager := parsePage(c)
 	if !isPager {
@@ -101,18 +137,18 @@ func (h *AuthHandler) ListTenants(c *gin.Context) {
 }
 
 func (h *AuthHandler) CreateTenant(c *gin.Context) {
+	claims := GetClaims(c)
 	var req struct {
-		Name   string `json:"name" binding:"required"`
-		Slug   string `json:"slug" binding:"required"`
-		Plan   string `json:"plan"`
-		UserID string `json:"user_id" binding:"required"`
+		Name string `json:"name" binding:"required"`
+		Slug string `json:"slug" binding:"required"`
+		Plan string `json:"plan"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	tenant := &domain.Tenant{Name: req.Name, Slug: req.Slug, Plan: domain.TenantPlan(req.Plan)}
-	if err := h.tenants.Create(c.Request.Context(), tenant, req.UserID); err != nil {
+	if err := h.tenants.Create(c.Request.Context(), tenant, claims.UserID); err != nil {
 		Fail(c, http.StatusConflict, err.Error())
 		return
 	}
@@ -154,9 +190,9 @@ func (h *AuthHandler) DeleteTenant(c *gin.Context) {
 	OK(c, nil)
 }
 
-// ==================== Members ====================
+// ==================== Users ====================
 
-func (h *AuthHandler) ListMembers(c *gin.Context) {
+func (h *AuthHandler) ListTenantUsers(c *gin.Context) {
 	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("slug"))
 	if err != nil {
 		Fail(c, http.StatusNotFound, "tenant not found")
@@ -164,23 +200,23 @@ func (h *AuthHandler) ListMembers(c *gin.Context) {
 	}
 	page, size, isPager := parsePage(c)
 	if !isPager {
-		members, total, err := h.members.ListMembers(c.Request.Context(), tenant.ID, 1, 10000)
+		users, total, err := h.tenantUsers.ListTenantUsers(c.Request.Context(), tenant.ID, 1, 10000)
 		if err != nil {
 			Fail(c, http.StatusInternalServerError, err.Error())
 			return
 		}
-		OK(c, gin.H{"list": members, "pagination": PaginationInfo{IsPager: 0, Page: 1, Size: total, Total: total}})
+		OK(c, gin.H{"list": users, "pagination": PaginationInfo{IsPager: 0, Page: 1, Size: total, Total: total}})
 		return
 	}
-	members, total, err := h.members.ListMembers(c.Request.Context(), tenant.ID, page, size)
+	users, total, err := h.tenantUsers.ListTenantUsers(c.Request.Context(), tenant.ID, page, size)
 	if err != nil {
 		Fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	OKPaged(c, members, page, size, total)
+	OKPaged(c, users, page, size, total)
 }
 
-func (h *AuthHandler) AddMember(c *gin.Context) {
+func (h *AuthHandler) AddTenantUser(c *gin.Context) {
 	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("slug"))
 	if err != nil {
 		Fail(c, http.StatusNotFound, "tenant not found")
@@ -196,7 +232,7 @@ func (h *AuthHandler) AddMember(c *gin.Context) {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := h.members.AddMember(c.Request.Context(), tenant.ID, service.AddMemberRequest{
+	if err := h.tenantUsers.AddTenantUser(c.Request.Context(), tenant.ID, service.AddTenantUserRequest{
 		Email: req.Email, Name: req.Name, Password: req.Password, Role: domain.UserRole(req.Role),
 	}); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
@@ -205,10 +241,15 @@ func (h *AuthHandler) AddMember(c *gin.Context) {
 	OK(c, nil)
 }
 
-func (h *AuthHandler) UpdateMemberRole(c *gin.Context) {
+func (h *AuthHandler) UpdateTenantUserRole(c *gin.Context) {
 	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("slug"))
 	if err != nil {
 		Fail(c, http.StatusNotFound, "tenant not found")
+		return
+	}
+	userID, err := strconv.ParseInt(c.Param("userId"), 10, 64)
+	if err != nil {
+		Fail(c, http.StatusBadRequest, "invalid user id")
 		return
 	}
 	var req struct {
@@ -218,20 +259,25 @@ func (h *AuthHandler) UpdateMemberRole(c *gin.Context) {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := h.members.UpdateRole(c.Request.Context(), tenant.ID, c.Param("userId"), domain.UserRole(req.Role)); err != nil {
+	if err := h.tenantUsers.UpdateTenantUserRole(c.Request.Context(), tenant.ID, userID, domain.UserRole(req.Role)); err != nil {
 		Fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	OK(c, nil)
 }
 
-func (h *AuthHandler) RemoveMember(c *gin.Context) {
+func (h *AuthHandler) RemoveTenantUser(c *gin.Context) {
 	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("slug"))
 	if err != nil {
 		Fail(c, http.StatusNotFound, "tenant not found")
 		return
 	}
-	if err := h.members.RemoveMember(c.Request.Context(), tenant.ID, c.Param("userId")); err != nil {
+	userID, err := strconv.ParseInt(c.Param("userId"), 10, 64)
+	if err != nil {
+		Fail(c, http.StatusBadRequest, "invalid user id")
+		return
+	}
+	if err := h.tenantUsers.RemoveTenantUser(c.Request.Context(), tenant.ID, userID); err != nil {
 		Fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}

@@ -41,9 +41,9 @@ func main() {
 
 	userRepo := &postgres.UserRepo{R: pgRepo}
 	tenantRepo := &postgres.TenantRepo{R: pgRepo}
-	memberRepo := &postgres.MemberRepo{R: pgRepo}
+	tenantUserRepo := &postgres.TenantUserRepo{R: pgRepo}
 
-	seed(ctx, userRepo, tenantRepo, memberRepo)
+	seed(ctx, userRepo, tenantRepo, tenantUserRepo)
 
 	fmt.Println("✅ Backend init completed.")
 }
@@ -57,7 +57,7 @@ func hashPwd(pwd string) string {
 	return string(h)
 }
 
-func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.TenantRepo, members *postgres.MemberRepo) {
+func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.TenantRepo, tenantUsers *postgres.TenantUserRepo) {
 	// Idempotent: skip if superadmin already exists
 	if existing, _ := users.GetByEmail(ctx, "superadmin@owlapi.cn"); existing != nil {
 		slog.Info("Seed data already exists, skipping.")
@@ -68,7 +68,7 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 
 	// 1. 超级管理员 (平台级，不属于任何租户)
 	superadmin := &domain.User{
-		ID: "u_superadmin", Email: "superadmin@owlapi.cn", Name: "SuperAdmin",
+		Email: "superadmin@owlapi.cn", Name: "SuperAdmin",
 		PasswordHash: hashPwd("superadmin123"), IsSuperAdmin: true,
 		CreatedAt: now, UpdatedAt: now,
 	}
@@ -76,11 +76,11 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 		slog.Error("Failed to create superadmin", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("Created superadmin", "email", superadmin.Email)
+	slog.Info("Created superadmin", "id", superadmin.ID, "email", superadmin.Email)
 
 	// 2. 默认租户
 	tenant := &domain.Tenant{
-		ID: "t_default", Name: "研发中心", Slug: "default",
+		Name: "研发中心", Slug: "default",
 		Plan: domain.PlanFree, Status: domain.TenantActive,
 		CreatedAt: now, UpdatedAt: now,
 	}
@@ -88,11 +88,11 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 		slog.Error("Failed to create default tenant", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("Created default tenant", "slug", tenant.Slug)
+	slog.Info("Created default tenant", "id", tenant.ID, "slug", tenant.Slug)
 
 	// 3. 租户管理员 (属于 default 租户)
 	admin := &domain.User{
-		ID: "u_admin", Email: "admin@owlapi.cn", Name: "Admin",
+		Email: "admin@owlapi.cn", Name: "Admin",
 		PasswordHash: hashPwd("admin123"), IsSuperAdmin: false,
 		CreatedAt: now, UpdatedAt: now,
 	}
@@ -100,10 +100,10 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 		slog.Error("Failed to create tenant admin", "error", err)
 		os.Exit(1)
 	}
-	if err := members.Add(ctx, &domain.TenantMember{
+	if err := tenantUsers.Add(ctx, &domain.TenantUser{
 		TenantID: tenant.ID, UserID: admin.ID, Role: domain.RoleAdmin, JoinedAt: now,
 	}); err != nil {
-		slog.Error("Failed to add tenant admin member", "error", err)
+		slog.Error("Failed to add tenant admin user", "error", err)
 		os.Exit(1)
 	}
 	slog.Info("Created tenant admin", "email", admin.Email, "tenant", tenant.Slug)

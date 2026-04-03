@@ -2,14 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AddMemberRequest } from '../models/AddMemberRequest';
+import type { AddUserRequest } from '../models/AddUserRequest';
 import type { UpdateRoleRequest } from '../models/UpdateRoleRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class UsersService {
     /**
-     * 用户列表 (分页)
+     * 用户列表
      * @param slug
      * @param page
      * @param size
@@ -37,12 +37,12 @@ export class UsersService {
      * 添加用户
      * @param slug
      * @param requestBody
-     * @returns any 添加成功
+     * @returns any OK
      * @throws ApiError
      */
     public static addUser(
         slug: string,
-        requestBody: AddMemberRequest,
+        requestBody: AddUserRequest,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -64,7 +64,7 @@ export class UsersService {
      */
     public static updateUserRole(
         slug: string,
-        userId: string,
+        userId: number,
         requestBody: UpdateRoleRequest,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
@@ -87,7 +87,7 @@ export class UsersService {
      */
     public static removeUser(
         slug: string,
-        userId: string,
+        userId: number,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'DELETE',

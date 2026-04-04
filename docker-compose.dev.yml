@@ -23,12 +23,12 @@ services:
       backend-init:
         condition: service_completed_successfully
 
-  # Frontend (Hot Reload)
-  frontend:
+  # Admin Frontend (Hot Reload)
+  admin:
     build:
       context: ./frontend/admin
       dockerfile: Dockerfile.dev
-    container_name: owlapi_frontend_dev
+    container_name: owlapi_admin_dev
     command: sh -c "pnpm install && PORT=8000 pnpm dev"
     restart: unless-stopped
     ports:

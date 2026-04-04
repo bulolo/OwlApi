@@ -37,15 +37,15 @@ services:
           memory: 512M
           cpus: '1'
 
-  # Frontend
-  frontend:
+  # Admin Frontend
+  admin:
     build:
       context: ../../frontend/admin
       dockerfile: Dockerfile.frontend
       args:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/frontend:latest
-    container_name: owlapi_frontend
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:latest
+    container_name: owlapi_admin
     restart: unless-stopped
     ports:
       - "8000:8000"

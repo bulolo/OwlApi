@@ -8,7 +8,7 @@ export default defineConfig({
     nav: [
       { text: '首页', link: '/' },
       { text: '指南', link: '/guide/introduction' },
-      { text: 'API 参考', link: '/api/protocol' },
+      { text: 'API 参考', link: '/api/rest' },
     ],
 
     sidebar: {
@@ -24,7 +24,7 @@ export default defineConfig({
           text: '深入',
           items: [
             { text: '系统架构', link: '/guide/architecture' },
-            { text: '多租户设计', link: '/guide/multi-tenancy' },
+            { text: '多租户与权限', link: '/guide/multi-tenancy' },
           ],
         },
       ],
@@ -32,8 +32,8 @@ export default defineConfig({
         {
           text: 'API 参考',
           items: [
-            { text: '接口协议', link: '/api/protocol' },
-            { text: '错误码', link: '/api/errors' },
+            { text: 'REST API', link: '/api/rest' },
+            { text: 'gRPC 协议', link: '/api/grpc' },
             { text: '环境变量', link: '/api/config' },
           ],
         },

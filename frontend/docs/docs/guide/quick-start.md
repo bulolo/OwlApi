@@ -14,6 +14,7 @@ make dev-up
 - Admin 控制台: http://localhost:8000
 - API 服务: http://localhost:3000
 - 文档站点: http://localhost:8001
+- 官方网站: http://localhost:8002
 - PostgreSQL: localhost:5433
 
 ## 开发环境命令

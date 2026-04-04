@@ -33,8 +33,9 @@
 | 服务 | 端口 | 说明 |
 | :--- | :--- | :--- |
 | backend | 3000, 9090 | HTTP API + gRPC |
-| frontend | 8000 | Next.js 控制台 |
+| admin | 8000 | Next.js 控制台 |
 | docs | 8001 | VitePress 文档站 |
+| website | 8002 | Next.js 官方网站 |
 | postgres | 5433 → 5432 | 使用 5433 避免与本地 PostgreSQL 冲突 |
 
 数据库默认凭据：`postgres:postgres`，数据库名：`owlapi`

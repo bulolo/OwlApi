@@ -37,6 +37,7 @@ make dev-up
 | Admin 控制台 | http://localhost:8000 |
 | API 服务 | http://localhost:3000 |
 | 文档站点 | http://localhost:8001 |
+| 官方网站 | http://localhost:8002 |
 | PostgreSQL | localhost:5433 |
 
 更多命令请运行 `make help`。
@@ -71,6 +72,7 @@ owlapi/
 │   └── proto/                      # Protobuf 定义源文件
 ├── frontend/
 │   ├── admin/                      # Next.js 控制台前端
+│   ├── website/                    # Next.js 官方介绍网站
 │   └── docs/                       # VitePress 文档站点
 ├── deploy/
 │   ├── cluster/                    # 生产集群部署

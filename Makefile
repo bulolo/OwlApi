@@ -74,6 +74,7 @@ dev-up:
 	@echo "    - Admin:    http://localhost:8000"
 	@echo "    - API:      http://localhost:3000"
 	@echo "    - Docs:     http://localhost:8001"
+	@echo "    - Website:  http://localhost:8002"
 	@echo "    - Postgres: localhost:5433"
 	@echo "    (按 Ctrl+C 停止服务)"
 	$(DEV_COMPOSE) up

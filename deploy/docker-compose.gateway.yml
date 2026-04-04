@@ -1,0 +1,36 @@
+# OwlApi Gateway 部署配置
+#
+# 使用方法：
+# 1. 复制此文件到您的服务器
+# 2. 修改环境变量配置
+# 3. 运行: docker compose up -d
+#
+# 获取 GATEWAY_ID 和 GATEWAY_TOKEN：
+# 登录 OwlApi 控制台 -> 项目设置 -> 网关节点管理 -> 创建网关节点
+
+services:
+  gateway:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.gateway
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:latest
+    container_name: owlapi_gateway
+    restart: unless-stopped
+    environment:
+      # 必填：OwlApi 服务器地址
+      - OWLAPI_SERVER_URL=https://api.owlapi.io
+      # 必填：在控制台创建网关后获取
+      - OWLAPI_RUNNER_ID=${GATEWAY_ID:-your-gateway-id}
+      - OWLAPI_RUNNER_TOKEN=${GATEWAY_TOKEN:-your-gateway-token}
+      # 可选：日志级别 (debug, info, warn, error)
+      - OWLAPI_LOG_LEVEL=info
+      # 时区设置
+      - TZ=Asia/Shanghai
+    volumes:
+      # 日志持久化
+      - ./logs:/owlapi/logs
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'

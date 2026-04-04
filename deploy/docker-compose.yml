@@ -8,7 +8,7 @@ services:
   # Control Plane Backend
   backend:
     build:
-      context: ../../backend
+      context: ../backend
       dockerfile: Dockerfile
     image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:latest
     container_name: owlapi_backend
@@ -40,7 +40,7 @@ services:
   # Admin Frontend
   admin:
     build:
-      context: ../../frontend/admin
+      context: ../frontend/admin
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}
@@ -51,28 +51,6 @@ services:
       - "8000:8000"
     environment:
       - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}
-    depends_on:
-      backend:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-
-  # Local Gateway Node (Automatically connected to this cluster)
-  gateway:
-    build:
-      context: ../../backend
-      dockerfile: Dockerfile.runner
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:latest
-    container_name: owlapi_gateway_local
-    restart: unless-stopped
-    environment:
-      - OWLAPI_SERVER_URL=http://backend:9090
-      - OWLAPI_RUNNER_ID=default-local-gateway
-      - OWLAPI_RUNNER_TOKEN=change-me-in-production
-      - TZ=Asia/Shanghai
     depends_on:
       backend:
         condition: service_healthy
@@ -108,7 +86,7 @@ services:
   # Backend Init: schema + seed demo data (runs every startup)
   backend-init:
     build:
-      context: ../../backend
+      context: ../backend
       dockerfile: Dockerfile
     image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:latest
     container_name: owlapi_init

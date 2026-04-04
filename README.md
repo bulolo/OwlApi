@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="./logo.svg" width="36" style="vertical-align: middle;"> OwlApi
+# <img src="./frontend/docs/docs/public/logo.svg" width="36" style="vertical-align: middle;"> OwlApi
 
 **企业级 SQL to API 智能网关平台**
 

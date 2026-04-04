@@ -52,17 +52,17 @@ make dev-up
 | `make gen-sdk` | 从 OpenAPI spec 生成前端 TypeScript SDK |
 | `make clean` | 清理所有环境与缓存 |
 
-## 部署独立 Gateway Runner
+## 部署独立 Gateway
 
-将 Gateway Runner 部署到内网环境，即可安全访问内网数据库：
+将 Gateway 部署到内网环境，即可安全访问内网数据库：
 
 ```bash
-# 下载 Gateway Runner 配置
-curl -O https://raw.githubusercontent.com/hongjunyao/owlapi/main/deploy/runner/docker-compose.yml
+# 下载 Gateway 配置
+curl -O https://raw.githubusercontent.com/hongjunyao/owlapi/main/deploy/docker-compose.gateway.yml
 
-# 编辑配置（填入 RUNNER_ID 和 RUNNER_TOKEN）
-vim docker-compose.yml
+# 编辑配置（填入 GATEWAY_ID 和 GATEWAY_TOKEN）
+vim docker-compose.gateway.yml
 
 # 启动
-docker compose up -d
+docker compose -f docker-compose.gateway.yml up -d
 ```

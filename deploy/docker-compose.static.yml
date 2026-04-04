@@ -1,0 +1,63 @@
+name: owlapi-static
+
+services:
+  # 文档站点服务
+  docs:
+    build:
+      context: ../frontend/docs
+      dockerfile: Dockerfile.prod
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/docs:${DOCKER_IMAGE_TAG:-latest}
+    container_name: owlapi_docs
+    environment:
+      - TZ=Asia/Shanghai
+    restart: always
+    ports:
+      - "127.0.0.1:${DOCS_PORT:-8003}:80"
+    networks:
+      - owlapi-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # 官网服务
+  website:
+    build:
+      context: ../frontend/website
+      dockerfile: Dockerfile.prod
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/website:${DOCKER_IMAGE_TAG:-latest}
+    container_name: owlapi_website
+    environment:
+      - TZ=Asia/Shanghai
+    restart: always
+    ports:
+      - "127.0.0.1:${WEBSITE_PORT:-8004}:80"
+    networks:
+      - owlapi-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+networks:
+  owlapi-network:
+    external: true
+    name: owlapi-network

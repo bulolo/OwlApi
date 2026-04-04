@@ -113,19 +113,5 @@ services:
       - ./frontend/docs:/app
       - /app/node_modules
 
-  # Website (Official Site)
-  website:
-    image: node:20-alpine
-    container_name: owlapi_website_dev
-    working_dir: /app
-    command: sh -c "npm config set registry https://registry.npmmirror.com && corepack enable && pnpm install && pnpm dev"
-    restart: unless-stopped
-    ports:
-      - "8002:8002"
-    volumes:
-      - ./frontend/website:/app
-      - /app/node_modules
-      - /app/.next
-
 volumes:
   postgres_data:

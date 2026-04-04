@@ -22,7 +22,7 @@ else
 endif
 
 DEV_COMPOSE  := docker compose -f docker-compose.dev.yml
-PROD_COMPOSE := docker compose -f deploy/cluster/docker-compose.yml
+PROD_COMPOSE := docker compose -f deploy/docker-compose.yml
 
 # ------------------------------------------------------------------------------
 # 2. 帮助信息 (Help)

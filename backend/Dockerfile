@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -29,6 +29,6 @@ RUN chown owlapi:owlapi /app/server
 
 USER owlapi
 
-EXPOSE 8080 9090
+EXPOSE 3000 9090
 
 CMD ["./server"]

@@ -1,5 +1,7 @@
 package http
 
+// TODO: Integrate with QueryService after full wiring.
+
 import (
 	"log/slog"
 	"net/http"

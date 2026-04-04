@@ -1,5 +1,7 @@
 package grpc
 
+// TODO: Wire up with actual pb package after running `make gen-proto`.
+
 import (
 	"context"
 	"io"

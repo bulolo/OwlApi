@@ -1,5 +1,8 @@
 package service
 
+// TODO: Wire up with actual pb package after running `make gen-proto`.
+// TODO: Align tenantID/runnerID types (string vs int64) with domain layer.
+
 import (
 	"context"
 	"sync"

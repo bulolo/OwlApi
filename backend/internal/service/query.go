@@ -1,5 +1,7 @@
 package service
 
+// TODO: Wire up with actual pb package after running `make gen-proto`.
+
 import (
 	"context"
 	"fmt"
@@ -44,7 +46,7 @@ func (s *queryService) Execute(ctx context.Context, tenantID, runnerID string, e
 		Payload: &pb.ServerMessage_ExecuteQuery{
 			ExecuteQuery: &pb.ExecuteQueryRequest{
 				RequestId:    requestID,
-				DatasourceId: endpoint.DataSourceID,
+				DatasourceId: fmt.Sprintf("%d", endpoint.DataSourceID),
 				Sql:          endpoint.SQL,
 				Params:       params,
 				TimeoutSeconds: 30,

@@ -113,7 +113,7 @@ function Hero() {
                 <div className="h-3 w-3 rounded-full bg-[#28c840]" />
               </div>
               <div className="mx-auto flex h-6 w-64 items-center justify-center rounded-md bg-neutral-200/50 text-[10px] text-neutral-500 font-medium">
-                owlapi.cloud / endpoints
+                owlapi.cn / endpoints
               </div>
             </div>
             {/* Mock Body */}

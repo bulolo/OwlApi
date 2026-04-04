@@ -8,7 +8,8 @@
 .PHONY: help \
 	dev-up dev-down dev-build dev-rebuild dev-restart dev-restart-backend dev-logs dev-logs-backend dev-clean dev-db-psql \
 	prod-up prod-up-build prod-down prod-rebuild prod-restart prod-logs prod-clean \
-	gen-proto gen-sdk clean
+	gen-proto gen-sdk clean \
+ publish-ce-github
 
 # ------------------------------------------------------------------------------
 # 1. 跨平台配置 (Cross-Platform Config)
@@ -58,6 +59,10 @@ help:
 	@echo "  make gen-sdk             从 OpenAPI 生成前端 TypeScript SDK"
 	@echo "  make clean               清理所有环境与缓存"
 	@echo "  make help                显示此帮助信息"
+	@echo ""
+	@echo " 📦 [发布同步] (Release & Sync)"
+	@echo "  make             从 ee 生成 Community Edition (CE) 分支"
+	@echo "  make   将 origin/ce 同步并推送到 GitHub 公开仓库"
 	@echo ""
 	@echo " ⚠️  Windows 用户注意: 请使用 WSL2 或 Git Bash 运行 make 命令"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -162,3 +167,7 @@ clean:
 	$(PROD_COMPOSE) down -v 2>/dev/null || true
 	rm -rf backend/server backend/init backend/tmp/
 	@echo "✅ 清理完成"
+
+# ------------------------------------------------------------------------------
+# 6. [发布同步] Release & Sync Targets
+# ------------------------------------------------------------------------------

@@ -17,6 +17,12 @@ services:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
       - OWLAPI_HTTP_PORT=:3000
       - GOPROXY=https://goproxy.cn,direct
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -29,10 +35,10 @@ services:
       context: ./frontend/admin
       dockerfile: Dockerfile.dev
     container_name: owlapi_admin_dev
-    command: sh -c "pnpm install && PORT=8000 pnpm dev"
+    command: sh -c "pnpm install && PORT=8001 pnpm dev"
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       - ./frontend/admin:/app
       - /app/node_modules # Anonymous volume for container dependencies
@@ -41,7 +47,7 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:3000
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
 
   # Local Gateway Node (Hot Reload)
   gateway:
@@ -56,13 +62,16 @@ services:
       - /app/tmp
     environment:
       - OWLAPI_SERVER_URL=dns:///backend:9090
-      - OWLAPI_RUNNER_ID=dev-docker-runner
+      - OWLAPI_RUNNER_ID=1
       - OWLAPI_RUNNER_TOKEN=dev-token
+      - OWLAPI_TENANT_ID=1
       - TZ=Asia/Shanghai
       - GOPROXY=https://goproxy.cn,direct
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
+      backend-init:
+        condition: service_completed_successfully
 
   # PostgreSQL Database
   postgres:
@@ -105,10 +114,10 @@ services:
     image: node:20-alpine
     container_name: owlapi_docs_dev
     working_dir: /app
-    command: sh -c "npm config set registry https://registry.npmmirror.com && corepack enable && pnpm install && pnpm docs:dev --host 0.0.0.0 --port 8001"
+    command: sh -c "npm config set registry https://registry.npmmirror.com && corepack enable && pnpm install && pnpm docs:dev --host 0.0.0.0 --port 8003"
     restart: unless-stopped
     ports:
-      - "8001:8001"
+      - "8003:8003"
     volumes:
       - ./frontend/docs:/app
       - /app/node_modules

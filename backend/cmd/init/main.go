@@ -42,8 +42,9 @@ func main() {
 	userRepo := &postgres.UserRepo{R: pgRepo}
 	tenantRepo := &postgres.TenantRepo{R: pgRepo}
 	tenantUserRepo := &postgres.TenantUserRepo{R: pgRepo}
+	runnerRepo := &postgres.RunnerRepo{R: pgRepo}
 
-	seed(ctx, userRepo, tenantRepo, tenantUserRepo)
+	seed(ctx, userRepo, tenantRepo, tenantUserRepo, runnerRepo)
 
 	fmt.Println("✅ Backend init completed.")
 }
@@ -57,7 +58,7 @@ func hashPwd(pwd string) string {
 	return string(h)
 }
 
-func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.TenantRepo, tenantUsers *postgres.TenantUserRepo) {
+func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.TenantRepo, tenantUsers *postgres.TenantUserRepo, runners *postgres.RunnerRepo) {
 	// Idempotent: skip if superadmin already exists
 	if existing, _ := users.GetByEmail(ctx, "superadmin@owlapi.cn"); existing != nil {
 		slog.Info("Seed data already exists, skipping.")
@@ -107,6 +108,22 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 		os.Exit(1)
 	}
 	slog.Info("Created tenant admin", "email", admin.Email, "tenant", tenant.Slug)
+
+	// 4. 开发环境默认 Gateway Runner
+	runner := &domain.Runner{
+		ID:       1,
+		TenantID: tenant.ID,
+		Name:     "dev-gateway",
+		Token:    "dev-token",
+		Status:   "offline",
+		Version:  "v0.1.0",
+		LastSeen: now,
+	}
+	if err := runners.Create(ctx, runner); err != nil {
+		slog.Error("Failed to create dev runner", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Created dev runner", "id", runner.ID, "tenant_id", tenant.ID, "token", runner.Token)
 
 	slog.Info("🦉 Seed completed!")
 }

@@ -102,9 +102,9 @@ owlapi/
 │   └── proto/                      # gRPC Protobuf 描述文件
 │
 ├── frontend/
-│   ├── admin/                      # 🎯 管理控制台 (Next.js, 8000)
+│   ├── admin/                      # 🎯 管理控制台 (Next.js, 8001)
 │   ├── website/                    # 🌐 官方 SaaS 网站 (Next.js, 8002)
-│   └── docs/                       # 📚 VitePress 文档中心 (8001)
+│   └── docs/                       # 📚 VitePress 文档中心 (8003)
 │
 ├── deploy/                         # 🚀 Docker Swarm / K8S 生产部署方案库
 ├── docker-compose.dev.yml          # 一键拉起 5 大服务依赖谱
@@ -149,9 +149,9 @@ make dev-up
 ```
 
 服务将自动暴露于本地：
-- 🎯 **Admin 控制台**: http://localhost:8000 `(账号: admin@owl.com / admin, 等待 init 初始化生成)` 
+- 🎯 **Admin 控制台**: http://localhost:8001 `(账号: admin@owlapi.cn / admin123, 等待 init 初始化生成)` 
 - 🌐 **SaaS 官网**: http://localhost:8002
-- 📚 **文档中心**: http://localhost:8001
+- 📚 **文档中心**: http://localhost:8003
 - 🚀 **RESTful Proxy 解析端口**: http://localhost:3000
 
 ---

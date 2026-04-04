@@ -90,3 +90,16 @@ func (a *RunnerRepo) UpdateStatus(ctx context.Context, tenantID, id int64, statu
 func (a *RunnerRepo) Heartbeat(ctx context.Context, tenantID, id int64) error {
 	return a.R.RunnerHeartbeat(ctx, tenantID, id)
 }
+
+// ---- ProjectRepository adapter ----
+
+type ProjectRepo struct{ R *Repository }
+
+var _ domain.ProjectRepository = (*ProjectRepo)(nil)
+
+func (a *ProjectRepo) GetDataSourceByID(ctx context.Context, tenantID, id int64) (*domain.DataSource, error) {
+	return a.R.GetDataSourceByID(ctx, tenantID, id)
+}
+func (a *ProjectRepo) GetAPIEndpointByPath(ctx context.Context, tenantID int64, path string) (*domain.APIEndpoint, error) {
+	return a.R.GetAPIEndpointByPath(ctx, tenantID, path)
+}

@@ -5,6 +5,7 @@ package http
 import (
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/hongjunyao/owlapi/internal/domain"
@@ -35,9 +36,15 @@ func (h *Handler) HandleQuery(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "X-Tenant-ID header required"})
 		return
 	}
+
+	tid, err := strconv.ParseInt(tenantID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid X-Tenant-ID"})
+		return
+	}
 	
 	// 1. Find the endpoint by path
-	endpoint, err := h.repo.GetAPIEndpointByPath(c.Request.Context(), tenantID, path)
+	endpoint, err := h.repo.GetAPIEndpointByPath(c.Request.Context(), tid, path)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "API endpoint not found"})
 		return

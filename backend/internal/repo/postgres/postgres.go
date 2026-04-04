@@ -291,18 +291,23 @@ func (r *Repository) UpdateTenantUserRole(ctx context.Context, tenantID, userID 
 // ==================== RunnerRepository ====================
 
 func (r *Repository) CreateRunner(ctx context.Context, runner *domain.Runner) error {
-	_, err := r.pool.Exec(ctx,
-		`INSERT INTO runners (tenant_id, name, token, status, version) VALUES ($1,$2,$3,$4,$5)
-		 ON CONFLICT (tenant_id, id) DO UPDATE SET name=$2, status=$4, version=$5`,
-		runner.TenantID, runner.Name, runner.Token, runner.Status, runner.Version)
-	return err
+	if runner.ID > 0 {
+		// Insert with explicit ID
+		_, err := r.pool.Exec(ctx,
+			`INSERT INTO runners (id, tenant_id, name, token, status, version, last_seen) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+			runner.ID, runner.TenantID, runner.Name, runner.Token, runner.Status, runner.Version, time.Now())
+		return err
+	}
+	return r.pool.QueryRow(ctx,
+		`INSERT INTO runners (tenant_id, name, token, status, version, last_seen) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+		runner.TenantID, runner.Name, runner.Token, runner.Status, runner.Version, time.Now()).Scan(&runner.ID)
 }
 
 func (r *Repository) GetRunnerByID(ctx context.Context, tenantID, id int64) (*domain.Runner, error) {
 	var runner domain.Runner
 	err := r.pool.QueryRow(ctx,
-		`SELECT id, tenant_id, name, status, ip, last_seen, version FROM runners WHERE tenant_id=$1 AND id=$2`,
-		tenantID, id).Scan(&runner.ID, &runner.TenantID, &runner.Name, &runner.Status, &runner.IP, &runner.LastSeen, &runner.Version)
+		`SELECT id, tenant_id, name, token, status, COALESCE(ip,''), last_seen, COALESCE(version,'') FROM runners WHERE tenant_id=$1 AND id=$2`,
+		tenantID, id).Scan(&runner.ID, &runner.TenantID, &runner.Name, &runner.Token, &runner.Status, &runner.IP, &runner.LastSeen, &runner.Version)
 	if err != nil {
 		return nil, err
 	}

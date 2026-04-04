@@ -28,7 +28,7 @@ docker compose logs -f
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| Admin | 8000 | Web 控制台 |
+| Admin | 8001 | Web 控制台 |
 | Backend HTTP | 3000 | REST API |
 | Backend gRPC | 9090 | 网关节点连接 |
 | PostgreSQL | 5432 | 数据库（内部） |

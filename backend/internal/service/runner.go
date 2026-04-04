@@ -1,10 +1,9 @@
 package service
 
-// TODO: Wire up with actual pb package after running `make gen-proto`.
-// TODO: Align tenantID/runnerID types (string vs int64) with domain layer.
-
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"sync"
 
 	"github.com/hongjunyao/owlapi/internal/domain"
@@ -15,7 +14,7 @@ import (
 type RunnerService interface {
 	Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error)
 	Heartbeat(ctx context.Context, tenantID, id string) error
-	
+
 	// Stream management
 	AddStream(tenantID, runnerID string, stream pb.GatewayService_ConnectServer)
 	RemoveStream(tenantID, runnerID string)
@@ -24,37 +23,51 @@ type RunnerService interface {
 
 type runnerService struct {
 	repo    domain.RunnerRepository
-	streams sync.Map // map[string]pb.GatewayService_ConnectServer
+	streams sync.Map // key: "tenantID:runnerID"
 }
 
 func NewRunnerService(repo domain.RunnerRepository) RunnerService {
-	return &runnerService{
-		repo:    repo,
-	}
+	return &runnerService{repo: repo}
 }
 
 func (s *runnerService) Register(ctx context.Context, req *pb.RegisterRequest) (*pb.RegisterResponse, error) {
-	// Simple token verification logic (placeholder)
-	// In production, you'd check req.NodeToken against the DB
-	runner, err := s.repo.GetByID(ctx, req.TenantId, req.NodeId)
+	tenantID, err := strconv.ParseInt(req.TenantId, 10, 64)
 	if err != nil {
-		return &pb.RegisterResponse{Success: false, Error: "Runner not found or tenant mismatch"}, nil
+		return &pb.RegisterResponse{Success: false, Error: "Invalid tenant ID: must be numeric"}, nil
+	}
+	runnerID, err := strconv.ParseInt(req.NodeId, 10, 64)
+	if err != nil {
+		return &pb.RegisterResponse{Success: false, Error: "Invalid runner ID: must be numeric"}, nil
 	}
 
-	// Update status and last seen
-	err = s.repo.UpdateStatus(ctx, req.TenantId, req.NodeId, "online")
+	runner, err := s.repo.GetByID(ctx, tenantID, runnerID)
 	if err != nil {
-		return nil, err
+		return &pb.RegisterResponse{Success: false, Error: "Runner not found"}, nil
 	}
+
+	// Verify token
+	if runner.Token != req.NodeToken {
+		return &pb.RegisterResponse{Success: false, Error: "Invalid runner token"}, nil
+	}
+
+	_ = s.repo.UpdateStatus(ctx, tenantID, runnerID, "online")
 
 	return &pb.RegisterResponse{
 		Success:   true,
-		SessionId: "sess_" + req.TenantId + "_" + req.NodeId, // Placeholder session ID
+		SessionId: fmt.Sprintf("sess_%d_%d", tenantID, runnerID),
 	}, nil
 }
 
 func (s *runnerService) Heartbeat(ctx context.Context, tenantID, id string) error {
-	return s.repo.Heartbeat(ctx, tenantID, id)
+	tid, err := strconv.ParseInt(tenantID, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid tenant ID: %s", tenantID)
+	}
+	rid, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return fmt.Errorf("invalid runner ID: %s", id)
+	}
+	return s.repo.Heartbeat(ctx, tid, rid)
 }
 
 func (s *runnerService) AddStream(tenantID, runnerID string, stream pb.GatewayService_ConnectServer) {

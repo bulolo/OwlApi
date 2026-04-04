@@ -11,9 +11,9 @@ make dev-up
 ```
 
 启动后可访问：
-- Admin 控制台: http://localhost:8000
+- Admin 控制台: http://localhost:8001
 - API 服务: http://localhost:3000
-- 文档站点: http://localhost:8001
+- 文档站点: http://localhost:8003
 - 官方网站: http://localhost:8002
 - PostgreSQL: localhost:5433
 

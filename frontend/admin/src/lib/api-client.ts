@@ -47,6 +47,14 @@ async function unwrap<T>(promise: Promise<any>): Promise<T> {
     }
     return res as T
   } catch (err: any) {
+    // 401 → token 失效，自动跳转登录页
+    if (err?.status === 401 || err?.body?.code === 401) {
+      clearToken()
+      localStorage.removeItem('owlapi_user')
+      if (typeof window !== 'undefined') {
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`
+      }
+    }
     if (err?.body && typeof err.body === 'object' && 'msg' in err.body) {
       throw new Error(err.body.msg)
     }

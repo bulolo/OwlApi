@@ -6,8 +6,8 @@
 # ==============================================================================
 
 .PHONY: help \
-	dev-up dev-down dev-build dev-rebuild dev-restart dev-restart-backend dev-logs dev-logs-backend dev-clean dev-db-psql \
-	prod-up prod-up-build prod-down prod-rebuild prod-restart prod-logs prod-clean \
+	dev-init dev-up dev-down dev-build dev-rebuild dev-restart dev-restart-backend dev-logs dev-logs-backend dev-clean dev-db-psql \
+	prod-init prod-up prod-up-build prod-down prod-rebuild prod-restart prod-logs prod-clean check-prod-env \
 	gen-proto gen-sdk clean \
  publish-ce-github
 
@@ -34,6 +34,7 @@ help:
 	@echo " 💻 系统检测: $(UNAME_S)"
 	@echo ""
 	@echo " 🛠️  [开发环境] (Development Environment)"
+	@echo "  make dev-init            初始化开发环境配置 (复制 .env.example)"
 	@echo "  make dev-up              启动全栈热更新环境 (前台运行, 查看日志)"
 	@echo "  make dev-down            停止开发容器"
 	@echo "  make dev-build           构建开发镜像"
@@ -46,6 +47,7 @@ help:
 	@echo "  make dev-db-psql         进入开发环境数据库终端"
 	@echo ""
 	@echo " 🚀 [生产环境] (Production Environment)"
+	@echo "  make prod-init           初始化生产环境配置"
 	@echo "  make prod-up             启动生产集群 (后台运行, 拉取远端镜像)"
 	@echo "  make prod-up-build       启动生产集群并在本地构建"
 	@echo "  make prod-rebuild        无缓存重新构建并启动生产环境"
@@ -70,16 +72,23 @@ help:
 # ------------------------------------------------------------------------------
 # 3. [开发环境] Development Targets
 # ------------------------------------------------------------------------------
+# 初始化开发环境配置
+dev-init:
+	@echo "🔧 [OwlApi] 正在初始化开发环境配置..."
+	@cp backend/.env.example backend/.env
+	@$(SED_I) 's/^ENVIRONMENT=.*/ENVIRONMENT=dev/g' backend/.env
+	@$(SED_I) 's/^DEBUG=.*/DEBUG=true/g' backend/.env
+	@echo "✅ [OwlApi] 开发环境配置文件已生成: backend/.env"
+
 dev-build:
 	@echo "🐳 [DEV] 正在构建开发镜像..."
 	$(DEV_COMPOSE) build
 
 dev-up:
 	@echo "🐳 [DEV] 正在启动热更新环境 (前台日志模式)..."
-	@echo "    - Admin:    http://localhost:8000"
+	@echo "    - Admin:    http://localhost:8001"
 	@echo "    - API:      http://localhost:3000"
-	@echo "    - Docs:     http://localhost:8001"
-	@echo "    - Website:  http://localhost:8002"
+	@echo "    - Docs:     http://localhost:8003"
 	@echo "    - Postgres: localhost:5433"
 	@echo "    (按 Ctrl+C 停止服务)"
 	$(DEV_COMPOSE) up
@@ -117,32 +126,48 @@ dev-db-psql:
 # ------------------------------------------------------------------------------
 # 4. [生产环境] Production Targets
 # ------------------------------------------------------------------------------
-prod-up:
+# 前置检查: 确保 .env 存在
+check-prod-env:
+	@if [ ! -f "deploy/.env" ]; then \
+		echo "❌ 未找到 deploy/.env, 请先执行: make prod-init"; \
+		exit 1; \
+	fi
+
+# 初始化生产环境配置
+prod-init:
+	@echo "🚀 [OwlApi] 正在初始化生产环境配置..."
+	@cp backend/.env.example deploy/.env
+	@$(SED_I) 's/^ENVIRONMENT=.*/ENVIRONMENT=prod/g' deploy/.env
+	@$(SED_I) 's/^DEBUG=.*/DEBUG=false/g' deploy/.env
+	@echo "✅ [OwlApi] 生产环境配置文件已生成: deploy/.env"
+	@echo "⚠️  请务必在运行 'make prod-up' 前修改敏感信息 (JWT_SECRET, POSTGRES_PASSWORD 等)！"
+
+prod-up: check-prod-env
 	@echo "🚀 [PROD] 正在启动生产集群..."
 	$(PROD_COMPOSE) pull
 	$(PROD_COMPOSE) up -d
 	@echo "✅ 生产集群已启动 (后台运行)"
 
-prod-up-build:
+prod-up-build: check-prod-env
 	@echo "🚀 [PROD] 本地构建并启动生产集群..."
 	$(PROD_COMPOSE) up -d --build
 
-prod-rebuild:
+prod-rebuild: check-prod-env
 	@echo "🔧 [PROD] 无缓存重新构建生产环境..."
 	$(PROD_COMPOSE) build --no-cache
 	$(PROD_COMPOSE) up -d
 
-prod-down:
+prod-down: check-prod-env
 	@echo "🛑 [PROD] 正在停止生产集群..."
 	$(PROD_COMPOSE) down
 
-prod-restart:
+prod-restart: check-prod-env
 	$(PROD_COMPOSE) restart
 
-prod-logs:
+prod-logs: check-prod-env
 	$(PROD_COMPOSE) logs -f
 
-prod-clean:
+prod-clean: check-prod-env
 	@echo "🛑 [危险] 正在尝试深度清理生产环境..."
 	@echo "⚠️  警告：此操作将删除所有生产容器相关的数据卷和数据！"
 	@read -p "您确定要继续吗？[y/N] " ans && [ $${ans:-N} = y ] || (echo "❌ 操作已取消"; exit 1)

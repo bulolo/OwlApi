@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="./frontend/docs/docs/public/logo.png" width="36" style="vertical-align: middle;"> OwlApi
+# <img src="./logo.svg" width="36" style="vertical-align: middle;"> OwlApi
 
 **企业级 SQL to API 智能网关平台**
 
@@ -49,37 +49,7 @@
 
 ## 📸 应用截图
 
-### 🎯 控制台 (Control Plane Admin)
-
-<table>
-  <tr>
-    <td width="50%">
-      <img src="./frontend/docs/docs/public/images/screenshots/1.jpg" alt="网关看板">
-      <p align="center"><b>网关看板</b><br>可视化监控调用链路健康度与流量大盘</p>
-    </td>
-    <td width="50%">
-      <img src="./frontend/docs/docs/public/images/screenshots/2.jpg" alt="API 管理中心">
-      <p align="center"><b>API 管理中心</b><br>编写 SQL 后即可在此瞬间管理和发布 RESTful 接口</p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="./frontend/docs/docs/public/images/screenshots/3.jpg" alt="隧道与节点管理">
-      <p align="center"><b>隧道与节点管理</b><br>监听全球各地的内网执行器（Runner）探活状态</p>
-    </td>
-    <td width="50%">
-      <img src="./frontend/docs/docs/public/images/screenshots/4.jpg" alt="数据源绑定">
-      <p align="center"><b>数据源绑定</b><br>一套系统管控 PostgreSQL / Oracle 等多平台凭证</p>
-    </td>
-  </tr>
-</table>
-
-### 💬 动态查询流展示
-
-<div align="center">
-  <img src="./frontend/docs/docs/public/images/screenshots/5.jpg" alt="SQL 编辑器" width="80%">
-  <p><b>SQL 在线编辑器</b> - 带有语法高亮、参数实时推导测试的开发者环境</p>
-</div>
+> 🚧 截图正在准备中，敬请期待...
 
 ---
 

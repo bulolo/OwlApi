@@ -48,6 +48,7 @@ dev-up:
 	@echo ">>> 🐳 [DEV] 正在启动热更新环境 (前台日志模式)..."
 	@echo "    - Frontend: http://localhost:8000"
 	@echo "    - API:      http://localhost:3000"
+	@echo "    - Docs:     http://localhost:8001"
 	@echo "    (按 Ctrl+C 停止服务)"
 	docker compose -f docker-compose.dev.yml up
 

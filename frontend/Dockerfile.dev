@@ -1,8 +1,0 @@
-FROM node:20-alpine
-
-WORKDIR /app
-
-# Install pnpm
-RUN npm install -g pnpm
-
-CMD ["pnpm", "dev"]

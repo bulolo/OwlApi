@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@source "../../**/*.{ts,tsx}";
+
+@layer base {
+  :root {
+    /* Modern Light Color System */
+    --background: 210 20% 98%;   /* slightly cool gray/blue tint for background */
+    --foreground: 240 10% 10%;    /* almost black for better readability */
+    
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+    
+    /* Tech Blue - Primary */
+    --primary: 221 83% 53%;       /* Bright Blue */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary/Muted */
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 240 5.9% 10%;
+    
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+    
+    --accent: 210 20% 96%;
+    --accent-foreground: 240 5.9% 10%;
+    
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 13% 91%;        /* Lighter, smoother border */
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
+    
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border) / 0.8);
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-size: 14px; /* Maintain compact density */
+    line-height: 1.5;
+  }
+}
+
+/* Modern Utilities */
+@layer components {
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-xl border border-white/50 shadow-sm supports-[backdrop-filter]:bg-white/60;
+  }
+  
+  .glass-header {
+    @apply sticky top-0 z-50 w-full border-b border-zinc-200/50 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 border border-zinc-200/60 bg-white;
+  }
+  
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/80 transition-colors;
+  }
+  
+  .sidebar-link.active {
+    @apply bg-blue-50 text-blue-600 font-semibold;
+  }
+}

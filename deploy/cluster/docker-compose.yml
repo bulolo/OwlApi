@@ -40,7 +40,7 @@ services:
   # Frontend
   frontend:
     build:
-      context: ../../frontend
+      context: ../../frontend/admin
       dockerfile: Dockerfile.frontend
       args:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}

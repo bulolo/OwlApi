@@ -175,6 +175,223 @@ paths:
         "200":
           description: OK
 
+  /api/v1/tenants/{slug}/gateways:
+    get:
+      operationId: listGateways
+      tags: [Gateways]
+      summary: 网关节点列表
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+    post:
+      operationId: createGateway
+      tags: [Gateways]
+      summary: 创建网关节点
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGatewayRequest"
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/gateways/{gatewayId}:
+    get:
+      operationId: getGateway
+      tags: [Gateways]
+      summary: 获取网关节点详情
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: gatewayId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+    delete:
+      operationId: deleteGateway
+      tags: [Gateways]
+      summary: 删除网关节点
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: gatewayId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/datasources:
+    get:
+      operationId: listDataSources
+      tags: [DataSources]
+      summary: 数据源列表
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+    post:
+      operationId: createDataSource
+      tags: [DataSources]
+      summary: 创建数据源
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDataSourceRequest"
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/datasources/{datasourceId}:
+    get:
+      operationId: getDataSource
+      tags: [DataSources]
+      summary: 获取数据源详情
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: datasourceId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+    put:
+      operationId: updateDataSource
+      tags: [DataSources]
+      summary: 编辑数据源
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: datasourceId, in: path, required: true, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDataSourceRequest"
+      responses:
+        "200":
+          description: OK
+    delete:
+      operationId: deleteDataSource
+      tags: [DataSources]
+      summary: 删除数据源
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: datasourceId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/projects:
+    get:
+      operationId: listProjects
+      tags: [Projects]
+      summary: 项目列表
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+    post:
+      operationId: createProject
+      tags: [Projects]
+      summary: 创建项目
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectRequest"
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/projects/{projectId}:
+    get:
+      operationId: getProject
+      tags: [Projects]
+      summary: 获取项目详情
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+    put:
+      operationId: updateProject
+      tags: [Projects]
+      summary: 编辑项目
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectRequest"
+      responses:
+        "200":
+          description: OK
+    delete:
+      operationId: deleteProject
+      tags: [Projects]
+      summary: 删除项目
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/projects/{projectId}/endpoints:
+    get:
+      operationId: listEndpoints
+      tags: [Endpoints]
+      summary: 接口列表
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+    post:
+      operationId: createEndpoint
+      tags: [Endpoints]
+      summary: 创建接口
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEndpointRequest"
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}:
+    delete:
+      operationId: deleteEndpoint
+      tags: [Endpoints]
+      summary: 删除接口
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+        - { name: endpointId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+
 components:
   securitySchemes:
     BearerAuth:
@@ -269,3 +486,105 @@ components:
       required: [role]
       properties:
         role: { type: string, enum: [Admin, Viewer] }
+
+    Gateway:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tenant_id: { type: integer, format: int64 }
+        name: { type: string }
+        status: { type: string, enum: [online, offline] }
+        ip: { type: string }
+        last_seen: { type: string, format: date-time }
+        version: { type: string }
+
+    CreateGatewayRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+
+    CreateGatewayResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        token: { type: string }
+        status: { type: string }
+        version: { type: string }
+
+    DataSource:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tenant_id: { type: integer, format: int64 }
+        gateway_id: { type: integer, format: int64 }
+        name: { type: string }
+        env: { type: string, enum: [dev, prod] }
+        type: { type: string, enum: [mysql, postgres, sqlserver, starrocks, doris, sqlite] }
+        created_at: { type: string, format: date-time }
+
+    CreateDataSourceRequest:
+      type: object
+      required: [name, env, type, dsn, gateway_id]
+      properties:
+        name: { type: string }
+        env: { type: string, enum: [dev, prod] }
+        type: { type: string, enum: [mysql, postgres, sqlserver, starrocks, doris, sqlite] }
+        dsn: { type: string }
+        gateway_id: { type: integer, format: int64 }
+
+    UpdateDataSourceRequest:
+      type: object
+      properties:
+        name: { type: string }
+        env: { type: string, enum: [dev, prod] }
+        type: { type: string, enum: [mysql, postgres, sqlserver, starrocks, doris, sqlite] }
+        dsn: { type: string }
+        gateway_id: { type: integer, format: int64 }
+
+    Project:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tenant_id: { type: integer, format: int64 }
+        name: { type: string }
+        description: { type: string }
+        datasource_id: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+
+    CreateProjectRequest:
+      type: object
+      required: [name, datasource_id]
+      properties:
+        name: { type: string }
+        description: { type: string }
+        datasource_id: { type: integer, format: int64 }
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+        datasource_id: { type: integer, format: int64 }
+
+    APIEndpoint:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tenant_id: { type: integer, format: int64 }
+        project_id: { type: integer, format: int64 }
+        path: { type: string }
+        methods: { type: array, items: { type: string } }
+        sql: { type: string }
+        params: { type: array, items: { type: string } }
+        created_at: { type: string, format: date-time }
+
+    CreateEndpointRequest:
+      type: object
+      required: [path, methods, sql]
+      properties:
+        path: { type: string }
+        methods: { type: array, items: { type: string } }
+        sql: { type: string }
+        params: { type: array, items: { type: string } }

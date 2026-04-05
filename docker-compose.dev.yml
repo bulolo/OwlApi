@@ -55,15 +55,16 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
     container_name: owlapi_gateway_dev
-    command: air -c .air.runner.toml
+    command: air -c .air.gateway.toml
     restart: unless-stopped
     volumes:
       - ./backend:/app
       - /app/tmp
+      - gateway_data:/data
     environment:
       - OWLAPI_SERVER_URL=dns:///backend:9090
-      - OWLAPI_RUNNER_ID=1
-      - OWLAPI_RUNNER_TOKEN=dev-token
+      - OWLAPI_GATEWAY_ID=1
+      - OWLAPI_GATEWAY_TOKEN=gw_29a08942fd727da982fc56b3c750b643
       - OWLAPI_TENANT_ID=1
       - TZ=Asia/Shanghai
       - GOPROXY=https://goproxy.cn,direct
@@ -103,6 +104,7 @@ services:
       - ./backend:/app
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
+      - OWLAPI_GATEWAY_TOKEN=gw_29a08942fd727da982fc56b3c750b643
       - GOPROXY=https://goproxy.cn,direct
     depends_on:
       postgres:
@@ -124,3 +126,4 @@ services:
 
 volumes:
   postgres_data:
+  gateway_data:

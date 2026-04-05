@@ -1,6 +1,6 @@
 # 系统架构
 
-OwlApi 采用 **云端控制面 (Control Plane)** + **网关执行器 (Gateway Runner)** 的分布式架构。
+OwlApi 采用 **云端控制面 (Control Plane)** + **网关执行器 (Gateway)** 的分布式架构。
 
 ## 总体架构
 
@@ -15,14 +15,14 @@ OwlApi 采用 **云端控制面 (Control Plane)** + **网关执行器 (Gateway R
 │                         └────────┬────────┘                        │
 └──────────────────────────────────┼──────────────────────────────────┘
                                     │ gRPC 双向流 (HTTP/2)
-                                    │ Gateway Runner 主动连接
+                                    │ Gateway 主动连接
          ┌─────────────────────────┼─────────────────────────┐
          │                         │                         │
          ▼                         ▼                         ▼
 ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
-│ Gateway Runner  │      │ Gateway Runner  │      │ Gateway Runner  │
+│ Gateway         │      │ Gateway         │      │ Gateway         │
 │   (公司 IDC)    │      │  (阿里云 ECS)   │      │   (树莓派)      │
-│  MySQL / Oracle │      │  PostgreSQL     │      │  SQLite         │
+│  MySQL / SQL Server │      │  PostgreSQL     │      │  StarRocks / SQLite │
 └─────────────────┘      └─────────────────┘      └─────────────────┘
 ```
 
@@ -34,7 +34,7 @@ OwlApi 采用 **云端控制面 (Control Plane)** + **网关执行器 (Gateway R
 - **多租户管理** — 租户 CRUD、用户角色管理（Admin / Viewer）
 - **权限控制** — SuperAdmin 全局管理，租户级 RBAC
 - **API 定义** — SQL 查询管理、参数映射（规划中）
-- **Gateway Runner 管理** — 注册、心跳监控、状态同步（规划中）
+- **Gateway 管理** — 注册、心跳监控、状态同步（规划中）
 
 ### 内部分层
 
@@ -49,7 +49,7 @@ internal/
 └── pkg/                     # auth(JWT), logger, core(errors)
 ```
 
-## Gateway Runner (网关执行器)
+## Gateway (网关执行器)
 
 部署在用户内网的轻量级代理：
 
@@ -61,7 +61,7 @@ internal/
 ## 数据流
 
 ```
-用户请求 → Control Plane (HTTP) → gRPC Stream → Gateway Runner → 内网数据库
+用户请求 → Control Plane (HTTP) → gRPC Stream → Gateway → 内网数据库
                 ↑                                      │
                 └──────────── 查询结果 (JSON) ◄────────┘
 ```
@@ -73,4 +73,4 @@ internal/
 | Transport | gRPC over HTTP/2 |
 | Serialization | Protocol Buffers v3 |
 | 业务载荷 | JSON (QueryResult.data) |
-| 认证 | JWT (HTTP API), Token (Gateway Runner 注册) |
+| 认证 | JWT (HTTP API), Token (Gateway 注册) |

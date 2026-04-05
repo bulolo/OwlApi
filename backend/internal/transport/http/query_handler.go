@@ -1,7 +1,5 @@
 package http
 
-// TODO: Integrate with QueryService after full wiring.
-
 import (
 	"log/slog"
 	"net/http"
@@ -12,45 +10,39 @@ import (
 	"github.com/hongjunyao/owlapi/internal/service"
 )
 
-type Handler struct {
+type QueryHandler struct {
 	queryService service.QueryService
 	repo         domain.ProjectRepository
 }
 
-func NewHandler(queryService service.QueryService, repo domain.ProjectRepository) *Handler {
-	return &Handler{
-		queryService: queryService,
-		repo:         repo,
-	}
+func NewQueryHandler(queryService service.QueryService, repo domain.ProjectRepository) *QueryHandler {
+	return &QueryHandler{queryService: queryService, repo: repo}
 }
 
-func (h *Handler) RegisterRoutes(r *gin.Engine) {
-	// SQL to API execution endpoint
+func (h *QueryHandler) RegisterRoutes(r *gin.Engine) {
 	r.Match([]string{"GET", "POST"}, "/api/v1/query/*path", h.HandleQuery)
 }
 
-func (h *Handler) HandleQuery(c *gin.Context) {
+func (h *QueryHandler) HandleQuery(c *gin.Context) {
 	path := c.Param("path")
 	tenantID := c.GetHeader("X-Tenant-ID")
 	if tenantID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "X-Tenant-ID header required"})
+		Fail(c, http.StatusBadRequest, "X-Tenant-ID header required")
 		return
 	}
 
 	tid, err := strconv.ParseInt(tenantID, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid X-Tenant-ID"})
-		return
-	}
-	
-	// 1. Find the endpoint by path
-	endpoint, err := h.repo.GetAPIEndpointByPath(c.Request.Context(), tid, path)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "API endpoint not found"})
+		Fail(c, http.StatusBadRequest, "invalid X-Tenant-ID")
 		return
 	}
 
-	// 2. Extract params
+	endpoint, err := h.repo.GetAPIEndpointByPath(c.Request.Context(), tid, path)
+	if err != nil {
+		Fail(c, http.StatusNotFound, "API endpoint not found")
+		return
+	}
+
 	params := make(map[string]string)
 	for _, p := range endpoint.Params {
 		val := c.Query(p)
@@ -60,27 +52,23 @@ func (h *Handler) HandleQuery(c *gin.Context) {
 		params[p] = val
 	}
 
-	// 3. Find an available Runner for this project
-	// (Simplification: using a fixed runner_id for now or getting it from metadata)
-	runnerID := c.GetHeader("X-Runner-ID")
-	if runnerID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "X-Runner-ID header required"})
+	gatewayID := c.GetHeader("X-Gateway-ID")
+	if gatewayID == "" {
+		Fail(c, http.StatusBadRequest, "X-Gateway-ID header required")
 		return
 	}
 
-	// 4. Execute query via QueryService
-	result, err := h.queryService.Execute(c.Request.Context(), tenantID, runnerID, endpoint, params)
+	result, err := h.queryService.Execute(c.Request.Context(), tenantID, gatewayID, endpoint, params)
 	if err != nil {
 		slog.Error("Query execution failed", "path", path, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		Fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if !result.Success {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error})
+		Fail(c, http.StatusInternalServerError, result.Error)
 		return
 	}
 
-	// 5. Return result
 	c.Data(http.StatusOK, "application/json", result.Data)
 }

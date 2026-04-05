@@ -27,7 +27,7 @@ export type EnvConfig = {
 export type DataSource = {
   id: string
   name: string
-  type: 'MySQL' | 'PostgreSQL' | 'StarRocks' | 'MongoDB' | 'Oracle'
+  type: 'MySQL' | 'PostgreSQL' | 'SQLServer' | 'StarRocks' | 'Doris' | 'SQLite'
   isDual: boolean
   dev: EnvConfig
   prod?: EnvConfig

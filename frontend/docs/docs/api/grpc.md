@@ -1,26 +1,26 @@
 # gRPC 协议
 
-Control Plane 与 Gateway Runner 之间通过 gRPC 双向流通信，定义在 `backend/proto/gateway.proto`。
+Control Plane 与 Gateway 之间通过 gRPC 双向流通信，定义在 `backend/proto/gateway.proto`。
 
 ## 服务定义
 
 ```protobuf
 service GatewayService {
-  // Gateway Runner 连接并保持双向流（反向隧道）
-  rpc Connect(stream RunnerMessage) returns (stream ServerMessage);
+  // Gateway 连接并保持双向流（反向隧道）
+  rpc Connect(stream GatewayMessage) returns (stream ServerMessage);
 }
 ```
 
-## Gateway Runner → Server 消息
+## Gateway → Server 消息
 
 ### RegisterRequest (注册)
 
-Gateway Runner 启动后首先发送注册请求。
+Gateway 启动后首先发送注册请求。
 
 | 字段 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| node_id | string | 节点唯一标识 |
-| node_token | string | 节点鉴权令牌 |
+| gateway_id | string | 节点唯一标识 |
+| gateway_token | string | 节点鉴权令牌 |
 | version | string | 节点版本号 |
 | tenant_id | string | 归属租户 ID |
 | metadata | map\<string, string\> | 扩展元数据 |
@@ -45,7 +45,7 @@ Gateway Runner 启动后首先发送注册请求。
 | rows_affected | int64 | 影响行数 |
 | execution_time_ms | int64 | 执行耗时 (ms) |
 
-## Server → Gateway Runner 消息
+## Server → Gateway 消息
 
 ### RegisterResponse (注册响应)
 
@@ -74,7 +74,7 @@ Gateway Runner 启动后首先发送注册请求。
 ## 通信流程
 
 ```
-Gateway Runner                  Control Plane
+Gateway                         Control Plane
   │                                   │
   │── RegisterRequest ──────────────►│
   │◄── RegisterResponse ────────────│

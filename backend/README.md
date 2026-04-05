@@ -8,8 +8,8 @@
 
 ## 架构
 
-- **Control Plane (Server)** — API 配置映射、多租户管理、Runner 调度
-- **Gateway Runner** — 部署在内网，主动建立上行连接，执行 SQL 查询
+- **Control Plane (Server)** — API 配置映射、多租户管理、Gateway 调度
+- **Gateway** — 部署在内网，主动建立上行连接，执行 SQL 查询
 
 ## 项目结构
 
@@ -17,17 +17,17 @@
 backend/
 ├── cmd/
 │   ├── server/             # Control Plane 入口
-│   ├── runner/             # Gateway Runner 入口
+│   ├── gateway/             # Gateway 入口
 │   └── init/               # 数据库初始化 & Seed
 ├── internal/
 │   ├── config/             # 环境变量配置
 │   ├── domain/             # 核心实体 & Repository 接口
-│   ├── service/            # 业务逻辑 (Auth, Query, Runner)
+│   ├── service/            # 业务逻辑 (Auth, Query, Gateway)
 │   ├── repo/postgres/      # PostgreSQL 持久层
 │   ├── transport/
 │   │   ├── http/           # REST API (Gin)
 │   │   └── grpc/           # gRPC Server
-│   ├── gateway/            # Runner 端逻辑
+│   ├── gateway/            # Gateway 端逻辑
 │   ├── pb/                 # Protobuf 生成代码
 │   └── pkg/                # 通用工具 (JWT, Logger, Errors, DBDriver)
 └── proto/                  # Protobuf 定义源文件

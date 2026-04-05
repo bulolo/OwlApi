@@ -15,9 +15,9 @@ hero:
 
 features:
   - title: 🚀 SQL to API
-    details: 编写 SQL 查询，一键发布为标准 RESTful API，支持 MySQL、PostgreSQL、Oracle 等主流数据库。
+    details: 编写 SQL 查询，一键发布为标准 RESTful API，支持 MySQL、PostgreSQL、SQL Server、StarRocks、Doris、SQLite。
   - title: 🌐 混合云网关
-    details: Gateway Runner 部署在任意内网环境，通过 gRPC 反向隧道自动建立加密连接，无需公网 IP。
+    details: Gateway 部署在任意内网环境，通过 gRPC 反向隧道自动建立加密连接，无需公网 IP。
   - title: 🔒 多租户隔离
     details: 原生多租户架构，支持 SuperAdmin / Admin / Viewer 三级角色，数据层全方位安全隔离。
 ---

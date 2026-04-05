@@ -26,11 +26,11 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Gateway 服务 - Runner 与 Control Plane 之间的通信
+// Gateway 服务 - Gateway 与 Control Plane 之间的通信
 type GatewayServiceClient interface {
-	// Runner 连接并保持双向流
-	// Runner 作为客户端主动连接，实现反向隧道
-	Connect(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[RunnerMessage, ServerMessage], error)
+	// Gateway 连接并保持双向流
+	// Gateway 作为客户端主动连接，实现反向隧道
+	Connect(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GatewayMessage, ServerMessage], error)
 }
 
 type gatewayServiceClient struct {
@@ -41,28 +41,28 @@ func NewGatewayServiceClient(cc grpc.ClientConnInterface) GatewayServiceClient {
 	return &gatewayServiceClient{cc}
 }
 
-func (c *gatewayServiceClient) Connect(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[RunnerMessage, ServerMessage], error) {
+func (c *gatewayServiceClient) Connect(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[GatewayMessage, ServerMessage], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &GatewayService_ServiceDesc.Streams[0], GatewayService_Connect_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[RunnerMessage, ServerMessage]{ClientStream: stream}
+	x := &grpc.GenericClientStream[GatewayMessage, ServerMessage]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type GatewayService_ConnectClient = grpc.BidiStreamingClient[RunnerMessage, ServerMessage]
+type GatewayService_ConnectClient = grpc.BidiStreamingClient[GatewayMessage, ServerMessage]
 
 // GatewayServiceServer is the server API for GatewayService service.
 // All implementations must embed UnimplementedGatewayServiceServer
 // for forward compatibility.
 //
-// Gateway 服务 - Runner 与 Control Plane 之间的通信
+// Gateway 服务 - Gateway 与 Control Plane 之间的通信
 type GatewayServiceServer interface {
-	// Runner 连接并保持双向流
-	// Runner 作为客户端主动连接，实现反向隧道
-	Connect(grpc.BidiStreamingServer[RunnerMessage, ServerMessage]) error
+	// Gateway 连接并保持双向流
+	// Gateway 作为客户端主动连接，实现反向隧道
+	Connect(grpc.BidiStreamingServer[GatewayMessage, ServerMessage]) error
 	mustEmbedUnimplementedGatewayServiceServer()
 }
 
@@ -73,7 +73,7 @@ type GatewayServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedGatewayServiceServer struct{}
 
-func (UnimplementedGatewayServiceServer) Connect(grpc.BidiStreamingServer[RunnerMessage, ServerMessage]) error {
+func (UnimplementedGatewayServiceServer) Connect(grpc.BidiStreamingServer[GatewayMessage, ServerMessage]) error {
 	return status.Error(codes.Unimplemented, "method Connect not implemented")
 }
 func (UnimplementedGatewayServiceServer) mustEmbedUnimplementedGatewayServiceServer() {}
@@ -98,11 +98,11 @@ func RegisterGatewayServiceServer(s grpc.ServiceRegistrar, srv GatewayServiceSer
 }
 
 func _GatewayService_Connect_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(GatewayServiceServer).Connect(&grpc.GenericServerStream[RunnerMessage, ServerMessage]{ServerStream: stream})
+	return srv.(GatewayServiceServer).Connect(&grpc.GenericServerStream[GatewayMessage, ServerMessage]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type GatewayService_ConnectServer = grpc.BidiStreamingServer[RunnerMessage, ServerMessage]
+type GatewayService_ConnectServer = grpc.BidiStreamingServer[GatewayMessage, ServerMessage]
 
 // GatewayService_ServiceDesc is the grpc.ServiceDesc for GatewayService service.
 // It's only intended for direct use with grpc.RegisterService,

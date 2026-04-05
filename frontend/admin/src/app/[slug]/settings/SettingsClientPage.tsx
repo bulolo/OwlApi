@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
-type SettingsTab = "general" | "runner" | "security" | "notifications"
+type SettingsTab = "general" | "gateway" | "security" | "notifications"
 
 export default function SettingsClientPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
@@ -43,7 +43,7 @@ export default function SettingsClientPage() {
         <div className="md:col-span-3">
           <nav className="flex flex-col space-y-1">
             <SettingsTabLink icon={Globe} label="通用配置" active={activeTab === "general"} onClick={() => setActiveTab("general")} />
-            <SettingsTabLink icon={Cpu} label="网关节点" active={activeTab === "runner"} onClick={() => setActiveTab("runner")} />
+            <SettingsTabLink icon={Cpu} label="网关节点" active={activeTab === "gateway"} onClick={() => setActiveTab("gateway")} />
             <SettingsTabLink icon={Shield} label="安全中心" active={activeTab === "security"} onClick={() => setActiveTab("security")} />
             <SettingsTabLink icon={Bell} label="通知告警" active={activeTab === "notifications"} onClick={() => setActiveTab("notifications")} />
           </nav>
@@ -89,7 +89,7 @@ export default function SettingsClientPage() {
             </div>
           )}
 
-          {activeTab === "runner" && (
+          {activeTab === "gateway" && (
             <div className="space-y-6">
               <SettingsCard title="网关节点集群参数" icon={Cpu} iconColor="text-zinc-600">
                 <div className="grid grid-cols-2 gap-6">

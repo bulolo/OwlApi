@@ -52,10 +52,6 @@ func Fail(c *gin.Context, httpCode int, msg string) {
 	c.JSON(httpCode, R{Code: 1, Msg: msg})
 }
 
-func FailWithCode(c *gin.Context, httpCode int, code int, msg string) {
-	c.JSON(httpCode, R{Code: code, Msg: msg})
-}
-
 func parsePage(c *gin.Context) (page, size int, isPager bool) {
 	isPagerStr := c.DefaultQuery("is_pager", "1")
 	if isPagerStr == "0" {

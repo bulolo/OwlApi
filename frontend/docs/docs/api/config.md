@@ -9,22 +9,20 @@
 | `OWLAPI_GRPC_PORT` | gRPC 监听端口 | `:9090` |
 | `OWLAPI_JWT_SECRET` | JWT 签名密钥 | `owlapi-dev-secret-change-me` |
 | `OWLAPI_LOG_LEVEL` | 日志级别 | `info` |
-| `OWLAPI_LOG_CONSOLE` | 控制台日志输出 | `true` |
 
 ::: warning
 生产环境务必修改 `OWLAPI_JWT_SECRET`，不要使用默认值。
 :::
 
-## Gateway Runner (网关执行器)
+## Gateway (网关执行器)
 
 | 变量名 | 说明 | 默认值 |
 | :--- | :--- | :--- |
 | `OWLAPI_SERVER_URL` | Control Plane gRPC 地址 | `dns:///localhost:9090` |
-| `OWLAPI_RUNNER_ID` | 节点 ID | (必填) |
-| `OWLAPI_RUNNER_TOKEN` | 节点鉴权令牌 | (必填) |
-| `OWLAPI_TENANT_ID` | 归属租户 ID | `default` |
+| `OWLAPI_GATEWAY_ID` | 节点 ID (数字) | (必填) |
+| `OWLAPI_GATEWAY_TOKEN` | 节点鉴权令牌 | (必填) |
+| `OWLAPI_TENANT_ID` | 归属租户 ID (数字) | (必填) |
 | `OWLAPI_LOG_LEVEL` | 日志级别 | `info` |
-| `OWLAPI_LOG_CONSOLE` | 控制台日志输出 | `true` |
 
 ## Docker Compose 开发环境
 

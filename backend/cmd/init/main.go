@@ -11,6 +11,7 @@ import (
 	"github.com/hongjunyao/owlapi/internal/domain"
 	"github.com/hongjunyao/owlapi/internal/pkg/logger"
 	"github.com/hongjunyao/owlapi/internal/repo/postgres"
+	"github.com/hongjunyao/owlapi/internal/service"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,11 +24,11 @@ func main() {
 	defer cancel()
 
 	var (
-		pgRepo *postgres.Repository
-		err    error
+		db  *postgres.DB
+		err error
 	)
 	for i := 0; i < 10; i++ {
-		pgRepo, err = postgres.NewRepository(ctx, cfg.DatabaseURL)
+		db, err = postgres.NewDB(ctx, cfg.DatabaseURL)
 		if err == nil {
 			break
 		}
@@ -39,13 +40,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	userRepo := &postgres.UserRepo{R: pgRepo}
-	tenantRepo := &postgres.TenantRepo{R: pgRepo}
-	tenantUserRepo := &postgres.TenantUserRepo{R: pgRepo}
-	runnerRepo := &postgres.RunnerRepo{R: pgRepo}
+	users := &postgres.UserRepo{DB: db}
+	tenants := &postgres.TenantRepo{DB: db}
+	tenantUsers := &postgres.TenantUserRepo{DB: db}
+	gatewayRepo := &postgres.GatewayRepo{DB: db}
+	gatewaySvc := service.NewGatewayService(gatewayRepo)
 
-	seed(ctx, userRepo, tenantRepo, tenantUserRepo, runnerRepo)
-
+	seed(ctx, users, tenants, tenantUsers, gatewaySvc, &postgres.ProjectRepo{DB: db})
 	fmt.Println("✅ Backend init completed.")
 }
 
@@ -58,8 +59,7 @@ func hashPwd(pwd string) string {
 	return string(h)
 }
 
-func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.TenantRepo, tenantUsers *postgres.TenantUserRepo, runners *postgres.RunnerRepo) {
-	// Idempotent: skip if superadmin already exists
+func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.TenantRepo, tenantUsers *postgres.TenantUserRepo, gatewaySvc service.GatewayService, projects *postgres.ProjectRepo) {
 	if existing, _ := users.GetByEmail(ctx, "superadmin@owlapi.cn"); existing != nil {
 		slog.Info("Seed data already exists, skipping.")
 		return
@@ -67,7 +67,6 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 
 	now := time.Now()
 
-	// 1. 超级管理员 (平台级，不属于任何租户)
 	superadmin := &domain.User{
 		Email: "superadmin@owlapi.cn", Name: "SuperAdmin",
 		PasswordHash: hashPwd("superadmin123"), IsSuperAdmin: true,
@@ -79,7 +78,6 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 	}
 	slog.Info("Created superadmin", "id", superadmin.ID, "email", superadmin.Email)
 
-	// 2. 默认租户
 	tenant := &domain.Tenant{
 		Name: "研发中心", Slug: "default",
 		Plan: domain.PlanFree, Status: domain.TenantActive,
@@ -91,7 +89,6 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 	}
 	slog.Info("Created default tenant", "id", tenant.ID, "slug", tenant.Slug)
 
-	// 3. 租户管理员 (属于 default 租户)
 	admin := &domain.User{
 		Email: "admin@owlapi.cn", Name: "Admin",
 		PasswordHash: hashPwd("admin123"), IsSuperAdmin: false,
@@ -101,7 +98,7 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 		slog.Error("Failed to create tenant admin", "error", err)
 		os.Exit(1)
 	}
-	if err := tenantUsers.Add(ctx, &domain.TenantUser{
+	if err := tenantUsers.Create(ctx, &domain.TenantUser{
 		TenantID: tenant.ID, UserID: admin.ID, Role: domain.RoleAdmin, JoinedAt: now,
 	}); err != nil {
 		slog.Error("Failed to add tenant admin user", "error", err)
@@ -109,21 +106,59 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 	}
 	slog.Info("Created tenant admin", "email", admin.Email, "tenant", tenant.Slug)
 
-	// 4. 开发环境默认 Gateway Runner
-	runner := &domain.Runner{
-		ID:       1,
+	gw := &domain.Gateway{
 		TenantID: tenant.ID,
-		Name:     "dev-gateway",
-		Token:    "dev-token",
-		Status:   "offline",
-		Version:  "v0.1.0",
-		LastSeen: now,
+		Name:     "内置网关",
+		Token:    os.Getenv("OWLAPI_GATEWAY_TOKEN"),
 	}
-	if err := runners.Create(ctx, runner); err != nil {
-		slog.Error("Failed to create dev runner", "error", err)
+	if err := gatewaySvc.Create(ctx, gw); err != nil {
+		slog.Error("Failed to create dev gateway", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("Created dev runner", "id", runner.ID, "tenant_id", tenant.ID, "token", runner.Token)
+	slog.Info("Created dev gateway", "id", gw.ID, "tenant_id", tenant.ID, "token", gw.Token)
+
+	// 5. 内置演示数据源（绑定到内置网关，使用 SQLite）
+	ds := &domain.DataSource{
+		TenantID: tenant.ID,
+		Name:     "内置 SQLite",
+		IsDual:   false,
+		Type:     "sqlite",
+		Envs: []*domain.DataSourceEnv{
+			{Env: "prod", DSN: "/data/owlapi_demo.db", GatewayID: gw.ID},
+		},
+	}
+	if err := projects.CreateDataSource(ctx, ds); err != nil {
+		slog.Error("Failed to create demo datasource", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Created demo datasource", "id", ds.ID, "type", ds.Type)
+
+	// 6. 演示项目（绑定到内置 SQLite 数据源）
+	proj := &domain.Project{
+		TenantID:     tenant.ID,
+		Name:         "演示项目",
+		Description:  "使用内置 SQLite 数据源的演示项目",
+		DataSourceID: ds.ID,
+	}
+	if err := projects.CreateProject(ctx, proj); err != nil {
+		slog.Error("Failed to create demo project", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Created demo project", "id", proj.ID, "datasource_id", ds.ID)
+
+	// 7. 演示 API 接口
+	demoEndpoints := []*domain.APIEndpoint{
+		{TenantID: tenant.ID, ProjectID: proj.ID, Path: "/users", Methods: []string{"GET"}, SQL: "SELECT id, name, email, role, created_at FROM users", Params: []string{}},
+		{TenantID: tenant.ID, ProjectID: proj.ID, Path: "/products", Methods: []string{"GET"}, SQL: "SELECT id, name, price, stock, category FROM products", Params: []string{}},
+		{TenantID: tenant.ID, ProjectID: proj.ID, Path: "/orders", Methods: []string{"GET"}, SQL: "SELECT o.id, u.name as user_name, p.name as product_name, o.quantity, o.total, o.status FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id", Params: []string{}},
+	}
+	for _, ep := range demoEndpoints {
+		if err := projects.CreateAPIEndpoint(ctx, ep); err != nil {
+			slog.Error("Failed to create demo endpoint", "path", ep.Path, "error", err)
+			os.Exit(1)
+		}
+	}
+	slog.Info("Created demo API endpoints", "count", len(demoEndpoints))
 
 	slog.Info("🦉 Seed completed!")
 }

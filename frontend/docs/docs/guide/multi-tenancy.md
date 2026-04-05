@@ -27,8 +27,8 @@ OwlApi 原生支持多租户隔离，确保不同企业/团队之间的数据完
 ## 数据隔离
 
 - **数据层** — 核心表通过 `tenant_id` 进行隔离，查询强制包含租户过滤
-- **连接层** — gRPC 连接池基于 `tenant_id + runner_id` 索引（规划中）
-- **Gateway Runner 归属** — Gateway Runner 启动时通过 `OWLAPI_TENANT_ID` 环境变量声明归属租户
+- **连接层** — gRPC 连接池基于 `tenant_id + gateway_id` 索引（规划中）
+- **Gateway 归属** — Gateway 启动时通过 `OWLAPI_TENANT_ID` 环境变量声明归属租户
 
 ## 注册流程
 

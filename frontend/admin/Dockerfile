@@ -21,8 +21,8 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 RUN npm run build
 
-# Stage 3: Runner
-FROM node:20-alpine AS runner
+# Stage 3: Production
+FROM node:20-alpine AS production
 WORKDIR /app
 
 ENV NODE_ENV=production

@@ -36,7 +36,7 @@ export function Sidebar({ slug }: { slug?: string }) {
     {
       group: "服务中心",
       items: [
-        { href: `/${activeTenant}/projects`, label: "接口中心", icon: Box },
+        { href: `/${activeTenant}/projects`, label: "项目", icon: Box },
       ]
     },
     {

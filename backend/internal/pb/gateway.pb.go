@@ -21,32 +21,32 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type RunnerMessage struct {
+type GatewayMessage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Payload:
 	//
-	//	*RunnerMessage_Register
-	//	*RunnerMessage_Heartbeat
-	//	*RunnerMessage_QueryResult
-	Payload       isRunnerMessage_Payload `protobuf_oneof:"payload"`
+	//	*GatewayMessage_Register
+	//	*GatewayMessage_Heartbeat
+	//	*GatewayMessage_QueryResult
+	Payload       isGatewayMessage_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *RunnerMessage) Reset() {
-	*x = RunnerMessage{}
+func (x *GatewayMessage) Reset() {
+	*x = GatewayMessage{}
 	mi := &file_gateway_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *RunnerMessage) String() string {
+func (x *GatewayMessage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*RunnerMessage) ProtoMessage() {}
+func (*GatewayMessage) ProtoMessage() {}
 
-func (x *RunnerMessage) ProtoReflect() protoreflect.Message {
+func (x *GatewayMessage) ProtoReflect() protoreflect.Message {
 	mi := &file_gateway_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -58,72 +58,72 @@ func (x *RunnerMessage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RunnerMessage.ProtoReflect.Descriptor instead.
-func (*RunnerMessage) Descriptor() ([]byte, []int) {
+// Deprecated: Use GatewayMessage.ProtoReflect.Descriptor instead.
+func (*GatewayMessage) Descriptor() ([]byte, []int) {
 	return file_gateway_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *RunnerMessage) GetPayload() isRunnerMessage_Payload {
+func (x *GatewayMessage) GetPayload() isGatewayMessage_Payload {
 	if x != nil {
 		return x.Payload
 	}
 	return nil
 }
 
-func (x *RunnerMessage) GetRegister() *RegisterRequest {
+func (x *GatewayMessage) GetRegister() *RegisterRequest {
 	if x != nil {
-		if x, ok := x.Payload.(*RunnerMessage_Register); ok {
+		if x, ok := x.Payload.(*GatewayMessage_Register); ok {
 			return x.Register
 		}
 	}
 	return nil
 }
 
-func (x *RunnerMessage) GetHeartbeat() *HeartbeatRequest {
+func (x *GatewayMessage) GetHeartbeat() *HeartbeatRequest {
 	if x != nil {
-		if x, ok := x.Payload.(*RunnerMessage_Heartbeat); ok {
+		if x, ok := x.Payload.(*GatewayMessage_Heartbeat); ok {
 			return x.Heartbeat
 		}
 	}
 	return nil
 }
 
-func (x *RunnerMessage) GetQueryResult() *QueryResult {
+func (x *GatewayMessage) GetQueryResult() *QueryResult {
 	if x != nil {
-		if x, ok := x.Payload.(*RunnerMessage_QueryResult); ok {
+		if x, ok := x.Payload.(*GatewayMessage_QueryResult); ok {
 			return x.QueryResult
 		}
 	}
 	return nil
 }
 
-type isRunnerMessage_Payload interface {
-	isRunnerMessage_Payload()
+type isGatewayMessage_Payload interface {
+	isGatewayMessage_Payload()
 }
 
-type RunnerMessage_Register struct {
+type GatewayMessage_Register struct {
 	Register *RegisterRequest `protobuf:"bytes,1,opt,name=register,proto3,oneof"`
 }
 
-type RunnerMessage_Heartbeat struct {
+type GatewayMessage_Heartbeat struct {
 	Heartbeat *HeartbeatRequest `protobuf:"bytes,2,opt,name=heartbeat,proto3,oneof"`
 }
 
-type RunnerMessage_QueryResult struct {
+type GatewayMessage_QueryResult struct {
 	QueryResult *QueryResult `protobuf:"bytes,3,opt,name=query_result,json=queryResult,proto3,oneof"`
 }
 
-func (*RunnerMessage_Register) isRunnerMessage_Payload() {}
+func (*GatewayMessage_Register) isGatewayMessage_Payload() {}
 
-func (*RunnerMessage_Heartbeat) isRunnerMessage_Payload() {}
+func (*GatewayMessage_Heartbeat) isGatewayMessage_Payload() {}
 
-func (*RunnerMessage_QueryResult) isRunnerMessage_Payload() {}
+func (*GatewayMessage_QueryResult) isGatewayMessage_Payload() {}
 
-// Runner 注册请求
+// Gateway 注册请求
 type RegisterRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	NodeToken     string                 `protobuf:"bytes,2,opt,name=node_token,json=nodeToken,proto3" json:"node_token,omitempty"`
+	GatewayId     string                 `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId,proto3" json:"gateway_id,omitempty"`
+	GatewayToken  string                 `protobuf:"bytes,2,opt,name=gateway_token,json=gatewayToken,proto3" json:"gateway_token,omitempty"`
 	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
 	Metadata      map[string]string      `protobuf:"bytes,4,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	TenantId      string                 `protobuf:"bytes,5,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
@@ -161,16 +161,16 @@ func (*RegisterRequest) Descriptor() ([]byte, []int) {
 	return file_gateway_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *RegisterRequest) GetNodeId() string {
+func (x *RegisterRequest) GetGatewayId() string {
 	if x != nil {
-		return x.NodeId
+		return x.GatewayId
 	}
 	return ""
 }
 
-func (x *RegisterRequest) GetNodeToken() string {
+func (x *RegisterRequest) GetGatewayToken() string {
 	if x != nil {
-		return x.NodeToken
+		return x.GatewayToken
 	}
 	return ""
 }
@@ -679,16 +679,16 @@ var File_gateway_proto protoreflect.FileDescriptor
 
 const file_gateway_proto_rawDesc = "" +
 	"\n" +
-	"\rgateway.proto\x12\x11owlapi.gateway.v1\"\xe6\x01\n" +
-	"\rRunnerMessage\x12@\n" +
+	"\rgateway.proto\x12\x11owlapi.gateway.v1\"\xe7\x01\n" +
+	"\x0eGatewayMessage\x12@\n" +
 	"\bregister\x18\x01 \x01(\v2\".owlapi.gateway.v1.RegisterRequestH\x00R\bregister\x12C\n" +
 	"\theartbeat\x18\x02 \x01(\v2#.owlapi.gateway.v1.HeartbeatRequestH\x00R\theartbeat\x12C\n" +
 	"\fquery_result\x18\x03 \x01(\v2\x1e.owlapi.gateway.v1.QueryResultH\x00R\vqueryResultB\t\n" +
-	"\apayload\"\x8b\x02\n" +
-	"\x0fRegisterRequest\x12\x17\n" +
-	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1d\n" +
+	"\apayload\"\x97\x02\n" +
+	"\x0fRegisterRequest\x12\x1d\n" +
 	"\n" +
-	"node_token\x18\x02 \x01(\tR\tnodeToken\x12\x18\n" +
+	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12#\n" +
+	"\rgateway_token\x18\x02 \x01(\tR\fgatewayToken\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x12L\n" +
 	"\bmetadata\x18\x04 \x03(\v20.owlapi.gateway.v1.RegisterRequest.MetadataEntryR\bmetadata\x12\x1b\n" +
 	"\ttenant_id\x18\x05 \x01(\tR\btenantId\x1a;\n" +
@@ -733,9 +733,9 @@ const file_gateway_proto_rawDesc = "" +
 	"\x0ftimeout_seconds\x18\x05 \x01(\x05R\x0etimeoutSeconds\x1a9\n" +
 	"\vParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012c\n" +
-	"\x0eGatewayService\x12Q\n" +
-	"\aConnect\x12 .owlapi.gateway.v1.RunnerMessage\x1a .owlapi.gateway.v1.ServerMessage(\x010\x01B*Z(github.com/hongjunyao/owlapi/internal/pbb\x06proto3"
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012d\n" +
+	"\x0eGatewayService\x12R\n" +
+	"\aConnect\x12!.owlapi.gateway.v1.GatewayMessage\x1a .owlapi.gateway.v1.ServerMessage(\x010\x01B*Z(github.com/hongjunyao/owlapi/internal/pbb\x06proto3"
 
 var (
 	file_gateway_proto_rawDescOnce sync.Once
@@ -751,7 +751,7 @@ func file_gateway_proto_rawDescGZIP() []byte {
 
 var file_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_gateway_proto_goTypes = []any{
-	(*RunnerMessage)(nil),       // 0: owlapi.gateway.v1.RunnerMessage
+	(*GatewayMessage)(nil),      // 0: owlapi.gateway.v1.GatewayMessage
 	(*RegisterRequest)(nil),     // 1: owlapi.gateway.v1.RegisterRequest
 	(*HeartbeatRequest)(nil),    // 2: owlapi.gateway.v1.HeartbeatRequest
 	(*SystemStats)(nil),         // 3: owlapi.gateway.v1.SystemStats
@@ -764,16 +764,16 @@ var file_gateway_proto_goTypes = []any{
 	nil,                         // 10: owlapi.gateway.v1.ExecuteQueryRequest.ParamsEntry
 }
 var file_gateway_proto_depIdxs = []int32{
-	1,  // 0: owlapi.gateway.v1.RunnerMessage.register:type_name -> owlapi.gateway.v1.RegisterRequest
-	2,  // 1: owlapi.gateway.v1.RunnerMessage.heartbeat:type_name -> owlapi.gateway.v1.HeartbeatRequest
-	4,  // 2: owlapi.gateway.v1.RunnerMessage.query_result:type_name -> owlapi.gateway.v1.QueryResult
+	1,  // 0: owlapi.gateway.v1.GatewayMessage.register:type_name -> owlapi.gateway.v1.RegisterRequest
+	2,  // 1: owlapi.gateway.v1.GatewayMessage.heartbeat:type_name -> owlapi.gateway.v1.HeartbeatRequest
+	4,  // 2: owlapi.gateway.v1.GatewayMessage.query_result:type_name -> owlapi.gateway.v1.QueryResult
 	9,  // 3: owlapi.gateway.v1.RegisterRequest.metadata:type_name -> owlapi.gateway.v1.RegisterRequest.MetadataEntry
 	3,  // 4: owlapi.gateway.v1.HeartbeatRequest.stats:type_name -> owlapi.gateway.v1.SystemStats
 	6,  // 5: owlapi.gateway.v1.ServerMessage.register_ack:type_name -> owlapi.gateway.v1.RegisterResponse
 	7,  // 6: owlapi.gateway.v1.ServerMessage.heartbeat_ack:type_name -> owlapi.gateway.v1.HeartbeatResponse
 	8,  // 7: owlapi.gateway.v1.ServerMessage.execute_query:type_name -> owlapi.gateway.v1.ExecuteQueryRequest
 	10, // 8: owlapi.gateway.v1.ExecuteQueryRequest.params:type_name -> owlapi.gateway.v1.ExecuteQueryRequest.ParamsEntry
-	0,  // 9: owlapi.gateway.v1.GatewayService.Connect:input_type -> owlapi.gateway.v1.RunnerMessage
+	0,  // 9: owlapi.gateway.v1.GatewayService.Connect:input_type -> owlapi.gateway.v1.GatewayMessage
 	5,  // 10: owlapi.gateway.v1.GatewayService.Connect:output_type -> owlapi.gateway.v1.ServerMessage
 	10, // [10:11] is the sub-list for method output_type
 	9,  // [9:10] is the sub-list for method input_type
@@ -788,9 +788,9 @@ func file_gateway_proto_init() {
 		return
 	}
 	file_gateway_proto_msgTypes[0].OneofWrappers = []any{
-		(*RunnerMessage_Register)(nil),
-		(*RunnerMessage_Heartbeat)(nil),
-		(*RunnerMessage_QueryResult)(nil),
+		(*GatewayMessage_Register)(nil),
+		(*GatewayMessage_Heartbeat)(nil),
+		(*GatewayMessage_QueryResult)(nil),
 	}
 	file_gateway_proto_msgTypes[5].OneofWrappers = []any{
 		(*ServerMessage_RegisterAck)(nil),

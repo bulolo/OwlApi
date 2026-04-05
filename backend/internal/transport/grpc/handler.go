@@ -1,36 +1,44 @@
 package grpc
 
-// TODO: Wire up with actual pb package after running `make gen-proto`.
-
 import (
 	"context"
 	"io"
 	"log/slog"
+	"net"
+	"time"
 
 	"github.com/hongjunyao/owlapi/internal/pb"
 	"github.com/hongjunyao/owlapi/internal/service"
+	"google.golang.org/grpc/peer"
 )
 
 type Handler struct {
 	pb.UnimplementedGatewayServiceServer
-	runnerService service.RunnerService
-	queryService  service.QueryService
+	gateways service.GatewayService
+	queries  service.QueryService
 }
 
-func NewHandler(runnerService service.RunnerService, queryService service.QueryService) *Handler {
-	return &Handler{
-		runnerService: runnerService,
-		queryService:  queryService,
-	}
+func NewHandler(gateways service.GatewayService, queries service.QueryService) *Handler {
+	return &Handler{gateways: gateways, queries: queries}
 }
 
 func (h *Handler) Connect(stream pb.GatewayService_ConnectServer) error {
-	var runnerID string
+	var gatewayID string
 	var tenantID string
+
+	// Extract peer IP from gRPC connection
+	peerIP := ""
+	if p, ok := peer.FromContext(stream.Context()); ok && p.Addr != nil {
+		host, _, err := net.SplitHostPort(p.Addr.String())
+		if err == nil {
+			peerIP = host
+		}
+	}
+
 	defer func() {
-		if runnerID != "" && tenantID != "" {
-			h.runnerService.RemoveStream(tenantID, runnerID)
-			slog.Info("Runner disconnected", "tenant_id", tenantID, "runner_id", runnerID)
+		if gatewayID != "" && tenantID != "" {
+			h.gateways.RemoveStream(tenantID, gatewayID)
+			slog.Info("Gateway disconnected", "tenant_id", tenantID, "gateway_id", gatewayID)
 		}
 	}()
 
@@ -44,49 +52,41 @@ func (h *Handler) Connect(stream pb.GatewayService_ConnectServer) error {
 		}
 
 		switch p := req.Payload.(type) {
-		case *pb.RunnerMessage_Register:
-			runnerID = p.Register.NodeId
+		case *pb.GatewayMessage_Register:
+			gatewayID = p.Register.GatewayId
 			tenantID = p.Register.TenantId
-			resp, err := h.runnerService.Register(context.Background(), p.Register)
+			resp, err := h.gateways.Register(context.Background(), p.Register, peerIP)
 			if err != nil {
 				return err
 			}
-			err = stream.Send(&pb.ServerMessage{
-				Payload: &pb.ServerMessage_RegisterAck{
-					RegisterAck: resp,
-				},
-			})
-			if err != nil {
+			if err := stream.Send(&pb.ServerMessage{
+				Payload: &pb.ServerMessage_RegisterAck{RegisterAck: resp},
+			}); err != nil {
 				return err
 			}
 			if resp.Success {
-				h.runnerService.AddStream(tenantID, runnerID, stream)
-				slog.Info("Runner registered and connected", "tenant_id", tenantID, "runner_id", runnerID)
+				h.gateways.AddStream(tenantID, gatewayID, stream)
+				slog.Info("Gateway registered", "tenant_id", tenantID, "gateway_id", gatewayID)
 			}
 
-		case *pb.RunnerMessage_Heartbeat:
-			if runnerID == "" || tenantID == "" {
+		case *pb.GatewayMessage_Heartbeat:
+			if gatewayID == "" || tenantID == "" {
 				slog.Warn("Heartbeat received before registration")
 				continue
 			}
-			err := h.runnerService.Heartbeat(context.Background(), tenantID, runnerID)
-			if err != nil {
-				slog.Error("Failed to process heartbeat", "tenant_id", tenantID, "runner_id", runnerID, "error", err)
+			if err := h.gateways.Heartbeat(context.Background(), tenantID, gatewayID, peerIP); err != nil {
+				slog.Error("Failed to process heartbeat", "tenant_id", tenantID, "gateway_id", gatewayID, "error", err)
 			}
-			err = stream.Send(&pb.ServerMessage{
+			if err := stream.Send(&pb.ServerMessage{
 				Payload: &pb.ServerMessage_HeartbeatAck{
-					HeartbeatAck: &pb.HeartbeatResponse{
-						ServerTime: 0, // Should use actual time
-					},
+					HeartbeatAck: &pb.HeartbeatResponse{ServerTime: time.Now().Unix()},
 				},
-			})
-			if err != nil {
+			}); err != nil {
 				return err
 			}
 
-		case *pb.RunnerMessage_QueryResult:
-			// Route query result to the waiting HTTP handler
-			h.queryService.NotifyResult(p.QueryResult)
+		case *pb.GatewayMessage_QueryResult:
+			h.queries.NotifyResult(p.QueryResult)
 		}
 	}
 }

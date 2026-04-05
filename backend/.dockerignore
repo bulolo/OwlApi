@@ -12,7 +12,7 @@ vendor
 bin
 # Don't copy local binaries
 server
-runner
+gateway
 agent
 # Don't copy other dockers
 Dockerfile.*

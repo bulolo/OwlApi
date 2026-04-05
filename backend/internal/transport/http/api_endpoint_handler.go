@@ -1,0 +1,91 @@
+package http
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/hongjunyao/owlapi/internal/service"
+)
+
+type APIEndpointHandler struct {
+	tenants service.TenantService
+	repo    domain.ProjectRepository
+}
+
+func (h *APIEndpointHandler) HandleList(c *gin.Context) {
+	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("slug"))
+	if err != nil {
+		Fail(c, http.StatusNotFound, "tenant not found")
+		return
+	}
+	pid, err := strconv.ParseInt(c.Param("projectId"), 10, 64)
+	if err != nil {
+		Fail(c, http.StatusBadRequest, "invalid project id")
+		return
+	}
+	list, err := h.repo.ListAPIEndpoints(c.Request.Context(), tenant.ID, pid)
+	if err != nil {
+		Fail(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	OK(c, gin.H{"list": list, "total": len(list)})
+}
+
+func (h *APIEndpointHandler) HandleCreate(c *gin.Context) {
+	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("slug"))
+	if err != nil {
+		Fail(c, http.StatusNotFound, "tenant not found")
+		return
+	}
+	pid, err := strconv.ParseInt(c.Param("projectId"), 10, 64)
+	if err != nil {
+		Fail(c, http.StatusBadRequest, "invalid project id")
+		return
+	}
+	var req struct {
+		Path    string   `json:"path" binding:"required"`
+		Methods []string `json:"methods" binding:"required"`
+		SQL     string   `json:"sql" binding:"required"`
+		Params  []string `json:"params"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if req.Params == nil {
+		req.Params = []string{}
+	}
+	ep := &domain.APIEndpoint{
+		TenantID:  tenant.ID,
+		ProjectID: pid,
+		Path:      req.Path,
+		Methods:   req.Methods,
+		SQL:       req.SQL,
+		Params:    req.Params,
+	}
+	if err := h.repo.CreateAPIEndpoint(c.Request.Context(), ep); err != nil {
+		Fail(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	OK(c, ep)
+}
+
+func (h *APIEndpointHandler) HandleDelete(c *gin.Context) {
+	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("slug"))
+	if err != nil {
+		Fail(c, http.StatusNotFound, "tenant not found")
+		return
+	}
+	epID, err := strconv.ParseInt(c.Param("endpointId"), 10, 64)
+	if err != nil {
+		Fail(c, http.StatusBadRequest, "invalid endpoint id")
+		return
+	}
+	if err := h.repo.DeleteAPIEndpoint(c.Request.Context(), tenant.ID, epID); err != nil {
+		Fail(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	OK(c, nil)
+}

@@ -4,16 +4,16 @@ package owlapi.gateway.v1;
 
 option go_package = "github.com/hongjunyao/owlapi/internal/pb";
 
-// Gateway 服务 - Runner 与 Control Plane 之间的通信
+// Gateway 服务 - Gateway 与 Control Plane 之间的通信
 service GatewayService {
-  // Runner 连接并保持双向流
-  // Runner 作为客户端主动连接，实现反向隧道
-  rpc Connect(stream RunnerMessage) returns (stream ServerMessage);
+  // Gateway 连接并保持双向流
+  // Gateway 作为客户端主动连接，实现反向隧道
+  rpc Connect(stream GatewayMessage) returns (stream ServerMessage);
 }
 
-// ==================== Runner → Server ====================
+// ==================== Gateway → Server ====================
 
-message RunnerMessage {
+message GatewayMessage {
   oneof payload {
     RegisterRequest register = 1;
     HeartbeatRequest heartbeat = 2;
@@ -21,10 +21,10 @@ message RunnerMessage {
   }
 }
 
-// Runner 注册请求
+// Gateway 注册请求
 message RegisterRequest {
-  string node_id = 1;
-  string node_token = 2;
+  string gateway_id = 1;
+  string gateway_token = 2;
   string version = 3;
   map<string, string> metadata = 4;
   string tenant_id = 5;
@@ -52,7 +52,7 @@ message QueryResult {
   int64 execution_time_ms = 6;
 }
 
-// ==================== Server → Runner ====================
+// ==================== Server → Gateway ====================
 
 message ServerMessage {
   oneof payload {

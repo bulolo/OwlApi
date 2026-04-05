@@ -2,8 +2,8 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  cmd = "go build -o ./tmp/runner ./cmd/runner"
-  bin = "./tmp/runner"
+  cmd = "go build -o ./tmp/gateway ./cmd/gateway"
+  bin = "./tmp/gateway"
   full_bin = ""
   include_ext = ["go", "tpl", "tmpl", "html"]
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]

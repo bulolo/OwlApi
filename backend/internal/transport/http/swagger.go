@@ -25,7 +25,11 @@ func RegisterSwagger(r *gin.Engine) {
 		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(swaggerHTML))
 	})
 	r.GET("/swagger/openapi.yaml", func(c *gin.Context) {
-		data, _ := specFile.ReadFile("openapi.yaml")
+		data, err := specFile.ReadFile("openapi.yaml")
+		if err != nil {
+			c.String(http.StatusInternalServerError, "failed to load spec")
+			return
+		}
 		c.Data(http.StatusOK, "application/yaml", data)
 	})
 }

@@ -20,8 +20,8 @@ services:
       # 必填：OwlApi 服务器地址
       - OWLAPI_SERVER_URL=https://api.owlapi.io
       # 必填：在控制台创建网关后获取
-      - OWLAPI_RUNNER_ID=${GATEWAY_ID:-your-gateway-id}
-      - OWLAPI_RUNNER_TOKEN=${GATEWAY_TOKEN:-your-gateway-token}
+      - OWLAPI_GATEWAY_ID=${GATEWAY_ID:-your-gateway-id}
+      - OWLAPI_GATEWAY_TOKEN=${GATEWAY_TOKEN:-your-gateway-token}
       # 可选：日志级别 (debug, info, warn, error)
       - OWLAPI_LOG_LEVEL=info
       # 时区设置

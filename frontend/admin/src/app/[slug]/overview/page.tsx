@@ -126,7 +126,7 @@ export default function OverviewPage() {
            <div className="space-y-6 relative before:absolute before:left-[15px] before:top-2 before:h-full before:w-[2px] before:bg-zinc-100">
              {[
                { type: "API", title: "User_Profile_Query", desc: "SQL 接口发布至生产环境", time: "3 分钟前", color: "bg-blue-500" },
-               { type: "RUNNER", title: "HK-Edge-01", desc: "远程网关节点已上线", time: "12 分钟前", color: "bg-emerald-500" },
+               { type: "GATEWAY", title: "HK-Edge-01", desc: "远程网关节点已上线", time: "12 分钟前", color: "bg-emerald-500" },
                { type: "SQL", title: "Slow Query Alert", desc: "检测到 5 笔慢查询请求 (Sales_Data)", time: "42 分钟前", color: "bg-amber-500" },
                { type: "AUTH", title: "Security Warning", desc: "产生 5 次未授权的 API 访问尝试", time: "5 小时前", color: "bg-red-500" },
              ].map((item, i) => (

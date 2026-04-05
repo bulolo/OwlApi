@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { 
   Database, 
@@ -18,36 +18,96 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useProjectStore } from "@/store/useProjectStore"
 import { useUIStore } from "@/store/useUIStore"
+import { apiListGateways, apiCreateDataSource, apiGetDataSource, apiUpdateDataSource, type Gateway } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
-export default function NewDataSourceClientPage() {
+export default function NewDataSourceClientPage({ datasourceId }: { datasourceId?: number }) {
   const { activeTenant } = useUIStore()
   const router = useRouter()
-  const { gateways, addDataSource } = useProjectStore()
+  const [gateways, setGateways] = useState<Gateway[]>([])
+  const [saving, setSaving] = useState(false)
+  const isEdit = !!datasourceId
   
+  useEffect(() => {
+    if (activeTenant) {
+      apiListGateways(activeTenant).then(data => setGateways(data.list || [])).catch(() => {})
+    }
+  }, [activeTenant])
+
   const [formData, setFormData] = useState({
     name: "",
-    type: "MySQL",
-    isDual: true,
-    dev: { host: "", port: 3306, gatewayId: gateways[0]?.id || "", status: "Pending" as const },
-    prod: { host: "", port: 3306, gatewayId: gateways[1]?.id || gateways[0]?.id || "", status: "Pending" as const }
+    type: "mysql",
+    isDual: false,
+    dev: { dsn: "", gatewayId: 0 },
+    prod: { dsn: "", gatewayId: 0 }
   })
 
-  const handleSave = () => {
-    // Basic verification
+  // Load existing data in edit mode
+  useEffect(() => {
+    if (isEdit && activeTenant) {
+      apiGetDataSource(activeTenant, datasourceId).then(ds => {
+        const prodEnv = ds.envs?.find(e => e.env === "prod")
+        const devEnv = ds.envs?.find(e => e.env === "dev")
+        setFormData(prev => ({
+          ...prev,
+          name: ds.name,
+          type: ds.type,
+          isDual: ds.is_dual,
+          prod: { dsn: prodEnv?.dsn || "", gatewayId: prodEnv?.gateway_id || 0 },
+          dev: { dsn: devEnv?.dsn || "", gatewayId: devEnv?.gateway_id || 0 },
+        }))
+      }).catch(() => {})
+    }
+  }, [datasourceId, activeTenant])
+
+  // Set default gateway when loaded (only for new)
+  useEffect(() => {
+    if (!isEdit && gateways.length > 0 && !formData.dev.gatewayId) {
+      setFormData(prev => ({
+        ...prev,
+        dev: { ...prev.dev, gatewayId: gateways[0].id },
+        prod: { ...prev.prod, gatewayId: gateways[0].id }
+      }))
+    }
+  }, [gateways])
+
+  const handleSave = async () => {
     if (!formData.name) return alert("请输入数据源名称")
-    
-    addDataSource({
-      name: formData.name,
-      type: formData.type as any,
-      isDual: formData.isDual,
-      dev: formData.dev,
-      prod: formData.isDual ? formData.prod : undefined
-    })
-    router.push(`/${activeTenant}/data-sources`)
+    if (!formData.prod.dsn) return alert("请输入连接串")
+    if (formData.isDual && !formData.dev.dsn) return alert("请输入测试环境连接串")
+
+    try {
+      setSaving(true)
+
+      const envs: { env: string; dsn: string; gateway_id: number }[] = []
+      if (formData.isDual) {
+        envs.push({ env: "dev", dsn: formData.dev.dsn, gateway_id: formData.dev.gatewayId })
+      }
+      envs.push({ env: "prod", dsn: formData.prod.dsn, gateway_id: formData.prod.gatewayId })
+
+      if (isEdit) {
+        await apiUpdateDataSource(activeTenant, datasourceId, {
+          name: formData.name,
+          type: formData.type,
+          is_dual: formData.isDual,
+          envs,
+        })
+      } else {
+        await apiCreateDataSource(activeTenant, {
+          name: formData.name,
+          type: formData.type,
+          is_dual: formData.isDual,
+          envs,
+        })
+      }
+      router.push(`/${activeTenant}/data-sources`)
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -61,15 +121,15 @@ export default function NewDataSourceClientPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">接入新数据源</h1>
-            <p className="text-sm text-zinc-500 mt-1 font-medium">配置多环境数据库连接及对应的网关节点</p>
+            <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">{isEdit ? "编辑数据源" : "接入新数据源"}</h1>
+            <p className="text-sm text-zinc-500 mt-1 font-medium">{isEdit ? "修改数据源配置，连接串留空则不修改" : "配置多环境数据库连接及对应的网关节点"}</p>
           </div>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={() => router.back()} className="h-10 px-6 font-bold text-zinc-600">取消</Button>
-          <Button onClick={handleSave} className="h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm">
+          <Button onClick={handleSave} disabled={saving} className="h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm">
             <Save className="w-4 h-4 mr-2" />
-            建立连接推演
+            {saving ? (isEdit ? "保存中..." : "创建中...") : (isEdit ? "保存修改" : "创建数据源")}
           </Button>
         </div>
       </div>
@@ -105,11 +165,12 @@ export default function NewDataSourceClientPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="MySQL">MySQL</SelectItem>
-                    <SelectItem value="PostgreSQL">PostgreSQL</SelectItem>
-                    <SelectItem value="StarRocks">StarRocks (OLAP)</SelectItem>
-                    <SelectItem value="MongoDB">MongoDB</SelectItem>
-                    <SelectItem value="Oracle">Oracle</SelectItem>
+                    <SelectItem value="mysql">MySQL</SelectItem>
+                    <SelectItem value="postgres">PostgreSQL</SelectItem>
+                    <SelectItem value="sqlserver">SQL Server</SelectItem>
+                    <SelectItem value="starrocks">StarRocks</SelectItem>
+                    <SelectItem value="doris">Doris</SelectItem>
+                    <SelectItem value="sqlite">SQLite</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -151,46 +212,49 @@ export default function NewDataSourceClientPage() {
                   <Globe className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-zinc-900 uppercase">{formData.isDual ? "开发环境 (DEV)" : "配置连接 (BASE)"}</h3>
+                  <h3 className="text-base font-bold text-zinc-900 uppercase">{formData.isDual ? "测试环境 (DEV)" : "配置连接"}</h3>
                   <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tight">
-                    {formData.isDual ? "用于日常开发、调试与推演测试" : "所有环境均共用此数据库连接配置"}
+                    {formData.isDual ? "用于日常开发、调试与推演测试" : "配置数据库连接信息"}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
-               <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">主机地址 / Host</Label>
+               <div className="col-span-2 space-y-2">
+                  <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">连接串 (DSN)</Label>
                   <Input 
-                    placeholder="dev-db.internal" 
-                    value={formData.dev.host}
-                    onChange={e => setFormData({...formData, dev: {...formData.dev, host: e.target.value}})}
+                    placeholder={formData.type === "sqlite" ? "/data/mydb.db" : "user:password@tcp(host:port)/dbname"}
+                    value={formData.isDual ? formData.dev.dsn : formData.prod.dsn}
+                    onChange={e => formData.isDual 
+                      ? setFormData({...formData, dev: {...formData.dev, dsn: e.target.value}})
+                      : setFormData({...formData, prod: {...formData.prod, dsn: e.target.value}})
+                    }
                     className="h-10 font-mono text-xs border-zinc-200 shadow-none focus:ring-emerald-500/20 bg-white"
                   />
-               </div>
-               <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">端口 / Port</Label>
-                  <Input 
-                    type="number"
-                    value={formData.dev.port}
-                    onChange={e => setFormData({...formData, dev: {...formData.dev, port: parseInt(e.target.value)}})}
-                    className="h-10 font-mono text-xs border-zinc-200 shadow-none focus:ring-emerald-500/20 bg-white"
-                  />
+                  {formData.type === "sqlite" && (
+                    <p className="text-[10px] text-zinc-400">填写 Gateway 容器内的绝对路径，需通过 Docker volume 挂载宿主机目录</p>
+                  )}
                </div>
                <div className="col-span-2 space-y-2">
-                  <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">绑定网关节点 (Runner Node)</Label>
-                  <Select value={formData.dev.gatewayId} onValueChange={v => setFormData({...formData, dev: {...formData.dev, gatewayId: v}})}>
+                  <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">绑定网关节点 (Gateway Node)</Label>
+                  <Select 
+                    value={String(formData.isDual ? formData.dev.gatewayId : formData.prod.gatewayId)} 
+                    onValueChange={v => formData.isDual
+                      ? setFormData({...formData, dev: {...formData.dev, gatewayId: Number(v)}})
+                      : setFormData({...formData, prod: {...formData.prod, gatewayId: Number(v)}})
+                    }
+                  >
                     <SelectTrigger className="h-12 border-zinc-200 bg-white hover:bg-zinc-50 transition-colors">
                       <SelectValue placeholder="选择网关节点..." />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
                       {gateways.map(gw => (
-                        <SelectItem key={gw.id} value={gw.id} className="focus:bg-zinc-50">
+                        <SelectItem key={gw.id} value={String(gw.id)} className="focus:bg-zinc-50">
                           <div className="flex items-center">
-                            <Server className={cn("w-3.5 h-3.5 mr-2", gw.status === 'Online' ? "text-emerald-500" : "text-zinc-300")} />
+                            <Server className={cn("w-3.5 h-3.5 mr-2", gw.status === 'online' ? "text-emerald-500" : "text-zinc-300")} />
                             <span className="font-bold">{gw.name}</span>
-                            <span className="ml-2 text-[10px] text-zinc-400 font-mono px-1.5 py-0.5 bg-zinc-100 rounded tracking-tight">{gw.address}</span>
+                            {gw.ip && <span className="ml-2 text-[10px] text-zinc-400 font-mono px-1.5 py-0.5 bg-zinc-100 rounded tracking-tight">{gw.ip}</span>}
                           </div>
                         </SelectItem>
                       ))}
@@ -217,37 +281,31 @@ export default function NewDataSourceClientPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-6">
-                 <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">主机地址 / Host</Label>
+                 <div className="col-span-2 space-y-2">
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">连接串 (DSN)</Label>
                     <Input 
-                      placeholder="db-prod.vpc.internal" 
-                      value={formData.prod.host}
-                      onChange={e => setFormData({...formData, prod: {...formData.prod, host: e.target.value}})}
+                      placeholder={formData.type === "sqlite" ? "/data/mydb.db" : "user:password@tcp(host:port)/dbname"}
+                      value={formData.prod.dsn}
+                      onChange={e => setFormData({...formData, prod: {...formData.prod, dsn: e.target.value}})}
                       className="h-10 font-mono text-xs border-zinc-200 shadow-none focus:ring-blue-600/20"
                     />
-                 </div>
-                 <div className="space-y-2">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">端口 / Port</Label>
-                    <Input 
-                      type="number"
-                      value={formData.prod.port}
-                      onChange={e => setFormData({...formData, prod: {...formData.prod, port: parseInt(e.target.value)}})}
-                      className="h-10 font-mono text-xs border-zinc-200 shadow-none focus:ring-blue-600/20"
-                    />
+                    {formData.type === "sqlite" && (
+                      <p className="text-[10px] text-zinc-400">填写 Gateway 容器内的绝对路径，需通过 Docker volume 挂载宿主机目录</p>
+                    )}
                  </div>
                  <div className="col-span-2 space-y-2">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">绑定网关节点 (Runner Node)</Label>
-                    <Select value={formData.prod.gatewayId} onValueChange={v => setFormData({...formData, prod: {...formData.prod, gatewayId: v}})}>
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">绑定网关节点 (Gateway Node)</Label>
+                    <Select value={String(formData.prod.gatewayId)} onValueChange={v => setFormData({...formData, prod: {...formData.prod, gatewayId: Number(v)}})}>
                       <SelectTrigger className="h-12 border-zinc-200 bg-blue-600/5 hover:bg-blue-600/10 transition-colors">
                         <SelectValue placeholder="选择网关节点..." />
                       </SelectTrigger>
                       <SelectContent>
                         {gateways.map(gw => (
-                          <SelectItem key={gw.id} value={gw.id}>
+                          <SelectItem key={gw.id} value={String(gw.id)}>
                             <div className="flex items-center">
-                              <Server className={cn("w-3.5 h-3.5 mr-2", gw.status === 'Online' ? "text-blue-500" : "text-zinc-300")} />
+                              <Server className={cn("w-3.5 h-3.5 mr-2", gw.status === 'online' ? "text-blue-500" : "text-zinc-300")} />
                               <span className="font-bold">{gw.name}</span>
-                              <span className="ml-2 text-[10px] text-zinc-400 font-mono px-1.5 py-0.5 bg-zinc-100 rounded tracking-tight">{gw.address}</span>
+                              {gw.ip && <span className="ml-2 text-[10px] text-zinc-400 font-mono px-1.5 py-0.5 bg-zinc-100 rounded tracking-tight">{gw.ip}</span>}
                             </div>
                           </SelectItem>
                         ))}
@@ -264,9 +322,9 @@ export default function NewDataSourceClientPage() {
                 <ArrowLeft className="w-6 h-6 text-zinc-200 rotate-180" />
               </div>
               <div>
-                <p className="text-sm font-bold text-zinc-400">单环境模式已启用</p>
+                <p className="text-sm font-bold text-zinc-400">单环境模式</p>
                 <p className="text-[10px] text-zinc-300 max-w-[240px] mt-1 leading-relaxed">
-                  当前仅配置 DEV 环境。如需配置生产环境，请在左侧开启“多环境支持”。
+                  如需分别配置测试和生产环境，请在左侧开启"多环境支持"。
                 </p>
               </div>
             </div>

@@ -15,11 +15,6 @@
 # 1. 跨平台配置 (Cross-Platform Config)
 # ------------------------------------------------------------------------------
 UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-    SED_I := sed -i ''
-else
-    SED_I := sed -i
-endif
 
 DEV_COMPOSE  := docker compose -f docker-compose.dev.yml
 PROD_COMPOSE := docker compose -f deploy/docker-compose.yml
@@ -76,8 +71,6 @@ help:
 dev-init:
 	@echo "🔧 [OwlApi] 正在初始化开发环境配置..."
 	@cp backend/.env.example backend/.env
-	@$(SED_I) 's/^ENVIRONMENT=.*/ENVIRONMENT=dev/g' backend/.env
-	@$(SED_I) 's/^DEBUG=.*/DEBUG=true/g' backend/.env
 	@echo "✅ [OwlApi] 开发环境配置文件已生成: backend/.env"
 
 dev-build:
@@ -137,10 +130,8 @@ check-prod-env:
 prod-init:
 	@echo "🚀 [OwlApi] 正在初始化生产环境配置..."
 	@cp backend/.env.example deploy/.env
-	@$(SED_I) 's/^ENVIRONMENT=.*/ENVIRONMENT=prod/g' deploy/.env
-	@$(SED_I) 's/^DEBUG=.*/DEBUG=false/g' deploy/.env
 	@echo "✅ [OwlApi] 生产环境配置文件已生成: deploy/.env"
-	@echo "⚠️  请务必在运行 'make prod-up' 前修改敏感信息 (JWT_SECRET, POSTGRES_PASSWORD 等)！"
+	@echo "⚠️  请务必在运行 'make prod-up' 前修改敏感信息 (OWLAPI_JWT_SECRET, POSTGRES_PASSWORD 等)！"
 
 prod-up: check-prod-env
 	@echo "🚀 [PROD] 正在启动生产集群..."

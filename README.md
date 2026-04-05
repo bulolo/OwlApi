@@ -6,10 +6,10 @@
 
 企业级混合云智能网关，打破内网物理边界，编写 SQL 即可一键生成高可用 RESTful API，全面释放孤岛数据价值。
 
-[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go)](https://go.dev/)
 [![FastAPI/Gin](https://img.shields.io/badge/Gin-1.9+-009688?logo=gin)](https://gin-gonic.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-15.3+-000000?logo=next.js)](https://nextjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-336791?logo=postgresql)](https://www.postgresql.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16+-000000?logo=next.js)](https://nextjs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18+-336791?logo=postgresql)](https://www.postgresql.org/)
 
 [English](./README_EN.md) | 简体中文
 
@@ -39,11 +39,11 @@
 
 ## 🎯 项目亮点
 
-- ✅ **开箱即用**: `make dev-up` 一键在本地拉起完整的全栈架构平台（Control Plane + Database + Admin Console 共 5 大微服务容器）。
+- ✅ **开箱即用**: `make dev-up` 一键在本地拉起完整的全栈架构平台（Control Plane + Gateway + Database + Admin Console + Docs 共 6 大服务容器）。
 - ✅ **物理级解耦**: 采用 Control Plane 与 Gateway 分离的架构设计，确保核心控制面与数据流转层的独立安全。
-- ✅ **全数据库兼容**: 开箱支持 MySQL、PostgreSQL、SQL Server、StarRocks、Doris、SQLite，跨越生态鸿沟统一查询数据。
-- ✅ **边缘端就绪**: 执行核心采用 Go 1.23 精心打造。极致的内存管控方案加上单一二进制打包，使其能完美运行在树莓派甚至路由器中。
-- ✅ **企业友好型 UI**: 前端控制台重构为 Next.js 15 APP Router 架构，结合 TailwindCSS 提供丝滑的桌面级管理体验。
+- ✅ **全数据库兼容**: 开箱支持 PostgreSQL、SQLite，并预留 MySQL、SQL Server、StarRocks、Doris 的 DSN 识别逻辑，跨越生态鸿沟统一查询数据。
+- ✅ **边缘端就绪**: 执行核心采用 Go 1.25 精心打造。极致的内存管控方案加上单一二进制打包，使其能完美运行在树莓派甚至路由器中。
+- ✅ **企业友好型 UI**: 前端控制台重构为 Next.js 16 APP Router 架构，结合 TailwindCSS 提供丝滑的桌面级管理体验。
 
 ---
 
@@ -57,7 +57,7 @@
 
 ### 🎯 管理后台 (Control Plane)
 - **📝 API 可视化编排**: 基于 SQL 的极速创建流程，支持自动推断 Query、Body 和 Path 参数。
-- **👥 RBAC 权限网**: 严密的超级管理员、运维、查看者权能管理机制。
+- **👥 RBAC 权限网**: 严密的超级管理员（SuperAdmin）、管理员（Admin）、查看者（Viewer）权能管理机制。
 - **🌐 项目池隔离**: 按职能、业务划分 Project。保证各个应用端点 API 与认证中心绝不交叉。
 
 ### 💬 边缘网关 (Gateway)
@@ -70,14 +70,14 @@
 ## 🏗️ 技术架构
 
 ### 后端技术栈 (Control Plane & Gateway)
-- **核心框架**: Go 1.23+, Gin (HTTP API)
+- **核心框架**: Go 1.25+, Gin (HTTP API)
 - **通信枢纽**: gRPC Server/Client (HTTP/2 反向长连接)
 - **核心数据库**: PostgreSQL (pgx driver)
 - **权限与认证**: JWT 体系分发校验
-- **多数据库适配器**: MySQL、PostgreSQL、SQL Server、StarRocks、Doris、SQLite
+- **多数据库适配器**: PostgreSQL、SQLite（已集成驱动），MySQL、SQL Server、StarRocks、Doris（DSN 识别已就绪，需自行引入驱动）
 
 ### 前端技术栈 (Admin & Web)
-- **框架**: Next.js 15 (App Router 模式)
+- **框架**: Next.js 16 (App Router 模式)
 - **语言**: React 19 + TypeScript 5
 - **视觉层**: Tailwind CSS 4 + Framer Motion (精美动效)
 - **包管理**: pnpm / npm 
@@ -107,7 +107,7 @@ owlapi/
 │   └── docs/                       # 📚 VitePress 文档中心 (8003)
 │
 ├── deploy/                         # 🚀 Docker Swarm / K8S 生产部署方案库
-├── docker-compose.dev.yml          # 一键拉起 5 大服务依赖谱
+├── docker-compose.dev.yml          # 一键拉起 6 大服务容器
 └── Makefile                        # 项目管理与启动脚本 (自动化工具箱)
 ```
 
@@ -117,7 +117,7 @@ owlapi/
 |------|------|--------|
 | `backend/cmd/server/` | 提供前端 UI 管理接口鉴权及接收客户端直接的外部 API Proxy | Go + Gin |
 | `backend/cmd/gateway/` | 内网轻量级执行终端，解析执行由 gRPC 发来的 SQL Payload | Go + Database Drivers |
-| `frontend/admin/` | 工程师操作面板，控制整个云原生多租户的生命链路 | Next.js 15 |
+| `frontend/admin/` | 工程师操作面板，控制整个云原生多租户的生命链路 | Next.js 16 |
 
 ---
 
@@ -127,7 +127,7 @@ owlapi/
 
 - **Docker** >= 20.10 & **Docker Compose** V2
 - **Make工具**
-- **Go 环境** >= 1.23+ (如需本地原生编码)
+- **Go 环境** >= 1.25+ (如需本地原生编码)
 - **Node.js** >= 20 (前端预编译依赖)
 
 ---
@@ -149,10 +149,10 @@ make dev-up
 ```
 
 服务将自动暴露于本地：
-- 🎯 **Admin 控制台**: http://localhost:8001 `(账号: admin@owlapi.cn / admin123, 等待 init 初始化生成)` 
-- 🌐 **SaaS 官网**: http://localhost:8002
+- 🎯 **Admin 控制台**: http://localhost:8001 `(租户管理员: admin@owlapi.cn / admin123)` 
 - 📚 **文档中心**: http://localhost:8003
-- 🚀 **RESTful Proxy 解析端口**: http://localhost:3000
+- � **RESTful API 服务**: http://localhost:3000
+- �️ **PostgreSQL**: localhost:5433l
 
 ---
 
@@ -166,7 +166,7 @@ make dev-up
 |------|------|
 | `make dev-up` | **启动全栈**：使用 docker-compose.dev 前台聚合式挂载所有服务，Ctrl+C 时保留数据。 |
 | `make dev-down` | **停止服务**：中断所有的守护进程，不破坏任何已有的数据库配置及容器卷。 |
-| `make dev-clean` | **深度清算**：将强行销毁 `owlapi_postgres_data` 卷与所有环境实例（⚠️ 数据绝不复用）。 |
+| `make dev-clean` | **深度清算**：将强行销毁所有数据卷（含 `postgres_data`）与环境实例（⚠️ 数据绝不复用）。 |
 
 ---
 
@@ -179,7 +179,7 @@ make dev-up
 A: 请务必检查 Gateway 节点日志，确保它是否能连通你的实际内网数据库，并在其启动变量中设置了正确的 Control Plane IP。
 
 **Q: 想要扩展新的数据库适配器？**
-A: 请在 `backend/internal/pkg/dbdriver/` 继承对应的 Driver 接口工厂即可。
+A: 请在 `backend/internal/gateway/executor.go` 中的 `resolveDriver` 函数添加 DSN 识别逻辑，并引入对应的数据库驱动包即可。
 
 ---
 

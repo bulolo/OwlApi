@@ -149,8 +149,11 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 	// 7. 演示 API 接口
 	demoEndpoints := []*domain.APIEndpoint{
 		{TenantID: tenant.ID, ProjectID: proj.ID, Path: "/users", Methods: []string{"GET"}, SQL: "SELECT id, name, email, role, created_at FROM users", Params: []string{}},
+		{TenantID: tenant.ID, ProjectID: proj.ID, Path: "/users/search", Methods: []string{"GET"}, SQL: "SELECT id, name, email, role FROM users WHERE role = @role", Params: []string{"role"}},
 		{TenantID: tenant.ID, ProjectID: proj.ID, Path: "/products", Methods: []string{"GET"}, SQL: "SELECT id, name, price, stock, category FROM products", Params: []string{}},
+		{TenantID: tenant.ID, ProjectID: proj.ID, Path: "/products/filter", Methods: []string{"GET"}, SQL: "SELECT id, name, price, stock FROM products WHERE category = @category AND price <= @max_price", Params: []string{"category", "max_price"}},
 		{TenantID: tenant.ID, ProjectID: proj.ID, Path: "/orders", Methods: []string{"GET"}, SQL: "SELECT o.id, u.name as user_name, p.name as product_name, o.quantity, o.total, o.status FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id", Params: []string{}},
+		{TenantID: tenant.ID, ProjectID: proj.ID, Path: "/orders/by-status", Methods: []string{"GET"}, SQL: "SELECT o.id, u.name as user_name, p.name as product_name, o.total, o.status FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id WHERE o.status = @status", Params: []string{"status"}},
 	}
 	for _, ep := range demoEndpoints {
 		if err := projects.CreateAPIEndpoint(ctx, ep); err != nil {

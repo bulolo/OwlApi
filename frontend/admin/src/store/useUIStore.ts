@@ -9,9 +9,11 @@ interface UIState {
   activeTenant: string
   user: User | null
   token: string | null
+  sidebarCollapsed: boolean
 
   setViewContext: (context: ViewContext) => void
   setActiveTenant: (tenantId: string) => void
+  setSidebarCollapsed: (collapsed: boolean) => void
   login: (email: string, password: string) => Promise<AuthResponse>
   register: (email: string, name: string, password: string, tenantName?: string, tenantSlug?: string) => Promise<AuthResponse>
   logout: () => void
@@ -23,9 +25,11 @@ export const useUIStore = create<UIState>((set) => ({
   activeTenant: '',
   user: null,
   token: null,
+  sidebarCollapsed: false,
 
   setViewContext: (viewContext) => set({ viewContext }),
   setActiveTenant: (activeTenant) => set({ activeTenant }),
+  setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
 
   login: async (email, password) => {
     const res = await apiLogin({ email, password })

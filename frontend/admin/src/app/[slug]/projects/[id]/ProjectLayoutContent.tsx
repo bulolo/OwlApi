@@ -5,7 +5,7 @@ import { useUIStore } from "@/store/useUIStore"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { FileCode, Terminal } from "lucide-react"
+import { FileCode } from "lucide-react"
 import { apiGetProject, type Project } from "@/lib/api-client"
 
 export default function ProjectLayoutContent({
@@ -38,7 +38,6 @@ export default function ProjectLayoutContent({
 
       <div className="flex items-center gap-1 border-b border-zinc-100">
         <CompactTab href={`/${activeTenant}/projects/${projectId}/apis`} label="接口管理" icon={FileCode} />
-        <CompactTab href={`/${activeTenant}/projects/${projectId}/logs`} label="日志" icon={Terminal} />
       </div>
 
       <div className="relative pt-1 min-h-[500px]">

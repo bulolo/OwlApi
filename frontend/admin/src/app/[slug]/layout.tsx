@@ -13,7 +13,7 @@ export default function DashboardLayout({
   children: React.ReactNode
   params: Promise<{ slug: string }>
 }) {
-  const { viewContext, setViewContext, setActiveTenant, activeTenant, restoreSession } = useUIStore()
+  const { viewContext, setViewContext, setActiveTenant, activeTenant, restoreSession, sidebarCollapsed } = useUIStore()
   const { slug } = use(params)
   
   useEffect(() => {
@@ -36,16 +36,16 @@ export default function DashboardLayout({
   const isTenantView = slug ? slug !== 'system' : false
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex text-zinc-900 font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-[#f8f9fa] flex text-zinc-900 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
       {isTenantView && <Sidebar slug={slug} />}
       
       <div className={cn(
-        "flex-1 flex flex-col min-h-screen",
-        isTenantView ? "lg:pl-72" : "pl-0"
+        "flex-1 flex flex-col min-h-screen min-w-0",
+        isTenantView ? (sidebarCollapsed ? "lg:pl-[60px]" : "lg:pl-56") : "pl-0"
       )}>
         <Header slug={slug} />
         
-        <main className="flex-1 p-8 max-w-[1600px] w-full mx-auto">
+        <main className="flex-1 p-8 max-w-[1600px] w-full mx-auto min-w-0 overflow-x-hidden">
           {children}
         </main>
       </div>

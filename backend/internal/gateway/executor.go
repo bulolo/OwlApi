@@ -70,6 +70,17 @@ func (e *Executor) getConn(dsn string) (*sql.DB, error) {
 	return db, nil
 }
 
+// replaceParams substitutes @key placeholders in SQL with values from params map.
+func replaceParams(sql string, params map[string]string) string {
+	if len(params) == 0 {
+		return sql
+	}
+	for k, v := range params {
+		sql = strings.ReplaceAll(sql, "@"+k, "'"+strings.ReplaceAll(v, "'", "''")+"'")
+	}
+	return sql
+}
+
 func (e *Executor) Execute(req *pb.ExecuteQueryRequest) *pb.QueryResult {
 	start := time.Now()
 
@@ -82,7 +93,8 @@ func (e *Executor) Execute(req *pb.ExecuteQueryRequest) *pb.QueryResult {
 		return &pb.QueryResult{RequestId: req.RequestId, Success: false, Error: fmt.Sprintf("connect failed: %v", err)}
 	}
 
-	rows, err := db.Query(req.Sql)
+	finalSQL := replaceParams(req.Sql, req.Params)
+	rows, err := db.Query(finalSQL)
 	if err != nil {
 		return &pb.QueryResult{RequestId: req.RequestId, Success: false, Error: fmt.Sprintf("query failed: %v", err)}
 	}

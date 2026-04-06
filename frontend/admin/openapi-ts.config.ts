@@ -1,14 +1,17 @@
 import { defineConfig } from '@hey-api/openapi-ts'
 
 export default defineConfig({
-  input: '../../backend/internal/transport/http/openapi.yaml',
+  input: '../../backend/docs/swagger.json',
   output: {
     path: 'src/lib/sdk',
     clean: true,
   },
   plugins: [
     '@hey-api/typescript',
-    '@hey-api/sdk',
+    {
+      name: '@hey-api/sdk',
+      responseStyle: 'data',
+    },
     {
       name: '@hey-api/client-fetch',
       runtimeConfigPath: '../hey-api',

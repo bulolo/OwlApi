@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package owlapi.gateway.v1;
 
-option go_package = "github.com/hongjunyao/owlapi/internal/pb";
+option go_package = "github.com/bulolo/owlapi/internal/pb";
 
 // Gateway 服务 - Gateway 与 Control Plane 之间的通信
 service GatewayService {

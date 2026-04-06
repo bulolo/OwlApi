@@ -4,13 +4,22 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hongjunyao/owlapi/internal/service"
+	"github.com/bulolo/owlapi/internal/service"
 )
 
 type AuthHandler struct {
 	auth service.AuthService
 }
 
+// HandleRegister godoc
+// @Summary 注册用户
+// @ID register
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body object{email=string,name=string,password=string,tenant_name=string,tenant_slug=string} true "注册信息"
+// @Success 200 {object} RAuth
+// @Router /v1/auth/register [post]
 func (h *AuthHandler) HandleRegister(c *gin.Context) {
 	var req struct {
 		Email      string `json:"email" binding:"required"`
@@ -28,12 +37,21 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 		TenantName: req.TenantName, TenantSlug: req.TenantSlug,
 	})
 	if err != nil {
-		Fail(c, http.StatusConflict, err.Error())
+		FailErr(c, err)
 		return
 	}
 	OK(c, resp)
 }
 
+// HandleLogin godoc
+// @Summary 用户登录
+// @ID login
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body object{email=string,password=string} true "登录信息"
+// @Success 200 {object} RAuth
+// @Router /v1/auth/login [post]
 func (h *AuthHandler) HandleLogin(c *gin.Context) {
 	var req struct {
 		Email    string `json:"email" binding:"required"`
@@ -45,7 +63,7 @@ func (h *AuthHandler) HandleLogin(c *gin.Context) {
 	}
 	resp, err := h.auth.Login(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
-		Fail(c, http.StatusUnauthorized, err.Error())
+		FailErr(c, err)
 		return
 	}
 	OK(c, resp)

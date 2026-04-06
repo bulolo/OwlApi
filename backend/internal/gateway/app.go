@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hongjunyao/owlapi/internal/config"
-	"github.com/hongjunyao/owlapi/internal/pb"
-	"github.com/hongjunyao/owlapi/internal/pkg/logger"
+	"github.com/bulolo/owlapi/internal/config"
+	"github.com/bulolo/owlapi/internal/pb"
+	"github.com/bulolo/owlapi/internal/pkg/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"

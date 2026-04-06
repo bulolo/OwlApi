@@ -6,27 +6,31 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hongjunyao/owlapi/internal/domain"
-	"github.com/hongjunyao/owlapi/internal/service"
+	"github.com/bulolo/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/service"
 )
 
 type QueryTestHandler struct {
-	tenants      service.TenantService
-	gateways     service.GatewayService
-	queries      service.QueryService
-	endpointRepo domain.APIEndpointRepository
-	dsRepo       domain.DataSourceRepository
+	tenants     service.TenantService
+	gateways    service.GatewayService
+	queries     service.QueryService
+	endpoints   service.APIEndpointService
+	dataSources service.DataSourceService
 }
 
-// HandleTestQuery executes an endpoint with params, going through the full script pipeline.
-// POST /api/v1/tenants/:slug/query/test
-// Body: { "endpoint_id": 1, "params": {"page":"1","size":"10"} }
+// HandleTestQuery godoc
+// @Summary 测试执行 API 端点
+// @ID testQuery
+// @Tags query
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param slug path string true "租户slug"
+// @Param body body object{endpoint_id=int,params=object,ignore_scripts=bool} true "测试参数"
+// @Success 200 {object} object
+// @Router /v1/tenants/{slug}/query/test [post]
 func (h *QueryTestHandler) HandleTestQuery(c *gin.Context) {
-	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("slug"))
-	if err != nil {
-		Fail(c, http.StatusNotFound, "tenant not found")
-		return
-	}
+	tenant := GetTenant(c)
 
 	var req struct {
 		EndpointID    int64             `json:"endpoint_id" binding:"required"`
@@ -41,42 +45,49 @@ func (h *QueryTestHandler) HandleTestQuery(c *gin.Context) {
 		req.Params = make(map[string]string)
 	}
 
-	endpoint, err := h.endpointRepo.GetAPIEndpointByID(c.Request.Context(), tenant.ID, req.EndpointID)
+	endpoint, err := h.endpoints.GetByID(c.Request.Context(), tenant.ID, req.EndpointID)
 	if err != nil {
-		Fail(c, http.StatusNotFound, "endpoint not found")
+		FailErr(c, domain.ErrNotFound("endpoint not found"))
 		return
 	}
-
 	if req.IgnoreScripts {
 		endpoint.PreScriptID = 0
 		endpoint.PostScriptID = 0
 	}
 
-	dsEnv, err := h.dsRepo.GetDataSourceEnv(c.Request.Context(), endpoint.DataSourceID, "prod")
-	if err != nil {
-		Fail(c, http.StatusNotFound, fmt.Sprintf("datasource env not found: %v", err))
+	ds, err := h.dataSources.GetByID(c.Request.Context(), tenant.ID, endpoint.DataSourceID)
+	if err != nil || len(ds.Envs) == 0 {
+		FailErr(c, domain.ErrNotFound("datasource env not found"))
+		return
+	}
+	var prodEnv *domain.DataSourceEnv
+	for _, e := range ds.Envs {
+		if e.Env == "prod" {
+			prodEnv = e
+			break
+		}
+	}
+	if prodEnv == nil {
+		FailErr(c, domain.ErrNotFound("datasource prod env not found"))
 		return
 	}
 
 	tenantID := strconv.FormatInt(tenant.ID, 10)
-	gatewayID := strconv.FormatInt(dsEnv.GatewayID, 10)
+	gatewayID := strconv.FormatInt(prodEnv.GatewayID, 10)
 
 	if stream := h.gateways.GetStream(tenantID, gatewayID); stream == nil {
-		Fail(c, http.StatusServiceUnavailable, fmt.Sprintf("gateway %s is not connected", gatewayID))
+		FailErr(c, domain.ErrUnavailable(fmt.Sprintf("gateway %s is not connected", gatewayID)))
 		return
 	}
 
-	result, err := h.queries.Execute(c.Request.Context(), tenantID, gatewayID, endpoint, req.Params)
+	result, err := h.queries.Execute(c.Request.Context(), tenantID, endpoint, req.Params)
 	if err != nil {
-		Fail(c, http.StatusInternalServerError, err.Error())
+		FailErr(c, err)
 		return
 	}
-
 	if !result.Success {
 		Fail(c, http.StatusInternalServerError, result.Error)
 		return
 	}
-
-	// Raw JSON passthrough — result.Data is already JSON-encoded from gateway
-	c.Data(http.StatusOK, "application/json", result.Data) //nolint:passthrough
+	c.Data(http.StatusOK, "application/json", result.Data)
 }

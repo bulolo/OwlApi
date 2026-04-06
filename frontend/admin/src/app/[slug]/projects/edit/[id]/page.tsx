@@ -1,7 +1,7 @@
 "use client"
 
 import { use } from "react"
-import ProjectFormPage from "../../register/page"
+import ProjectFormPage from "../../new/page"
 
 export default function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)

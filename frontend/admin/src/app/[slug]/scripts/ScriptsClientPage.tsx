@@ -1,15 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useUIStore } from "@/store/useUIStore"
-import { apiListScripts, apiCreateScript, apiUpdateScript, apiDeleteScript, type Script } from "@/lib/api-client"
+import { useScripts, useCreateScript, useUpdateScript, useDeleteScript } from "@/hooks"
+import type { Script } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, FileCode2, Trash2, Save } from "lucide-react"
+import { Plus, FileCode2, Trash2, Save, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Editor from "@monaco-editor/react"
 import { toast } from "sonner"
+import { Pager } from "@/components/ui/pager"
 
 const TEMPLATE_PRE = `// 前置脚本 — 在 SQL 执行前处理参数
 //
@@ -57,8 +59,13 @@ function main(data, params) {
 
 export default function ScriptsClientPage() {
   const { activeTenant } = useUIStore()
-  const [scripts, setScripts] = useState<Script[]>([])
-  const [loading, setLoading] = useState(true)
+  const [keyword, setKeyword] = useState("")
+  const [page, setPage] = useState(1)
+  const SIZE = 20
+  const { scripts, pagination, isLoading: loading } = useScripts(activeTenant, { page, size: SIZE, keyword })
+  const createMutation = useCreateScript(activeTenant)
+  const updateMutation = useUpdateScript(activeTenant)
+  const deleteMutation = useDeleteScript(activeTenant)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [editing, setEditing] = useState(false)
 
@@ -66,20 +73,6 @@ export default function ScriptsClientPage() {
   const [formType, setFormType] = useState<"pre" | "post">("pre")
   const [formCode, setFormCode] = useState("")
   const [formDesc, setFormDesc] = useState("")
-  const [saving, setSaving] = useState(false)
-
-  const fetchScripts = async () => {
-    if (!activeTenant) return
-    try {
-      setLoading(true)
-      const data = await apiListScripts(activeTenant)
-      setScripts(data.list || [])
-    } catch (err: any) {
-      toast.error(err.message || "加载脚本失败")
-    } finally { setLoading(false) }
-  }
-
-  useEffect(() => { fetchScripts() }, [activeTenant])
 
   const selected = scripts.find(s => s.id === selectedId) || null
 
@@ -89,7 +82,7 @@ export default function ScriptsClientPage() {
     setFormName(s.name)
     setFormType(s.type as "pre" | "post")
     setFormCode(s.code)
-    setFormDesc(s.description)
+    setFormDesc(s.description ?? "")
   }
 
   const handleNew = (type: "pre" | "post") => {
@@ -101,34 +94,25 @@ export default function ScriptsClientPage() {
     setFormDesc("")
   }
 
+  const saving = createMutation.isPending || updateMutation.isPending
+
   const handleSave = async () => {
     if (!formName || !formCode) return
-    try {
-      setSaving(true)
-      const payload = { name: formName, type: formType, code: formCode, description: formDesc }
-      if (editing && !selectedId) {
-        const created = await apiCreateScript(activeTenant, payload)
-        await fetchScripts()
-        setSelectedId(created.id)
-        setEditing(false)
-      } else if (selectedId) {
-        await apiUpdateScript(activeTenant, selectedId, payload)
-        toast.success("脚本已更新")
-        await fetchScripts()
-      }
-    } catch (err: any) {
-      toast.error(err.message || "请求失败")
-    } finally { setSaving(false) }
+    const payload = { name: formName, type: formType, code: formCode, description: formDesc }
+    if (editing && !selectedId) {
+      createMutation.mutate(payload, {
+        onSuccess: (created) => { setSelectedId(created.id); setEditing(false) },
+      })
+    } else if (selectedId) {
+      updateMutation.mutate({ id: selectedId, req: payload })
+    }
   }
 
-  const handleDelete = async (s: Script) => {
+  const handleDelete = (s: Script) => {
     if (!confirm(`确定删除脚本「${s.name}」？`)) return
-    try {
-      await apiDeleteScript(activeTenant, s.id)
-      toast.success("脚本已删除")
-      if (selectedId === s.id) { setSelectedId(null); setEditing(false) }
-      fetchScripts()
-    } catch (err: any) { toast.error(err.message || "删除失败") }
+    deleteMutation.mutate(s.id, {
+      onSuccess: () => { if (selectedId === s.id) { setSelectedId(null); setEditing(false) } },
+    })
   }
 
   const preScripts = scripts.filter(s => s.type === "pre")
@@ -155,6 +139,17 @@ export default function ScriptsClientPage() {
       <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px]">
         {/* Script list */}
         <div className="w-[280px] shrink-0 bg-white border border-zinc-100 rounded-lg shadow-sm overflow-hidden flex flex-col">
+          <div className="p-3 border-b border-zinc-100">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+              <Input
+                placeholder="搜索脚本..."
+                className="pl-8 h-8 text-xs border-zinc-200 bg-white"
+                value={keyword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setKeyword(e.target.value); setPage(1) }}
+              />
+            </div>
+          </div>
           {loading ? (
             <div className="p-8 text-center text-zinc-400 text-xs">加载中...</div>
           ) : scripts.length === 0 ? (
@@ -180,6 +175,11 @@ export default function ScriptsClientPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+          {(pagination?.total ?? 0) > SIZE && (
+            <div className="border-t border-zinc-100">
+              <Pager page={page} size={SIZE} total={pagination?.total ?? 0} onPageChange={setPage} />
             </div>
           )}
         </div>

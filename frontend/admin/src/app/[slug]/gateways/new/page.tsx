@@ -7,29 +7,25 @@ import { Label } from "@/components/ui/label"
 import { Copy, Check, Server, Shield, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { useUIStore } from "@/store/useUIStore"
-import { apiCreateGateway, type CreateGatewayResponse } from "@/lib/api-client"
+import { useCreateGateway } from "@/hooks"
+import type { Gateway } from "@/lib/api-client"
 
 export default function RegisterGatewayPage() {
   const { activeTenant } = useUIStore()
   const [step, setStep] = useState(1)
   const [name, setName] = useState("")
-  const [created, setCreated] = useState<CreateGatewayResponse | null>(null)
+  const [created, setCreated] = useState<Gateway | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState("")
+  const createMutation = useCreateGateway(activeTenant)
 
-  const handleCreate = async () => {
-    if (!name.trim()) {
-      setError("请输入节点名称")
-      return
-    }
-    try {
-      setError("")
-      const gw = await apiCreateGateway(activeTenant, name.trim())
-      setCreated(gw)
-      setStep(2)
-    } catch (err: any) {
-      setError(err.message)
-    }
+  const handleCreate = () => {
+    if (!name.trim()) { setError("请输入节点名称"); return }
+    setError("")
+    createMutation.mutate(name.trim(), {
+      onSuccess: (gw) => { setCreated(gw); setStep(2) },
+      onError: (err) => setError(err.message),
+    })
   }
 
   const composeYaml = created

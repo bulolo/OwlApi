@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label"
 import { Settings2 } from "lucide-react"
 import { useEndpointStore } from "../_store/useEndpointStore"
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 export function SettingsTab() {
   const groupId = useEndpointStore(s => s.form.groupId)
   const preScriptId = useEndpointStore(s => s.form.preScriptId)
@@ -28,32 +30,30 @@ export function SettingsTab() {
               <p className="text-[11px] text-zinc-400 font-medium leading-relaxed mb-3">
                 在执行核心 SQL 操作之前允许您通过自定义脚本处理特定的鉴权验证、入参变换或是设置特定的环境变量。
               </p>
-              <select
-                className="flex h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-1 text-sm font-medium text-zinc-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
-                value={preScriptId}
-                onChange={e => setFormField("preScriptId", Number(e.target.value))}
-              >
-                <option value={0}>无执行脚本</option>
-                {scripts.filter(s => s.type === "pre").map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+              <Select value={String(preScriptId)} onValueChange={v => setFormField("preScriptId", Number(v))}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="无执行脚本" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">无执行脚本</SelectItem>
+                  {scripts.filter(s => s.type === "pre").map(s => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2.5">
               <Label className="text-xs font-bold text-zinc-600">后置处理（Post-script）</Label>
               <p className="text-[11px] text-zinc-400 font-medium leading-relaxed mb-3">
                 在得到 SQL 执行结果且返回到客户端之前执行，您可以用来对返回字段进行脱敏、转换嵌套结构或者注入额外业务字段。
               </p>
-              <select
-                className="flex h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 py-1 text-sm font-medium text-zinc-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
-                value={postScriptId}
-                onChange={e => setFormField("postScriptId", Number(e.target.value))}
-              >
-                <option value={0}>无执行脚本</option>
-                {scripts.filter(s => s.type === "post").map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+              <Select value={String(postScriptId)} onValueChange={v => setFormField("postScriptId", Number(v))}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="无执行脚本" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">无执行脚本</SelectItem>
+                  {scripts.filter(s => s.type === "post").map(s => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>

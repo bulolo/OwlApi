@@ -5,12 +5,13 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hongjunyao/owlapi/internal/domain"
-	"github.com/hongjunyao/owlapi/internal/pkg/auth"
+	"github.com/bulolo/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/pkg/auth"
 )
 
 const (
 	ctxClaims = "claims"
+	ctxTenant = "tenant"
 )
 
 // JWTAuth extracts and validates the Bearer token, sets claims in context.
@@ -40,6 +41,13 @@ func GetClaims(c *gin.Context) *auth.Claims {
 	return claims
 }
 
+// GetTenant returns the tenant set by RequireTenantRole middleware.
+func GetTenant(c *gin.Context) *domain.Tenant {
+	v, _ := c.Get(ctxTenant)
+	t, _ := v.(*domain.Tenant)
+	return t
+}
+
 // RequireSuperAdmin allows only super admins.
 func RequireSuperAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -63,8 +71,18 @@ func RequireTenantRole(tenants domain.TenantRepository, tenantUsers domain.Tenan
 			c.Abort()
 			return
 		}
-		// SuperAdmin bypasses tenant role check
+		// SuperAdmin bypasses tenant role check but still needs tenant in context
 		if claims.IsSuperAdmin {
+			slug := c.Param("slug")
+			if slug != "" {
+				tenant, err := tenants.GetBySlug(c.Request.Context(), slug)
+				if err != nil {
+					Fail(c, http.StatusNotFound, "tenant not found")
+					c.Abort()
+					return
+				}
+				c.Set(ctxTenant, tenant)
+			}
 			c.Next()
 			return
 		}
@@ -91,15 +109,22 @@ func RequireTenantRole(tenants domain.TenantRepository, tenantUsers domain.Tenan
 			c.Abort()
 			return
 		}
+		c.Set(ctxTenant, tenant)
 		c.Next()
 	}
 }
 
 // roleAtLeast returns true if actual >= required (Admin > Viewer).
 func roleAtLeast(actual, required domain.UserRole) bool {
-	order := map[domain.UserRole]int{
-		domain.RoleViewer: 1,
-		domain.RoleAdmin:  2,
+	rank := func(r domain.UserRole) int {
+		switch r {
+		case domain.RoleAdmin:
+			return 2
+		case domain.RoleViewer:
+			return 1
+		default:
+			return 0
+		}
 	}
-	return order[actual] >= order[required]
+	return rank(actual) >= rank(required)
 }

@@ -16,6 +16,7 @@ import { DocTab } from "./_components/DocTab"
 import { SettingsTab } from "./_components/SettingsTab"
 import { GroupModal } from "./_components/GroupModal"
 import type { ActiveTab, HttpMethod } from "./_types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // ── Tab 定义 ──
 const TABS = [
@@ -165,24 +166,22 @@ function EndpointHeader({
   return (
     <div className="h-16 border-b border-zinc-100 flex items-center justify-between px-6 bg-white shrink-0">
       <div className="flex-1 flex items-center gap-3 min-w-0 pr-6">
-        <select
-          className={cn(
-            "flex-shrink-0 h-8 rounded-lg border-2 px-2 text-[10px] font-black uppercase tracking-wider outline-none transition-colors appearance-none cursor-pointer focus:ring-4 focus:ring-blue-500/10 text-center",
+        <Select value={formMethod} onValueChange={v => onMethodChange(v as HttpMethod)}>
+          <SelectTrigger className={cn(
+            "flex-shrink-0 h-8 w-24 rounded-lg border-2 text-[10px] font-black uppercase tracking-wider",
             formMethod === "GET" ? "bg-blue-50 text-blue-600 border-blue-100"
               : formMethod === "POST" ? "bg-emerald-50 text-emerald-600 border-emerald-100"
               : formMethod === "PUT" ? "bg-amber-50 text-amber-600 border-amber-100"
               : formMethod === "DELETE" ? "bg-red-50 text-red-600 border-red-100"
               : "bg-zinc-50 text-zinc-600 border-zinc-200"
-          )}
-          style={{ textAlignLast: "center" }}
-          value={formMethod}
-          onChange={e => onMethodChange(e.target.value as HttpMethod)}
-        >
-          <option value="GET">GET</option>
-          <option value="POST">POST</option>
-          <option value="PUT">PUT</option>
-          <option value="DELETE">DELETE</option>
-        </select>
+          )}><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="GET">GET</SelectItem>
+            <SelectItem value="POST">POST</SelectItem>
+            <SelectItem value="PUT">PUT</SelectItem>
+            <SelectItem value="DELETE">DELETE</SelectItem>
+          </SelectContent>
+        </Select>
         <input
           type="text"
           value={formPath}
@@ -194,25 +193,23 @@ function EndpointHeader({
         <div className="hidden lg:flex items-center gap-2 shrink-0">
           <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded-lg h-8 px-2.5 transition-colors focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-500/10 hover:border-blue-300">
             <Folder className="w-3.5 h-3.5 text-zinc-400" />
-            <select
-              className="bg-transparent border-none outline-none text-[11px] text-zinc-600 font-bold cursor-pointer focus:ring-0 appearance-none py-0 pl-0 pr-4 relative"
-              value={groupId}
-              onChange={e => onGroupChange(Number(e.target.value))}
-            >
-              <option value={0}>未分类</option>
-              {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-            </select>
+            <Select value={String(groupId)} onValueChange={v => onGroupChange(Number(v))}>
+              <SelectTrigger className="h-7 border-none shadow-none bg-transparent text-[11px] font-bold p-0 min-w-[60px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">未分类</SelectItem>
+                {groups.map(g => <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded-lg h-8 px-2.5 transition-colors focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-500/10 hover:border-blue-300">
             <Database className="w-3.5 h-3.5 text-zinc-400" />
-            <select
-              className="bg-transparent border-none outline-none text-[11px] text-zinc-600 font-bold cursor-pointer focus:ring-0 appearance-none py-0 pl-0 pr-4 relative"
-              value={datasourceId}
-              onChange={e => onDatasourceChange(Number(e.target.value))}
-            >
-              {dataSources.map(ds => <option key={ds.id} value={ds.id}>{ds.name}</option>)}
-            </select>
+            <Select value={String(datasourceId)} onValueChange={v => onDatasourceChange(Number(v))}>
+              <SelectTrigger className="h-7 border-none shadow-none bg-transparent text-[11px] font-bold p-0 min-w-[60px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {dataSources.map(ds => <SelectItem key={ds.id} value={String(ds.id)}>{ds.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

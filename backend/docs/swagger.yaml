@@ -1,0 +1,1841 @@
+basePath: /
+definitions:
+  http.APIEndpointListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.APIEndpointResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    type: object
+  http.APIEndpointResp:
+    properties:
+      created_at:
+        type: string
+      datasource_id:
+        type: integer
+      description:
+        type: string
+      group_id:
+        type: integer
+      id:
+        type: integer
+      methods:
+        items:
+          type: string
+        type: array
+      param_defs:
+        items:
+          $ref: '#/definitions/http.ParamDefResp'
+        type: array
+      params:
+        items:
+          type: string
+        type: array
+      path:
+        type: string
+      post_script_id:
+        type: integer
+      pre_script_id:
+        type: integer
+      project_id:
+        type: integer
+      sql:
+        type: string
+      summary:
+        type: string
+      tenant_id:
+        type: integer
+    type: object
+  http.APIGroupListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.APIGroupResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    type: object
+  http.APIGroupResp:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      project_id:
+        type: integer
+      tenant_id:
+        type: integer
+    type: object
+  http.AuthResp:
+    properties:
+      tenant:
+        $ref: '#/definitions/http.TenantResp'
+      tenants:
+        items:
+          $ref: '#/definitions/http.TenantResp'
+        type: array
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/http.UserResp'
+    type: object
+  http.DataSourceEnvResp:
+    properties:
+      datasource_id:
+        type: integer
+      dsn:
+        type: string
+      env:
+        type: string
+      gateway_id:
+        type: integer
+      id:
+        type: integer
+    type: object
+  http.DataSourceListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.DataSourceResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    type: object
+  http.DataSourceResp:
+    properties:
+      created_at:
+        type: string
+      envs:
+        items:
+          $ref: '#/definitions/http.DataSourceEnvResp'
+        type: array
+      id:
+        type: integer
+      is_dual:
+        type: boolean
+      name:
+        type: string
+      tenant_id:
+        type: integer
+      type:
+        type: string
+    type: object
+  http.GatewayListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.GatewayResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    type: object
+  http.GatewayResp:
+    properties:
+      id:
+        type: integer
+      ip:
+        type: string
+      last_seen:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: integer
+      token:
+        type: string
+      version:
+        type: string
+    type: object
+  http.PaginationInfo:
+    properties:
+      is_pager:
+        type: integer
+      page:
+        type: integer
+      size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  http.ParamDefResp:
+    properties:
+      default:
+        type: string
+      desc:
+        type: string
+      name:
+        type: string
+      required:
+        type: boolean
+      type:
+        type: string
+    type: object
+  http.ProjectListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.ProjectResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    type: object
+  http.ProjectResp:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      tenant_id:
+        type: integer
+    type: object
+  http.R:
+    properties:
+      code:
+        type: integer
+      data: {}
+      msg:
+        type: string
+    type: object
+  http.RAPIEndpoint:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.APIEndpointResp'
+      msg:
+        type: string
+    type: object
+  http.RAPIEndpointList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.APIEndpointListResp'
+      msg:
+        type: string
+    type: object
+  http.RAPIGroup:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.APIGroupResp'
+      msg:
+        type: string
+    type: object
+  http.RAPIGroupList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.APIGroupListResp'
+      msg:
+        type: string
+    type: object
+  http.RAuth:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.AuthResp'
+      msg:
+        type: string
+    type: object
+  http.RDataSource:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.DataSourceResp'
+      msg:
+        type: string
+    type: object
+  http.RDataSourceList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.DataSourceListResp'
+      msg:
+        type: string
+    type: object
+  http.RGateway:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.GatewayResp'
+      msg:
+        type: string
+    type: object
+  http.RGatewayList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.GatewayListResp'
+      msg:
+        type: string
+    type: object
+  http.RProject:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.ProjectResp'
+      msg:
+        type: string
+    type: object
+  http.RProjectList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.ProjectListResp'
+      msg:
+        type: string
+    type: object
+  http.RScript:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.ScriptResp'
+      msg:
+        type: string
+    type: object
+  http.RScriptList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.ScriptListResp'
+      msg:
+        type: string
+    type: object
+  http.RTenant:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.TenantResp'
+      msg:
+        type: string
+    type: object
+  http.RTenantList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.TenantListResp'
+      msg:
+        type: string
+    type: object
+  http.RTenantUserList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.TenantUserListResp'
+      msg:
+        type: string
+    type: object
+  http.ScriptListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.ScriptResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    type: object
+  http.ScriptResp:
+    properties:
+      code:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      tenant_id:
+        type: integer
+      type:
+        type: string
+    type: object
+  http.TenantListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.TenantResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    type: object
+  http.TenantResp:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      plan:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  http.TenantUserListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.TenantUserResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    type: object
+  http.TenantUserResp:
+    properties:
+      joined_at:
+        type: string
+      role:
+        type: string
+      tenant_id:
+        type: integer
+      user:
+        $ref: '#/definitions/http.UserResp'
+      user_id:
+        type: integer
+    type: object
+  http.UserResp:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_superadmin:
+        type: boolean
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: 企业级 SQL to API 智能网关平台管理接口
+  title: OwlApi Control Plane
+  version: "1.0"
+paths:
+  /api/v1/tenants/{slug}/query/{path}:
+    post:
+      consumes:
+      - application/json
+      operationId: executeQuery
+      parameters:
+      - description: 租户 slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: API 路径
+        in: path
+        name: path
+        required: true
+        type: string
+      - description: 查询参数（由端点 param_defs 定义）
+        in: body
+        name: body
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: 执行动态 API 查询
+      tags:
+      - query
+  /v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      operationId: login
+      parameters:
+      - description: 登录信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RAuth'
+      summary: 用户登录
+      tags:
+      - auth
+  /v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      operationId: register
+      parameters:
+      - description: 注册信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            name:
+              type: string
+            password:
+              type: string
+            tenant_name:
+              type: string
+            tenant_slug:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RAuth'
+      summary: 注册用户
+      tags:
+      - auth
+  /v1/my/tenants:
+    get:
+      operationId: myTenants
+      parameters:
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认10）
+        in: query
+        name: size
+        type: integer
+      - description: 是否分页，0=返回全部（默认1）
+        in: query
+        name: is_pager
+        type: integer
+      - description: 关键词搜索
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RTenantList'
+      security:
+      - BearerAuth: []
+      summary: 获取当前用户的租户列表
+      tags:
+      - tenant
+  /v1/tenants:
+    get:
+      operationId: listAllTenants
+      parameters:
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认10）
+        in: query
+        name: size
+        type: integer
+      - description: 是否分页，0=返回全部（默认1）
+        in: query
+        name: is_pager
+        type: integer
+      - description: 关键词搜索
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RTenantList'
+      security:
+      - BearerAuth: []
+      summary: 获取所有租户 (SuperAdmin)
+      tags:
+      - tenant
+    post:
+      consumes:
+      - application/json
+      operationId: createTenant
+      parameters:
+      - description: 租户信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            name:
+              type: string
+            plan:
+              type: string
+            slug:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RTenant'
+      security:
+      - BearerAuth: []
+      summary: 创建租户 (SuperAdmin)
+      tags:
+      - tenant
+  /v1/tenants/{slug}:
+    delete:
+      operationId: deleteTenant
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除租户 (SuperAdmin)
+      tags:
+      - tenant
+    get:
+      operationId: getTenant
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RTenant'
+      security:
+      - BearerAuth: []
+      summary: 获取租户详情
+      tags:
+      - tenant
+    put:
+      consumes:
+      - application/json
+      operationId: updateTenant
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 更新信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            name:
+              type: string
+            plan:
+              type: string
+            status:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RTenant'
+      security:
+      - BearerAuth: []
+      summary: 更新租户 (SuperAdmin)
+      tags:
+      - tenant
+  /v1/tenants/{slug}/datasources:
+    get:
+      operationId: listDataSources
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认10）
+        in: query
+        name: size
+        type: integer
+      - description: 是否分页，0=返回全部（默认1）
+        in: query
+        name: is_pager
+        type: integer
+      - description: 关键词搜索
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RDataSourceList'
+      security:
+      - BearerAuth: []
+      summary: 获取数据源列表
+      tags:
+      - datasource
+    post:
+      consumes:
+      - application/json
+      operationId: createDataSource
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 数据源信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            envs:
+              type: array
+            is_dual:
+              type: boolean
+            name:
+              type: string
+            type:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RDataSource'
+      security:
+      - BearerAuth: []
+      summary: 创建数据源
+      tags:
+      - datasource
+  /v1/tenants/{slug}/datasources/{datasourceId}:
+    delete:
+      operationId: deleteDataSource
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 数据源ID
+        in: path
+        name: datasourceId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除数据源
+      tags:
+      - datasource
+    get:
+      operationId: getDataSource
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 数据源ID
+        in: path
+        name: datasourceId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RDataSource'
+      security:
+      - BearerAuth: []
+      summary: 获取数据源详情
+      tags:
+      - datasource
+    put:
+      consumes:
+      - application/json
+      operationId: updateDataSource
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 数据源ID
+        in: path
+        name: datasourceId
+        required: true
+        type: integer
+      - description: 更新信息
+        in: body
+        name: body
+        schema:
+          properties:
+            envs:
+              type: array
+            is_dual:
+              type: boolean
+            name:
+              type: string
+            type:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RDataSource'
+      security:
+      - BearerAuth: []
+      summary: 更新数据源
+      tags:
+      - datasource
+  /v1/tenants/{slug}/gateways:
+    get:
+      operationId: listGateways
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认10）
+        in: query
+        name: size
+        type: integer
+      - description: 是否分页，0=返回全部（默认1）
+        in: query
+        name: is_pager
+        type: integer
+      - description: 关键词搜索
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RGatewayList'
+      security:
+      - BearerAuth: []
+      summary: 获取网关列表
+      tags:
+      - gateway
+    post:
+      consumes:
+      - application/json
+      operationId: createGateway
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 网关信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            name:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RGateway'
+      security:
+      - BearerAuth: []
+      summary: 创建网关
+      tags:
+      - gateway
+  /v1/tenants/{slug}/gateways/{gatewayId}:
+    delete:
+      operationId: deleteGateway
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 网关ID
+        in: path
+        name: gatewayId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除网关
+      tags:
+      - gateway
+    get:
+      operationId: getGateway
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 网关ID
+        in: path
+        name: gatewayId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RGateway'
+      security:
+      - BearerAuth: []
+      summary: 获取网关详情
+      tags:
+      - gateway
+  /v1/tenants/{slug}/projects:
+    get:
+      operationId: listProjects
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认10）
+        in: query
+        name: size
+        type: integer
+      - description: 是否分页，0=返回全部（默认1）
+        in: query
+        name: is_pager
+        type: integer
+      - description: 关键词搜索
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RProjectList'
+      security:
+      - BearerAuth: []
+      summary: 获取项目列表
+      tags:
+      - project
+    post:
+      consumes:
+      - application/json
+      operationId: createProject
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            description:
+              type: string
+            name:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RProject'
+      security:
+      - BearerAuth: []
+      summary: 创建项目
+      tags:
+      - project
+  /v1/tenants/{slug}/projects/{projectId}:
+    delete:
+      operationId: deleteProject
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除项目
+      tags:
+      - project
+    get:
+      operationId: getProject
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RProject'
+      security:
+      - BearerAuth: []
+      summary: 获取项目详情
+      tags:
+      - project
+    put:
+      consumes:
+      - application/json
+      operationId: updateProject
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 更新信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            description:
+              type: string
+            name:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RProject'
+      security:
+      - BearerAuth: []
+      summary: 更新项目
+      tags:
+      - project
+  /v1/tenants/{slug}/projects/{projectId}/endpoints:
+    get:
+      operationId: listEndpoints
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认10）
+        in: query
+        name: size
+        type: integer
+      - description: 是否分页，0=返回全部（默认1）
+        in: query
+        name: is_pager
+        type: integer
+      - description: 关键词搜索
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RAPIEndpointList'
+      security:
+      - BearerAuth: []
+      summary: 获取 API 端点列表
+      tags:
+      - endpoint
+    post:
+      consumes:
+      - application/json
+      operationId: createEndpoint
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            datasource_id:
+              type: integer
+            description:
+              type: string
+            group_id:
+              type: integer
+            methods:
+              type: array
+            param_defs:
+              type: array
+            path:
+              type: string
+            post_script_id:
+              type: integer
+            pre_script_id:
+              type: integer
+            sql:
+              type: string
+            summary:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RAPIEndpoint'
+      security:
+      - BearerAuth: []
+      summary: 创建 API 端点
+      tags:
+      - endpoint
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}:
+    delete:
+      operationId: deleteEndpoint
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除 API 端点
+      tags:
+      - endpoint
+    put:
+      consumes:
+      - application/json
+      operationId: updateEndpoint
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: 更新信息
+        in: body
+        name: body
+        schema:
+          properties:
+            datasource_id:
+              type: integer
+            description:
+              type: string
+            group_id:
+              type: integer
+            methods:
+              type: array
+            param_defs:
+              type: array
+            path:
+              type: string
+            post_script_id:
+              type: integer
+            pre_script_id:
+              type: integer
+            sql:
+              type: string
+            summary:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RAPIEndpoint'
+      security:
+      - BearerAuth: []
+      summary: 更新 API 端点
+      tags:
+      - endpoint
+  /v1/tenants/{slug}/projects/{projectId}/groups:
+    get:
+      operationId: listGroups
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认10）
+        in: query
+        name: size
+        type: integer
+      - description: 是否分页，0=返回全部（默认1）
+        in: query
+        name: is_pager
+        type: integer
+      - description: 关键词搜索
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RAPIGroupList'
+      security:
+      - BearerAuth: []
+      summary: 获取 API 分组列表
+      tags:
+      - api-group
+    post:
+      consumes:
+      - application/json
+      operationId: createGroup
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 分组信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            description:
+              type: string
+            name:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RAPIGroup'
+      security:
+      - BearerAuth: []
+      summary: 创建 API 分组
+      tags:
+      - api-group
+  /v1/tenants/{slug}/projects/{projectId}/groups/{groupId}:
+    delete:
+      operationId: deleteGroup
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 分组ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除 API 分组
+      tags:
+      - api-group
+    put:
+      consumes:
+      - application/json
+      operationId: updateGroup
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 分组ID
+        in: path
+        name: groupId
+        required: true
+        type: integer
+      - description: 更新信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            description:
+              type: string
+            name:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RAPIGroup'
+      security:
+      - BearerAuth: []
+      summary: 更新 API 分组
+      tags:
+      - api-group
+  /v1/tenants/{slug}/projects/{projectId}/openapi.json:
+    get:
+      operationId: exportOpenApi
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 导出项目 OpenAPI 规范
+      tags:
+      - project
+  /v1/tenants/{slug}/query/test:
+    post:
+      consumes:
+      - application/json
+      operationId: testQuery
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 测试参数
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            endpoint_id:
+              type: integer
+            ignore_scripts:
+              type: boolean
+            params:
+              type: object
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 测试执行 API 端点
+      tags:
+      - query
+  /v1/tenants/{slug}/scripts:
+    get:
+      operationId: listScripts
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认10）
+        in: query
+        name: size
+        type: integer
+      - description: 是否分页，0=返回全部（默认1）
+        in: query
+        name: is_pager
+        type: integer
+      - description: 关键词搜索
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RScriptList'
+      security:
+      - BearerAuth: []
+      summary: 获取脚本列表
+      tags:
+      - script
+    post:
+      consumes:
+      - application/json
+      operationId: createScript
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 脚本信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            code:
+              type: string
+            description:
+              type: string
+            name:
+              type: string
+            type:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RScript'
+      security:
+      - BearerAuth: []
+      summary: 创建脚本
+      tags:
+      - script
+  /v1/tenants/{slug}/scripts/{scriptId}:
+    delete:
+      operationId: deleteScript
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 脚本ID
+        in: path
+        name: scriptId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除脚本
+      tags:
+      - script
+    put:
+      consumes:
+      - application/json
+      operationId: updateScript
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 脚本ID
+        in: path
+        name: scriptId
+        required: true
+        type: integer
+      - description: 更新信息
+        in: body
+        name: body
+        schema:
+          properties:
+            code:
+              type: string
+            description:
+              type: string
+            name:
+              type: string
+            type:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RScript'
+      security:
+      - BearerAuth: []
+      summary: 更新脚本
+      tags:
+      - script
+  /v1/tenants/{slug}/users:
+    get:
+      operationId: listUsers
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认10）
+        in: query
+        name: size
+        type: integer
+      - description: 是否分页，0=返回全部（默认1）
+        in: query
+        name: is_pager
+        type: integer
+      - description: 关键词搜索
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RTenantUserList'
+      security:
+      - BearerAuth: []
+      summary: 获取租户成员列表
+      tags:
+      - tenant-user
+    post:
+      consumes:
+      - application/json
+      operationId: addUser
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 成员信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            email:
+              type: string
+            name:
+              type: string
+            password:
+              type: string
+            role:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 添加租户成员
+      tags:
+      - tenant-user
+  /v1/tenants/{slug}/users/{userId}:
+    delete:
+      operationId: removeUser
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 用户ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 移除租户成员
+      tags:
+      - tenant-user
+  /v1/tenants/{slug}/users/{userId}/role:
+    put:
+      consumes:
+      - application/json
+      operationId: updateUserRole
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 用户ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: 角色
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            role:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 更新成员角色
+      tags:
+      - tenant-user
+securityDefinitions:
+  BearerAuth:
+    description: '格式: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

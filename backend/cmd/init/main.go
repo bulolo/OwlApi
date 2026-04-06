@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/hongjunyao/owlapi/internal/config"
-	"github.com/hongjunyao/owlapi/internal/domain"
-	"github.com/hongjunyao/owlapi/internal/pkg/logger"
-	"github.com/hongjunyao/owlapi/internal/repo/postgres"
-	"github.com/hongjunyao/owlapi/internal/service"
+	"github.com/bulolo/owlapi/internal/config"
+	"github.com/bulolo/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/pkg/logger"
+	"github.com/bulolo/owlapi/internal/repo/postgres"
+	"github.com/bulolo/owlapi/internal/service"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -46,7 +46,7 @@ func main() {
 	gatewayRepo := &postgres.GatewayRepo{DB: db}
 	gatewaySvc := service.NewGatewayService(gatewayRepo)
 
-	seed(ctx, users, tenants, tenantUsers, gatewaySvc, &postgres.ProjectRepo{DB: db})
+	seed(ctx, users, tenants, tenantUsers, gatewaySvc, &postgres.ProjectRepo{DB: db}, &postgres.DataSourceRepo{DB: db}, &postgres.ScriptRepo{DB: db}, &postgres.APIGroupRepo{DB: db}, &postgres.APIEndpointRepo{DB: db})
 	fmt.Println("✅ Backend init completed.")
 }
 
@@ -59,7 +59,7 @@ func hashPwd(pwd string) string {
 	return string(h)
 }
 
-func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.TenantRepo, tenantUsers *postgres.TenantUserRepo, gatewaySvc service.GatewayService, projects *postgres.ProjectRepo) {
+func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.TenantRepo, tenantUsers *postgres.TenantUserRepo, gatewaySvc service.GatewayService, projects *postgres.ProjectRepo, dataSources *postgres.DataSourceRepo, scripts *postgres.ScriptRepo, groups *postgres.APIGroupRepo, endpoints *postgres.APIEndpointRepo) {
 	now := time.Now()
 
 	superadmin := &domain.User{
@@ -128,7 +128,7 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 		Token:    os.Getenv("OWLAPI_GATEWAY_TOKEN"),
 	}
 	// Note: GatewayRepository doesn't have GetByName, but we can list and check
-	gws, _ := gatewaySvc.List(ctx, tenant.ID)
+	gws, _, _ := gatewaySvc.List(ctx, tenant.ID, domain.ListParams{Page: 1, Size: 0})
 	var foundGw *domain.Gateway
 	for _, g := range gws {
 		if g.Name == gw.Name {
@@ -158,11 +158,11 @@ func seed(ctx context.Context, users *postgres.UserRepo, tenants *postgres.Tenan
 			{Env: "prod", DSN: "/data/owlapi_demo.db", GatewayID: gw.ID},
 		},
 	}
-	if existing, err := projects.GetDataSourceByName(ctx, t, ds.Name); err == nil && existing != nil {
+	if existing, err := dataSources.GetDataSourceByName(ctx, t, ds.Name); err == nil && existing != nil {
 		ds = existing
 		slog.Info("Demo datasource already exists", "id", ds.ID)
 	} else {
-		if err := projects.CreateDataSource(ctx, ds); err != nil {
+		if err := dataSources.CreateDataSource(ctx, ds); err != nil {
 			slog.Error("Failed to create demo datasource", "error", err)
 			os.Exit(1)
 		}
@@ -206,11 +206,11 @@ function main(params) {
   return params;
 }`,
 	}
-	if existing, err := projects.GetScriptByName(ctx, t, scriptPagination.Name); err == nil && existing != nil {
+	if existing, err := scripts.GetScriptByName(ctx, t, scriptPagination.Name); err == nil && existing != nil {
 		scriptPagination = existing
 		slog.Info("Pagination script already exists", "id", scriptPagination.ID)
 	} else {
-		if err := projects.CreateScript(ctx, scriptPagination); err != nil {
+		if err := scripts.CreateScript(ctx, scriptPagination); err != nil {
 			slog.Error("Failed to create pagination script", "error", err)
 			os.Exit(1)
 		}
@@ -258,11 +258,11 @@ function main(data, params) {
   };
 }`,
 	}
-	if existing, err := projects.GetScriptByName(ctx, t, scriptStdResponse.Name); err == nil && existing != nil {
+	if existing, err := scripts.GetScriptByName(ctx, t, scriptStdResponse.Name); err == nil && existing != nil {
 		scriptStdResponse = existing
 		slog.Info("Std response script already exists", "id", scriptStdResponse.ID)
 	} else {
-		if err := projects.CreateScript(ctx, scriptStdResponse); err != nil {
+		if err := scripts.CreateScript(ctx, scriptStdResponse); err != nil {
 			slog.Error("Failed to create std response script", "error", err)
 			os.Exit(1)
 		}
@@ -285,11 +285,11 @@ function main(data, params) {
   };
 }`,
 	}
-	if existing, err := projects.GetScriptByName(ctx, t, scriptDetailResponse.Name); err == nil && existing != nil {
+	if existing, err := scripts.GetScriptByName(ctx, t, scriptDetailResponse.Name); err == nil && existing != nil {
 		scriptDetailResponse = existing
 		slog.Info("Detail response script already exists", "id", scriptDetailResponse.ID)
 	} else {
-		if err := projects.CreateScript(ctx, scriptDetailResponse); err != nil {
+		if err := scripts.CreateScript(ctx, scriptDetailResponse); err != nil {
 			slog.Error("Failed to create detail response script", "error", err)
 			os.Exit(1)
 		}
@@ -313,11 +313,11 @@ function main(data, params) {
   };
 }`,
 	}
-	if existing, err := projects.GetScriptByName(ctx, t, scriptWriteResponse.Name); err == nil && existing != nil {
+	if existing, err := scripts.GetScriptByName(ctx, t, scriptWriteResponse.Name); err == nil && existing != nil {
 		scriptWriteResponse = existing
 		slog.Info("Write response script already exists", "id", scriptWriteResponse.ID)
 	} else {
-		if err := projects.CreateScript(ctx, scriptWriteResponse); err != nil {
+		if err := scripts.CreateScript(ctx, scriptWriteResponse); err != nil {
 			slog.Error("Failed to create write response script", "error", err)
 			os.Exit(1)
 		}
@@ -336,11 +336,11 @@ function main(data, params) {
 
 	groupsByID := make(map[string]int64)
 	for _, g := range demoGroups {
-		if existing, err := projects.GetAPIGroupByName(ctx, t, p, g.Name); err == nil && existing != nil {
+		if existing, err := groups.GetAPIGroupByName(ctx, t, p, g.Name); err == nil && existing != nil {
 			groupsByID[g.Name] = existing.ID
 			slog.Info("Demo group already exists", "name", g.Name, "id", existing.ID)
 		} else {
-			if err := projects.CreateAPIGroup(ctx, g); err != nil {
+			if err := groups.CreateAPIGroup(ctx, g); err != nil {
 				slog.Error("Failed to create demo group", "name", g.Name, "error", err)
 				os.Exit(1)
 			}
@@ -463,11 +463,11 @@ function main(data, params) {
 	}
 
 	for _, ep := range demoEndpoints {
-		if existing, err := projects.GetAPIEndpointByPath(ctx, t, ep.Path); err == nil && existing != nil {
+		if existing, err := endpoints.GetAPIEndpointByPath(ctx, t, ep.Path); err == nil && existing != nil {
 			slog.Info("Demo endpoint already exists", "path", ep.Path, "id", existing.ID)
 			continue
 		}
-		if err := projects.CreateAPIEndpoint(ctx, ep); err != nil {
+		if err := endpoints.CreateAPIEndpoint(ctx, ep); err != nil {
 			slog.Error("Failed to create demo endpoint", "path", ep.Path, "error", err)
 			os.Exit(1)
 		}

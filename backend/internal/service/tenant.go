@@ -3,14 +3,13 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
-	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/jackc/pgx/v5"
 )
 
-var ErrSlugExists = errors.New("tenant slug already exists")
+var ErrSlugExists = domain.ErrConflict("tenant slug already exists")
 
 // Valid plan and status values for validation.
 var (
@@ -20,11 +19,11 @@ var (
 
 type TenantService interface {
 	Create(ctx context.Context, tenant *domain.Tenant, creatorUserID int64) error
-	List(ctx context.Context, page, size int) ([]*domain.Tenant, int, error)
+	List(ctx context.Context, p domain.ListParams) ([]*domain.Tenant, int, error)
 	GetBySlug(ctx context.Context, slug string) (*domain.Tenant, error)
 	Update(ctx context.Context, slug string, name, plan, status string) (*domain.Tenant, error)
 	Delete(ctx context.Context, slug string) error
-	ListByUser(ctx context.Context, userID int64) ([]*domain.Tenant, error)
+	ListByUser(ctx context.Context, userID int64, p domain.ListParams) ([]*domain.Tenant, int, error)
 }
 
 type tenantService struct {
@@ -60,8 +59,8 @@ func (s *tenantService) Create(ctx context.Context, tenant *domain.Tenant, creat
 	})
 }
 
-func (s *tenantService) List(ctx context.Context, page, size int) ([]*domain.Tenant, int, error) {
-	return s.tenants.List(ctx, page, size)
+func (s *tenantService) List(ctx context.Context, p domain.ListParams) ([]*domain.Tenant, int, error) {
+	return s.tenants.List(ctx, p)
 }
 
 func (s *tenantService) GetBySlug(ctx context.Context, slug string) (*domain.Tenant, error) {
@@ -79,14 +78,14 @@ func (s *tenantService) Update(ctx context.Context, slug string, name, plan, sta
 	if plan != "" {
 		p := domain.TenantPlan(plan)
 		if !validPlans[p] {
-			return nil, fmt.Errorf("invalid plan: %s", plan)
+			return nil, domain.ErrBadRequestf("invalid plan: %s", plan)
 		}
 		t.Plan = p
 	}
 	if status != "" {
 		st := domain.TenantStatus(status)
 		if !validStatuses[st] {
-			return nil, fmt.Errorf("invalid status: %s", status)
+			return nil, domain.ErrBadRequestf("invalid status: %s", status)
 		}
 		t.Status = st
 	}
@@ -105,16 +104,17 @@ func (s *tenantService) Delete(ctx context.Context, slug string) error {
 	return s.tenants.Delete(ctx, t.ID)
 }
 
-func (s *tenantService) ListByUser(ctx context.Context, userID int64) ([]*domain.Tenant, error) {
+func (s *tenantService) ListByUser(ctx context.Context, userID int64, p domain.ListParams) ([]*domain.Tenant, int, error) {
 	tenantUsers, err := s.tenantUsers.GetByUserID(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	tenants := make([]*domain.Tenant, 0, len(tenantUsers))
-	for _, tu := range tenantUsers {
-		if t, err := s.tenants.GetByID(ctx, tu.TenantID); err == nil {
-			tenants = append(tenants, t)
-		}
+	if len(tenantUsers) == 0 {
+		return nil, 0, nil
 	}
-	return tenants, nil
+	ids := make([]int64, len(tenantUsers))
+	for i, tu := range tenantUsers {
+		ids[i] = tu.TenantID
+	}
+	return s.tenants.ListByIDs(ctx, ids, p)
 }

@@ -2,109 +2,89 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/hongjunyao/owlapi/internal/domain"
-	"github.com/hongjunyao/owlapi/internal/service"
+	"github.com/bulolo/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/service"
 )
 
+// App holds all wired dependencies for the HTTP layer.
+type App struct {
+	Auth        service.AuthService
+	Tenant      service.TenantService
+	TenantUser  service.TenantUserService
+	Gateway     service.GatewayService
+	DataSource  service.DataSourceService
+	Project     service.ProjectService
+	Endpoint    service.APIEndpointService
+	Group       service.APIGroupService
+	Script      service.ScriptService
+	Query       service.QueryService
+	// repos needed only by middleware
+	TenantRepo     domain.TenantRepository
+	TenantUserRepo domain.TenantUserRepository
+}
+
 // RegisterRoutes wires all HTTP handlers and middleware to the gin engine.
-func RegisterRoutes(
-	r *gin.Engine,
-	authSvc service.AuthService,
-	tenantSvc service.TenantService,
-	tenantUserSvc service.TenantUserService,
-	gatewaySvc service.GatewayService,
-	querySvc service.QueryService,
-	projectRepo domain.ProjectRepository,
-	dsRepo domain.DataSourceRepository,
-	endpointRepo domain.APIEndpointRepository,
-	groupRepo domain.APIGroupRepository,
-	scriptRepo domain.ScriptRepository,
-	tenantRepo domain.TenantRepository,
-	tenantUserRepo domain.TenantUserRepository,
-) {
-	auth := &AuthHandler{auth: authSvc}
-	tenant := &TenantHandler{tenants: tenantSvc}
-	tenantUser := &TenantUserHandler{tenants: tenantSvc, tenantUsers: tenantUserSvc}
-	gateway := &GatewayHandler{gateways: gatewaySvc, tenants: tenantSvc}
-	datasource := &DataSourceHandler{tenants: tenantSvc, repo: dsRepo}
-	project := &ProjectHandler{tenants: tenantSvc, repo: projectRepo}
-	queryHandler := NewQueryHandler(querySvc, endpointRepo)
-	apiEndpoint := &APIEndpointHandler{tenants: tenantSvc, repo: endpointRepo}
-	apiGroup := &APIGroupHandler{tenants: tenantSvc, repo: groupRepo}
-	scriptHandler := &ScriptHandler{tenants: tenantSvc, repo: scriptRepo}
-	queryTest := &QueryTestHandler{tenants: tenantSvc, gateways: gatewaySvc, queries: querySvc, endpointRepo: endpointRepo, dsRepo: dsRepo}
+func (a *App) RegisterRoutes(r *gin.Engine) {
+	authH      := &AuthHandler{auth: a.Auth}
+	tenantH    := &TenantHandler{tenants: a.Tenant}
+	tuH        := &TenantUserHandler{tenantUsers: a.TenantUser}
+	gatewayH   := &GatewayHandler{gateways: a.Gateway}
+	dsH        := &DataSourceHandler{dataSources: a.DataSource}
+	projectH   := &ProjectHandler{projects: a.Project}
+	endpointH  := &APIEndpointHandler{endpoints: a.Endpoint}
+	groupH     := &APIGroupHandler{groups: a.Group}
+	scriptH    := &ScriptHandler{scripts: a.Script}
+	queryH     := NewQueryHandler(a.Query, a.Endpoint, a.Tenant)
+	queryTestH := &QueryTestHandler{tenants: a.Tenant, gateways: a.Gateway, queries: a.Query, endpoints: a.Endpoint, dataSources: a.DataSource}
+	openAPIH   := &OpenAPIHandler{projects: a.Project, endpoints: a.Endpoint, groups: a.Group}
 
-	// Public
-	r.POST("/api/v1/auth/register", auth.HandleRegister)
-	r.POST("/api/v1/auth/login", auth.HandleLogin)
+	v1 := r.Group("/v1")
+	v1.POST("/auth/register", authH.HandleRegister)
+	v1.POST("/auth/login", authH.HandleLogin)
+	v1.GET("/my/tenants", JWTAuth(), tenantH.HandleMyTenants)
+	v1.POST("/tenants/:slug/query/test", JWTAuth(), RequireTenantRole(a.TenantRepo, a.TenantUserRepo, domain.RoleViewer), queryTestH.HandleTestQuery)
 
-	// Authenticated
-	authed := r.Group("", JWTAuth())
-	authed.GET("/api/v1/my/tenants", tenant.HandleMyTenants)
+	sa := v1.Group("", JWTAuth(), RequireSuperAdmin())
+	sa.GET("/tenants", tenantH.HandleListTenants)
+	sa.POST("/tenants", tenantH.HandleCreateTenant)
+	sa.PUT("/tenants/:slug", tenantH.HandleUpdateTenant)
+	sa.DELETE("/tenants/:slug", tenantH.HandleDeleteTenant)
 
-	// SuperAdmin only
-	sa := authed.Group("", RequireSuperAdmin())
-	sa.GET("/api/v1/tenants", tenant.HandleListTenants)
-	sa.POST("/api/v1/tenants", tenant.HandleCreateTenant)
-	sa.PUT("/api/v1/tenants/:slug", tenant.HandleUpdateTenant)
-	sa.DELETE("/api/v1/tenants/:slug", tenant.HandleDeleteTenant)
+	viewer := v1.Group("", JWTAuth(), RequireTenantRole(a.TenantRepo, a.TenantUserRepo, domain.RoleViewer))
+	viewer.GET("/tenants/:slug", tenantH.HandleGetTenant)
+	viewer.GET("/tenants/:slug/users", tuH.HandleList)
+	viewer.GET("/tenants/:slug/gateways", gatewayH.HandleList)
+	viewer.GET("/tenants/:slug/gateways/:gatewayId", gatewayH.HandleGet)
+	viewer.GET("/tenants/:slug/datasources", dsH.HandleList)
+	viewer.GET("/tenants/:slug/datasources/:datasourceId", dsH.HandleGet)
+	viewer.GET("/tenants/:slug/projects", projectH.HandleList)
+	viewer.GET("/tenants/:slug/projects/:projectId", projectH.HandleGet)
+	viewer.GET("/tenants/:slug/projects/:projectId/endpoints", endpointH.HandleList)
+	viewer.GET("/tenants/:slug/projects/:projectId/groups", groupH.HandleList)
+	viewer.GET("/tenants/:slug/projects/:projectId/openapi.json", openAPIH.HandleExportOpenAPI)
+	viewer.GET("/tenants/:slug/scripts", scriptH.HandleList)
 
-	// Tenant Viewer+
-	viewer := authed.Group("", RequireTenantRole(tenantRepo, tenantUserRepo, domain.RoleViewer))
-	viewer.GET("/api/v1/tenants/:slug", tenant.HandleGetTenant)
-	viewer.GET("/api/v1/tenants/:slug/users", tenantUser.HandleList)
+	admin := v1.Group("", JWTAuth(), RequireTenantRole(a.TenantRepo, a.TenantUserRepo, domain.RoleAdmin))
+	admin.POST("/tenants/:slug/users", tuH.HandleCreate)
+	admin.PUT("/tenants/:slug/users/:userId/role", tuH.HandleUpdateRole)
+	admin.DELETE("/tenants/:slug/users/:userId", tuH.HandleDelete)
+	admin.POST("/tenants/:slug/gateways", gatewayH.HandleCreate)
+	admin.DELETE("/tenants/:slug/gateways/:gatewayId", gatewayH.HandleDelete)
+	admin.POST("/tenants/:slug/datasources", dsH.HandleCreate)
+	admin.PUT("/tenants/:slug/datasources/:datasourceId", dsH.HandleUpdate)
+	admin.DELETE("/tenants/:slug/datasources/:datasourceId", dsH.HandleDelete)
+	admin.POST("/tenants/:slug/projects", projectH.HandleCreate)
+	admin.PUT("/tenants/:slug/projects/:projectId", projectH.HandleUpdate)
+	admin.DELETE("/tenants/:slug/projects/:projectId", projectH.HandleDelete)
+	admin.POST("/tenants/:slug/projects/:projectId/endpoints", endpointH.HandleCreate)
+	admin.PUT("/tenants/:slug/projects/:projectId/endpoints/:endpointId", endpointH.HandleUpdate)
+	admin.DELETE("/tenants/:slug/projects/:projectId/endpoints/:endpointId", endpointH.HandleDelete)
+	admin.POST("/tenants/:slug/projects/:projectId/groups", groupH.HandleCreate)
+	admin.PUT("/tenants/:slug/projects/:projectId/groups/:groupId", groupH.HandleUpdate)
+	admin.DELETE("/tenants/:slug/projects/:projectId/groups/:groupId", groupH.HandleDelete)
+	admin.POST("/tenants/:slug/scripts", scriptH.HandleCreate)
+	admin.PUT("/tenants/:slug/scripts/:scriptId", scriptH.HandleUpdate)
+	admin.DELETE("/tenants/:slug/scripts/:scriptId", scriptH.HandleDelete)
 
-	// Tenant Admin+
-	admin := authed.Group("", RequireTenantRole(tenantRepo, tenantUserRepo, domain.RoleAdmin))
-	admin.POST("/api/v1/tenants/:slug/users", tenantUser.HandleCreate)
-	admin.PUT("/api/v1/tenants/:slug/users/:userId/role", tenantUser.HandleUpdateRole)
-	admin.DELETE("/api/v1/tenants/:slug/users/:userId", tenantUser.HandleDelete)
-
-	// Gateway management — Viewer can list/get, Admin can create/delete
-	viewer.GET("/api/v1/tenants/:slug/gateways", gateway.HandleList)
-	viewer.GET("/api/v1/tenants/:slug/gateways/:gatewayId", gateway.HandleGet)
-	admin.POST("/api/v1/tenants/:slug/gateways", gateway.HandleCreate)
-	admin.DELETE("/api/v1/tenants/:slug/gateways/:gatewayId", gateway.HandleDelete)
-
-	// DataSource management — Viewer can list/get, Admin can create/delete
-	viewer.GET("/api/v1/tenants/:slug/datasources", datasource.HandleList)
-	viewer.GET("/api/v1/tenants/:slug/datasources/:datasourceId", datasource.HandleGet)
-	admin.POST("/api/v1/tenants/:slug/datasources", datasource.HandleCreate)
-	admin.PUT("/api/v1/tenants/:slug/datasources/:datasourceId", datasource.HandleUpdate)
-	admin.DELETE("/api/v1/tenants/:slug/datasources/:datasourceId", datasource.HandleDelete)
-
-	// Project management
-	viewer.GET("/api/v1/tenants/:slug/projects", project.HandleList)
-	viewer.GET("/api/v1/tenants/:slug/projects/:projectId", project.HandleGet)
-	admin.POST("/api/v1/tenants/:slug/projects", project.HandleCreate)
-	admin.PUT("/api/v1/tenants/:slug/projects/:projectId", project.HandleUpdate)
-	admin.DELETE("/api/v1/tenants/:slug/projects/:projectId", project.HandleDelete)
-
-	// API Endpoint management
-	viewer.GET("/api/v1/tenants/:slug/projects/:projectId/endpoints", apiEndpoint.HandleList)
-	admin.POST("/api/v1/tenants/:slug/projects/:projectId/endpoints", apiEndpoint.HandleCreate)
-	admin.PUT("/api/v1/tenants/:slug/projects/:projectId/endpoints/:endpointId", apiEndpoint.HandleUpdate)
-	admin.DELETE("/api/v1/tenants/:slug/projects/:projectId/endpoints/:endpointId", apiEndpoint.HandleDelete)
-
-	// API Group management
-	viewer.GET("/api/v1/tenants/:slug/projects/:projectId/groups", apiGroup.HandleList)
-	admin.POST("/api/v1/tenants/:slug/projects/:projectId/groups", apiGroup.HandleCreate)
-	admin.PUT("/api/v1/tenants/:slug/projects/:projectId/groups/:groupId", apiGroup.HandleUpdate)
-	admin.DELETE("/api/v1/tenants/:slug/projects/:projectId/groups/:groupId", apiGroup.HandleDelete)
-
-	// OpenAPI export
-	openapi := &OpenAPIHandler{tenants: tenantSvc, projectRepo: projectRepo, endpointRepo: endpointRepo, groupRepo: groupRepo}
-	viewer.GET("/api/v1/tenants/:slug/projects/:projectId/openapi.json", openapi.HandleExportOpenAPI)
-
-	// Query test execution
-	authed.POST("/api/v1/tenants/:slug/query/test", queryTest.HandleTestQuery)
-
-	// Script management
-	viewer.GET("/api/v1/tenants/:slug/scripts", scriptHandler.HandleList)
-	admin.POST("/api/v1/tenants/:slug/scripts", scriptHandler.HandleCreate)
-	admin.PUT("/api/v1/tenants/:slug/scripts/:scriptId", scriptHandler.HandleUpdate)
-	admin.DELETE("/api/v1/tenants/:slug/scripts/:scriptId", scriptHandler.HandleDelete)
-
-	// Dynamic API query endpoint
-	queryHandler.RegisterRoutes(r)
+	queryH.RegisterRoutes(r)
 }

@@ -3,10 +3,9 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
-	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -16,7 +15,7 @@ var validRoles = map[domain.UserRole]bool{domain.RoleAdmin: true, domain.RoleVie
 type TenantUserService interface {
 	Create(ctx context.Context, tenantID int64, req AddTenantUserRequest) error
 	Delete(ctx context.Context, tenantID, userID int64) error
-	List(ctx context.Context, tenantID int64, page, size int) ([]*domain.TenantUser, int, error)
+	List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.TenantUser, int, error)
 	UpdateRole(ctx context.Context, tenantID, userID int64, role domain.UserRole) error
 }
 
@@ -38,7 +37,7 @@ func NewTenantUserService(users domain.UserRepository, tenantUsers domain.Tenant
 
 func (s *tenantUserService) Create(ctx context.Context, tenantID int64, req AddTenantUserRequest) error {
 	if !validRoles[req.Role] {
-		return fmt.Errorf("invalid role: %s", req.Role)
+		return domain.ErrBadRequestf("invalid role: %s", req.Role)
 	}
 
 	user, err := s.users.GetByEmail(ctx, req.Email)
@@ -62,13 +61,13 @@ func (s *tenantUserService) Delete(ctx context.Context, tenantID, userID int64) 
 	return s.tenantUsers.Delete(ctx, tenantID, userID)
 }
 
-func (s *tenantUserService) List(ctx context.Context, tenantID int64, page, size int) ([]*domain.TenantUser, int, error) {
-	return s.tenantUsers.List(ctx, tenantID, page, size)
+func (s *tenantUserService) List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.TenantUser, int, error) {
+	return s.tenantUsers.List(ctx, tenantID, p)
 }
 
 func (s *tenantUserService) UpdateRole(ctx context.Context, tenantID, userID int64, role domain.UserRole) error {
 	if !validRoles[role] {
-		return fmt.Errorf("invalid role: %s", role)
+		return domain.ErrBadRequestf("invalid role: %s", role)
 	}
 	return s.tenantUsers.UpdateRole(ctx, tenantID, userID, role)
 }

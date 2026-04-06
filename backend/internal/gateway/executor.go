@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
-	"github.com/hongjunyao/owlapi/internal/pb"
+	"github.com/bulolo/owlapi/internal/pb"
 	_ "github.com/jackc/pgx/v5/stdlib" // PostgreSQL driver
 	_ "modernc.org/sqlite"             // SQLite driver
 )

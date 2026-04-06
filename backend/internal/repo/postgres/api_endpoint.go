@@ -5,8 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/domain"
 )
+
+type APIEndpointRepo struct{ DB *DB }
+
+var _ domain.APIEndpointRepository = (*APIEndpointRepo)(nil)
 
 const epCols = `id, tenant_id, project_id, group_id, datasource_id, path, methods, summary, description, sql_query, params, param_defs, pre_script_id, post_script_id`
 
@@ -18,9 +22,7 @@ func scanEP(scan func(dest ...any) error) (*domain.APIEndpoint, error) {
 		return nil, err
 	}
 	if len(paramDefsJSON) > 0 {
-		if err := json.Unmarshal(paramDefsJSON, &ep.ParamDefs); err != nil {
-			return nil, err
-		}
+		_ = json.Unmarshal(paramDefsJSON, &ep.ParamDefs)
 	}
 	return &ep, nil
 }
@@ -29,24 +31,20 @@ func marshalParamDefs(defs []domain.ParamDef) ([]byte, error) {
 	if defs == nil {
 		return []byte("[]"), nil
 	}
-	b, err := json.Marshal(defs)
-	if err != nil {
-		return nil, fmt.Errorf("marshal param_defs: %w", err)
-	}
-	return b, nil
+	return json.Marshal(defs)
 }
 
-func (r *ProjectRepo) GetAPIEndpointByPath(ctx context.Context, tenantID int64, path string) (*domain.APIEndpoint, error) {
+func (r *APIEndpointRepo) GetAPIEndpointByPath(ctx context.Context, tenantID int64, path string) (*domain.APIEndpoint, error) {
 	row := r.DB.Pool.QueryRow(ctx, `SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND path=$2`, tenantID, path)
 	return scanEP(row.Scan)
 }
 
-func (r *ProjectRepo) GetAPIEndpointByID(ctx context.Context, tenantID, id int64) (*domain.APIEndpoint, error) {
+func (r *APIEndpointRepo) GetAPIEndpointByID(ctx context.Context, tenantID, id int64) (*domain.APIEndpoint, error) {
 	row := r.DB.Pool.QueryRow(ctx, `SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND id=$2`, tenantID, id)
 	return scanEP(row.Scan)
 }
 
-func (r *ProjectRepo) CreateAPIEndpoint(ctx context.Context, ep *domain.APIEndpoint) error {
+func (r *APIEndpointRepo) CreateAPIEndpoint(ctx context.Context, ep *domain.APIEndpoint) error {
 	paramDefs, err := marshalParamDefs(ep.ParamDefs)
 	if err != nil {
 		return err
@@ -56,7 +54,7 @@ func (r *ProjectRepo) CreateAPIEndpoint(ctx context.Context, ep *domain.APIEndpo
 		ep.TenantID, ep.ProjectID, ep.GroupID, ep.DataSourceID, ep.Path, ep.Methods, ep.Summary, ep.Description, ep.SQL, ep.Params, paramDefs, ep.PreScriptID, ep.PostScriptID).Scan(&ep.ID)
 }
 
-func (r *ProjectRepo) UpdateAPIEndpoint(ctx context.Context, ep *domain.APIEndpoint) error {
+func (r *APIEndpointRepo) UpdateAPIEndpoint(ctx context.Context, ep *domain.APIEndpoint) error {
 	paramDefs, err := marshalParamDefs(ep.ParamDefs)
 	if err != nil {
 		return err
@@ -67,34 +65,40 @@ func (r *ProjectRepo) UpdateAPIEndpoint(ctx context.Context, ep *domain.APIEndpo
 	return err
 }
 
-func (r *ProjectRepo) ListAPIEndpoints(ctx context.Context, tenantID, projectID int64) ([]*domain.APIEndpoint, error) {
-	rows, err := r.DB.Pool.Query(ctx, `SELECT `+epCols+`, created_at FROM api_endpoints WHERE tenant_id=$1 AND project_id=$2 ORDER BY id`, tenantID, projectID)
+func (r *APIEndpointRepo) ListAPIEndpoints(ctx context.Context, tenantID, projectID int64, p domain.ListParams) ([]*domain.APIEndpoint, int, error) {
+	where := "WHERE tenant_id=$1 AND project_id=$2"
+	args := []interface{}{tenantID, projectID}
+	argN := 3
+	if p.Keyword != "" {
+		where += fmt.Sprintf(" AND (path ILIKE $%d OR summary ILIKE $%d)", argN, argN)
+		args = append(args, "%"+p.Keyword+"%")
+		argN++
+	}
+
+	var total int
+	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM api_endpoints `+where, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	pgSuffix, pgArgs := appendPagination(p, argN, args)
+	rows, err := r.DB.Pool.Query(ctx,
+		fmt.Sprintf(`SELECT %s FROM api_endpoints %s ORDER BY id%s`, epCols, where, pgSuffix),
+		pgArgs...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	var list []*domain.APIEndpoint
 	for rows.Next() {
-		var ep domain.APIEndpoint
-		var paramDefsJSON []byte
-		var createdAt interface{}
-		if err := rows.Scan(&ep.ID, &ep.TenantID, &ep.ProjectID, &ep.GroupID, &ep.DataSourceID, &ep.Path, &ep.Methods, &ep.Summary, &ep.Description, &ep.SQL, &ep.Params, &paramDefsJSON, &ep.PreScriptID, &ep.PostScriptID, &createdAt); err != nil {
-			return nil, err
+		ep, err := scanEP(rows.Scan)
+		if err != nil {
+			return nil, 0, err
 		}
-		if len(paramDefsJSON) > 0 {
-			if err := json.Unmarshal(paramDefsJSON, &ep.ParamDefs); err != nil {
-				return nil, err
-			}
-		}
-		list = append(list, &ep)
+		list = append(list, ep)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return list, nil
+	return list, total, rows.Err()
 }
 
-func (r *ProjectRepo) DeleteAPIEndpoint(ctx context.Context, tenantID, id int64) error {
+func (r *APIEndpointRepo) DeleteAPIEndpoint(ctx context.Context, tenantID, id int64) error {
 	_, err := r.DB.Pool.Exec(ctx, `DELETE FROM api_endpoints WHERE tenant_id=$1 AND id=$2`, tenantID, id)
 	return err
 }

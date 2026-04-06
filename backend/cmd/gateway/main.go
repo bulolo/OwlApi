@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/hongjunyao/owlapi/internal/gateway"
+	"github.com/bulolo/owlapi/internal/gateway"
 )
 
 func main() {

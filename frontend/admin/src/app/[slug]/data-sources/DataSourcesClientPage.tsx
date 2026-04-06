@@ -1,14 +1,19 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { Database, Plus, Search, Trash2, Server, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { useUIStore } from "@/store/useUIStore"
-import { apiListDataSources, apiListGateways, apiDeleteDataSource, type DataSource, type Gateway } from "@/lib/api-client"
+import { useDataSources, useDeleteDataSource } from "@/hooks"
+import { useGateways } from "@/hooks"
+import type { DataSource } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
+import { CardSkeleton } from "@/components/ui/skeletons"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Pager } from "@/components/ui/pager"
 
 const DB_TYPE_COLORS: Record<string, string> = {
   mysql: "text-blue-600 border-blue-100 bg-blue-50/30",
@@ -26,38 +31,15 @@ const DB_TYPE_LABELS: Record<string, string> = {
 
 export default function DataSourcesClientPage() {
   const { activeTenant } = useUIStore()
-  const [dataSources, setDataSources] = useState<DataSource[]>([])
-  const [gateways, setGateways] = useState<Gateway[]>([])
-  const [search, setSearch] = useState("")
-  const [loading, setLoading] = useState(true)
-
-  const fetchData = async () => {
-    if (!activeTenant) return
-    try {
-      setLoading(true)
-      const [dsData, gwData] = await Promise.all([
-        apiListDataSources(activeTenant),
-        apiListGateways(activeTenant),
-      ])
-      setDataSources(dsData.list || [])
-      setGateways(gwData.list || [])
-    } catch (err) {
-      console.error("Failed to fetch data sources", err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { fetchData() }, [activeTenant])
+  const [page, setPage] = useState(1)
+  const [keyword, setKeyword] = useState("")
+  const { dataSources, pagination, isLoading } = useDataSources(activeTenant, { page, size: 10, keyword })
+  const { gateways } = useGateways(activeTenant, { is_pager: 0 })
+  const deleteMutation = useDeleteDataSource(activeTenant)
 
   const handleDelete = async (ds: DataSource) => {
-    if (!confirm(`确定要删除数据源 "${ds.name} (${ds.envs?.[0]?.env || "default"})" 吗？`)) return
-    try {
-      await apiDeleteDataSource(activeTenant, ds.id)
-      fetchData()
-    } catch (err: any) {
-      alert(err.message)
-    }
+    if (!confirm(`确定要删除数据源 "${ds.name}" 吗？`)) return
+    deleteMutation.mutate(ds.id!)
   }
 
   const getGatewayName = (ds: DataSource) => {
@@ -65,11 +47,6 @@ export default function DataSourcesClientPage() {
     if (!env) return "-"
     return gateways.find(g => g.id === env.gateway_id)?.name || "-"
   }
-
-  const filtered = dataSources.filter(ds =>
-    ds.name.toLowerCase().includes(search.toLowerCase()) ||
-    ds.type.toLowerCase().includes(search.toLowerCase())
-  )
 
   // 判断某个数据源是否属于多环境
   const isDualEnv = (ds: DataSource) => ds.is_dual
@@ -91,21 +68,17 @@ export default function DataSourcesClientPage() {
       <div className="bg-white border border-zinc-100 rounded-lg p-3 shadow-sm">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          <Input placeholder="通过名称或类型检索数据源..." className="pl-9 h-9 text-xs bg-zinc-50 border-zinc-100 rounded-lg" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input placeholder="通过名称或类型检索数据源..." className="pl-9 h-9 text-xs bg-zinc-50 border-zinc-100 rounded-lg" value={keyword} onChange={(e) => { setKeyword(e.target.value); setPage(1) }} />
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-20 text-zinc-400 text-sm">加载中...</div>
-      ) : filtered.length === 0 && !search ? (
-        <div className="text-center py-20">
-          <Database className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
-          <p className="text-zinc-500 text-sm">暂无数据源</p>
-          <p className="text-zinc-400 text-xs mt-1">点击「接入新数据源」创建第一个数据源</p>
-        </div>
+      {isLoading ? (
+        <CardSkeleton count={3} />
+      ) : dataSources.length === 0 && !keyword ? (
+        <EmptyState icon={Database} title="暂无数据源" description="点击「接入新数据源」创建第一个数据源" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {filtered.map((ds) => (
+          {dataSources.map((ds) => (
             <Card key={ds.id} className="bg-white border-zinc-100 rounded-lg shadow-sm hover:shadow-md hover:border-blue-600/30 transition-all duration-300 flex flex-col h-full overflow-hidden group">
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
@@ -157,6 +130,8 @@ export default function DataSourcesClientPage() {
           </Link>
         </div>
       )}
+
+      <Pager page={page} size={10} total={pagination?.total ?? 0} onPageChange={setPage} />
     </div>
   )
 }

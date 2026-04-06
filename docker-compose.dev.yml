@@ -45,6 +45,7 @@ services:
       - /app/.next # Anonymous volume for build cache
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - INTERNAL_API_URL=http://owlapi_backend_dev:3000
     depends_on:
       backend:
         condition: service_healthy

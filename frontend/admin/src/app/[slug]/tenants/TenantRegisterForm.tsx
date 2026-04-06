@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card"
 import { ArrowLeft, ShieldCheck, CheckCircle2 } from "lucide-react"
 import { apiCreateTenant } from "@/lib/api-client"
 import { useUIStore } from "@/store/useUIStore"
-import { useTenantStore } from "@/store/useTenantStore"
+import { useQueryClient } from "@tanstack/react-query"
 
 interface TenantRegisterFormProps {
   onCancel: () => void
@@ -21,7 +21,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
   const [loading, setLoading] = useState(false)
   const [tenantId, setTenantId] = useState("")
   const { user } = useUIStore()
-  const { fetchTenants } = useTenantStore()
+  const qc = useQueryClient()
   const [formData, setFormData] = useState({
     companyName: "",
     slug: "",
@@ -165,7 +165,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                           plan: formData.plan as any,
                         })
                         setTenantId(String(tenant.id || ""))
-                        await fetchTenants()
+                        await qc.invalidateQueries({ queryKey: ["tenants"] })
                         setStep(3)
                       } catch (err: any) {
                         setError(err?.message || "创建失败")

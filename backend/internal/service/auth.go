@@ -5,15 +5,15 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hongjunyao/owlapi/internal/domain"
-	"github.com/hongjunyao/owlapi/internal/pkg/auth"
+	"github.com/bulolo/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/pkg/auth"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var (
-	ErrInvalidCredentials = errors.New("invalid email or password")
-	ErrEmailExists        = errors.New("email already registered")
+	ErrInvalidCredentials = domain.ErrUnauthorized("invalid email or password")
+	ErrEmailExists        = domain.ErrConflict("email already registered")
 )
 
 type AuthService interface {
@@ -114,8 +114,9 @@ func (s *authService) Login(ctx context.Context, email, password string) (*AuthR
 	}
 
 	var tenants []*domain.Tenant
+	allParams := domain.ListParams{Page: 1, Size: 0}
 	if user.IsSuperAdmin {
-		tenants, _, err = s.tenants.List(ctx, 1, 10000)
+		tenants, _, err = s.tenants.List(ctx, allParams)
 		if err != nil {
 			return nil, err
 		}
@@ -124,10 +125,14 @@ func (s *authService) Login(ctx context.Context, email, password string) (*AuthR
 		if err != nil {
 			return nil, err
 		}
-		tenants = make([]*domain.Tenant, 0, len(tenantUsers))
-		for _, tu := range tenantUsers {
-			if t, err := s.tenants.GetByID(ctx, tu.TenantID); err == nil {
-				tenants = append(tenants, t)
+		if len(tenantUsers) > 0 {
+			ids := make([]int64, len(tenantUsers))
+			for i, tu := range tenantUsers {
+				ids[i] = tu.TenantID
+			}
+			tenants, _, err = s.tenants.ListByIDs(ctx, ids, allParams)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}

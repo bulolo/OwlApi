@@ -2,10 +2,12 @@ import type { CreateClientConfig } from './sdk/client.gen'
 
 export const createClientConfig: CreateClientConfig = (config) => ({
   ...config,
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
+  baseUrl: '/',
+  responseStyle: 'data',
   auth: () => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('owlapi_token') || ''
+      const token = localStorage.getItem('owlapi_token')
+      return token ? `Bearer ${token}` : ''
     }
     return ''
   },

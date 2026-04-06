@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { 
   Building2, Plus, Search, Shield, Activity, Clock,
   ChevronRight, Trash2, Globe, Pencil, X
@@ -12,32 +12,30 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { useUIStore } from "@/store/useUIStore"
 import { useRouter } from "next/navigation"
-import { useTenantStore } from "@/store/useTenantStore"
+import { useTenants } from "@/hooks"
 import { apiDeleteTenant, apiUpdateTenant, type Tenant } from "@/lib/api-client"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Pager } from "@/components/ui/pager"
 import { toast } from "sonner"
+import { ListSkeleton } from "@/components/ui/skeletons"
+import { EmptyState } from "@/components/ui/empty-state"
+import { useQueryClient } from "@tanstack/react-query"
 
 import TenantRegisterForm from "./TenantRegisterForm"
 
 export default function TenantsClientPage() {
   const [isRegistering, setIsRegistering] = useState(false)
-  const [search, setSearch] = useState("")
+  const [keyword, setKeyword] = useState("")
   const [editing, setEditing] = useState<Tenant | null>(null)
+  const [page, setPage] = useState(1)
   const { setViewContext, setActiveTenant } = useUIStore()
-  const { tenants, fetchTenants, markTenantAsRecent, page, size, total } = useTenantStore()
+  const { tenants, pagination, isLoading } = useTenants({ page, size: 20, keyword })
+  const qc = useQueryClient()
   const router = useRouter()
 
-  useEffect(() => { fetchTenants() }, [])
-
   if (isRegistering) {
-    return <TenantRegisterForm onCancel={() => setIsRegistering(false)} onSuccess={() => { setIsRegistering(false); fetchTenants() }} />
+    return <TenantRegisterForm onCancel={() => setIsRegistering(false)} onSuccess={() => { setIsRegistering(false); qc.invalidateQueries({ queryKey: ["tenants"] }) }} />
   }
-
-  const filteredTenants = tenants.filter(t => 
-    (t.name || '').toLowerCase().includes(search.toLowerCase()) || 
-    (t.slug || '').toLowerCase().includes(search.toLowerCase()) ||
-    String(t.id || '').toLowerCase().includes(search.toLowerCase())
-  )
 
   return (
     <div className="space-y-6">
@@ -64,7 +62,7 @@ export default function TenantsClientPage() {
         <EditTenantModal
           tenant={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); fetchTenants() }}
+          onSaved={() => { setEditing(null); qc.invalidateQueries({ queryKey: ["tenants"] }) }}
         />
       )}
 
@@ -76,14 +74,14 @@ export default function TenantsClientPage() {
             <Input 
               placeholder="搜索租户名称、Slug 或 ID..." 
               className="pl-9 h-9 text-xs border-zinc-200 bg-white"
-              value={search}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              value={keyword}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setKeyword(e.target.value); setPage(1) }}
             />
           </div>
         </div>
 
         <div className="divide-y divide-zinc-100">
-          {filteredTenants.map((tenant, i) => (
+          {tenants.map((tenant, i) => (
             <div 
               key={tenant.id}
               className="p-4 hover:bg-zinc-50/50 transition-colors group"
@@ -129,7 +127,7 @@ export default function TenantsClientPage() {
                     onClick={() => {
                       setViewContext('TENANT');
                       setActiveTenant(tenant.slug!);
-                      markTenantAsRecent(String(tenant.id));
+                      // markTenantAsRecent removed — using React Query now
                       router.push(`/${tenant.slug}/overview`);
                     }}
                   >
@@ -151,7 +149,7 @@ export default function TenantsClientPage() {
                       try { 
                         await apiDeleteTenant(tenant.slug!)
                         toast.success(`租户「${tenant.name}」已删除`)
-                        fetchTenants() 
+                        qc.invalidateQueries({ queryKey: ["tenants"] }) 
                       } catch (err: any) {
                         toast.error(err.message || "删除失败")
                       }
@@ -163,12 +161,12 @@ export default function TenantsClientPage() {
               </div>
             </div>
           ))}
-          {filteredTenants.length === 0 && (
+          {tenants.length === 0 && (
             <div className="p-12 text-center text-sm text-zinc-400">暂无租户</div>
           )}
         </div>
         
-        <Pager page={page} size={size} total={total} onChange={(p, s) => fetchTenants(p, s)} />
+        <Pager page={page} size={20} total={pagination?.total ?? 0} onPageChange={setPage} />
       </div>
     </div>
   )
@@ -212,19 +210,25 @@ function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose
         </div>
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">订阅计划</label>
-          <select value={plan} onChange={(e) => setPlan(e.target.value)} className="w-full h-9 px-3 text-xs border border-zinc-200 rounded-lg bg-white">
-            <option value="Free">Free</option>
-            <option value="Pro">Pro</option>
-            <option value="Enterprise">Enterprise</option>
-          </select>
+          <Select value={plan} onValueChange={v => setPlan(v as typeof plan)}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Free">Free</SelectItem>
+              <SelectItem value="Pro">Pro</SelectItem>
+              <SelectItem value="Enterprise">Enterprise</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">状态</label>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full h-9 px-3 text-xs border border-zinc-200 rounded-lg bg-white">
-            <option value="Active">Active</option>
-            <option value="Warning">Warning</option>
-            <option value="Suspended">Suspended</option>
-          </select>
+          <Select value={status} onValueChange={v => setStatus(v as typeof status)}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Warning">Warning</SelectItem>
+              <SelectItem value="Suspended">Suspended</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

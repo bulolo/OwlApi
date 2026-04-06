@@ -2,9 +2,10 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/domain"
 )
 
 type GatewayRepo struct{ DB *DB }
@@ -35,12 +36,26 @@ func (r *GatewayRepo) UpdateStatus(ctx context.Context, tenantID, id int64, stat
 	return err
 }
 
-func (r *GatewayRepo) List(ctx context.Context, tenantID int64) ([]*domain.Gateway, error) {
+func (r *GatewayRepo) List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.Gateway, int, error) {
+	where := "WHERE tenant_id=$1"
+	args := []interface{}{tenantID}
+	argN := 2
+	if p.Keyword != "" {
+		where += fmt.Sprintf(" AND (name ILIKE $%d OR ip ILIKE $%d)", argN, argN)
+		args = append(args, "%"+p.Keyword+"%")
+		argN++
+	}
+
+	var total int
+	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM gateways `+where, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	pgSuffix, pgArgs := appendPagination(p, argN, args)
 	rows, err := r.DB.Pool.Query(ctx,
-		`SELECT id, tenant_id, name, token, status, ip, last_seen, version FROM gateways WHERE tenant_id=$1 ORDER BY id`,
-		tenantID)
+		fmt.Sprintf(`SELECT id, tenant_id, name, token, status, ip, last_seen, version FROM gateways %s ORDER BY id%s`, where, pgSuffix),
+		pgArgs...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 
@@ -48,14 +63,14 @@ func (r *GatewayRepo) List(ctx context.Context, tenantID int64) ([]*domain.Gatew
 	for rows.Next() {
 		var gw domain.Gateway
 		if err := rows.Scan(&gw.ID, &gw.TenantID, &gw.Name, &gw.Token, &gw.Status, &gw.IP, &gw.LastSeen, &gw.Version); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		list = append(list, &gw)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return list, nil
+	return list, total, nil
 }
 
 func (r *GatewayRepo) Delete(ctx context.Context, tenantID, id int64) error {

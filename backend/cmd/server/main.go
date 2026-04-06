@@ -1,3 +1,13 @@
+// @title           OwlApi Control Plane
+// @version         1.0
+// @description     企业级 SQL to API 智能网关平台管理接口
+// @host            localhost:3000
+// @BasePath        /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description 格式: Bearer {token}
+
 package main
 
 import (
@@ -11,14 +21,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/hongjunyao/owlapi/internal/config"
-	"github.com/hongjunyao/owlapi/internal/pb"
-	"github.com/hongjunyao/owlapi/internal/pkg/auth"
-	"github.com/hongjunyao/owlapi/internal/pkg/logger"
-	"github.com/hongjunyao/owlapi/internal/repo/postgres"
-	"github.com/hongjunyao/owlapi/internal/service"
-	transport_grpc "github.com/hongjunyao/owlapi/internal/transport/grpc"
-	transport_http "github.com/hongjunyao/owlapi/internal/transport/http"
+	"github.com/bulolo/owlapi/internal/config"
+	"github.com/bulolo/owlapi/internal/pb"
+	"github.com/bulolo/owlapi/internal/pkg/auth"
+	"github.com/bulolo/owlapi/internal/pkg/logger"
+	"github.com/bulolo/owlapi/internal/repo/postgres"
+	"github.com/bulolo/owlapi/internal/service"
+	transport_grpc "github.com/bulolo/owlapi/internal/transport/grpc"
+	transport_http "github.com/bulolo/owlapi/internal/transport/http"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -40,18 +50,27 @@ func main() {
 	}
 
 	// Repos
-	tenantRepo := &postgres.TenantRepo{DB: db}
-	userRepo := &postgres.UserRepo{DB: db}
+	tenantRepo     := &postgres.TenantRepo{DB: db}
+	userRepo       := &postgres.UserRepo{DB: db}
 	tenantUserRepo := &postgres.TenantUserRepo{DB: db}
-	gatewayRepo := &postgres.GatewayRepo{DB: db}
-	projectRepo := &postgres.ProjectRepo{DB: db}
+	gatewayRepo    := &postgres.GatewayRepo{DB: db}
+	projectRepo    := &postgres.ProjectRepo{DB: db}
+	dsRepo         := &postgres.DataSourceRepo{DB: db}
+	endpointRepo   := &postgres.APIEndpointRepo{DB: db}
+	groupRepo      := &postgres.APIGroupRepo{DB: db}
+	scriptRepo     := &postgres.ScriptRepo{DB: db}
 
 	// Services
-	authSvc := service.NewAuthService(userRepo, tenantRepo, tenantUserRepo)
-	tenantSvc := service.NewTenantService(tenantRepo, tenantUserRepo)
+	authSvc       := service.NewAuthService(userRepo, tenantRepo, tenantUserRepo)
+	tenantSvc     := service.NewTenantService(tenantRepo, tenantUserRepo)
 	tenantUserSvc := service.NewTenantUserService(userRepo, tenantUserRepo)
-	gatewaySvc := service.NewGatewayService(gatewayRepo)
-	querySvc := service.NewQueryService(gatewaySvc, projectRepo, projectRepo)
+	gatewaySvc    := service.NewGatewayService(gatewayRepo)
+	dsSvc         := service.NewDataSourceService(dsRepo)
+	projectSvc    := service.NewProjectService(projectRepo)
+	endpointSvc   := service.NewAPIEndpointService(endpointRepo)
+	groupSvc      := service.NewAPIGroupService(groupRepo)
+	scriptSvc     := service.NewScriptService(scriptRepo)
+	querySvc      := service.NewQueryService(gatewaySvc, dsSvc, scriptSvc)
 
 	// HTTP Server
 	r := gin.Default()
@@ -73,7 +92,14 @@ func main() {
 	})
 	r.GET("/health", func(c *gin.Context) { transport_http.OK(c, gin.H{"status": "ok"}) })
 	transport_http.RegisterSwagger(r)
-	transport_http.RegisterRoutes(r, authSvc, tenantSvc, tenantUserSvc, gatewaySvc, querySvc, projectRepo, projectRepo, projectRepo, projectRepo, projectRepo, tenantRepo, tenantUserRepo)
+
+	app := &transport_http.App{
+		Auth: authSvc, Tenant: tenantSvc, TenantUser: tenantUserSvc,
+		Gateway: gatewaySvc, DataSource: dsSvc, Project: projectSvc,
+		Endpoint: endpointSvc, Group: groupSvc, Script: scriptSvc, Query: querySvc,
+		TenantRepo: tenantRepo, TenantUserRepo: tenantUserRepo,
+	}
+	app.RegisterRoutes(r)
 
 	// Graceful HTTP server
 	httpServer := &http.Server{Addr: cfg.HTTPPort, Handler: r}

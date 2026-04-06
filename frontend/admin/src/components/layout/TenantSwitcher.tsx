@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { ChevronsUpDown, Building2, Check } from "lucide-react"
 import { useUIStore } from "@/store/useUIStore"
-import { useTenantStore } from "@/store/useTenantStore"
+import { useTenants } from "@/hooks"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,15 +22,12 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
   const { activeTenant: storeTenant, setActiveTenant, user } = useUIStore()
   
   const activeTenant = slug !== 'system' ? (slug || storeTenant) : storeTenant
-  const { tenants, fetchTenants, markTenantAsRecent } = useTenantStore()
+  const { tenants } = useTenants({ is_pager: 0 })
   const isSuperAdmin = user?.is_superadmin === true
   
   useEffect(() => {
     setMounted(true)
-    if (isSuperAdmin) {
-      fetchTenants(1, 100)
-    }
-  }, [isSuperAdmin])
+  }, [])
 
   const currentTenantObj = tenants.find(t => t.slug === activeTenant) || tenants[0]
 
@@ -92,7 +89,6 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
             <DropdownMenuItem
               key={tenant.id}
               onClick={() => {
-                markTenantAsRecent(String(tenant.id))
                 router.push(`/${tenant.slug}/overview`)
               }}
               className="text-xs font-medium py-2 px-2 cursor-pointer"

@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/hongjunyao/owlapi/internal/pb"
-	"github.com/hongjunyao/owlapi/internal/service"
+	"github.com/bulolo/owlapi/internal/pb"
+	"github.com/bulolo/owlapi/internal/service"
 	"google.golang.org/grpc/peer"
 )
 

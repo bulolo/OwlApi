@@ -8,7 +8,7 @@
 .PHONY: help \
 	dev-init dev-up dev-down dev-build dev-rebuild dev-restart dev-restart-backend dev-logs dev-logs-backend dev-clean dev-db-psql \
 	prod-init prod-up prod-up-build prod-down prod-rebuild prod-restart prod-logs prod-clean check-prod-env \
-	gen-proto gen-sdk clean \
+	gen-proto gen-sdk gen-swagger clean \
  publish-ce-github
 
 # ------------------------------------------------------------------------------
@@ -168,13 +168,21 @@ prod-clean: check-prod-env
 # ------------------------------------------------------------------------------
 # 5. [通用命令] Common Targets
 # ------------------------------------------------------------------------------
+gen-swagger:
+	@echo "🔄 生成 Swagger 文档..."
+	cd backend && $$(go env GOPATH)/bin/swag init -g cmd/server/main.go -o docs
+	@echo "✅ Swagger 文档已生成 → backend/docs/"
+
 gen-proto:
 	@echo "🔄 生成 gRPC 代码..."
-	cd backend/proto && buf generate
+	cd backend && protoc --go_out=internal/pb --go-grpc_out=internal/pb \
+		--go_opt=paths=source_relative --go-grpc_opt=paths=source_relative \
+		-I proto proto/gateway.proto
+	@echo "✅ gRPC 代码已生成"
 
-gen-sdk:
+gen-sdk: gen-swagger
 	@echo "🔄 从 OpenAPI spec 生成前端 SDK..."
-	cd frontend/admin && pnpm run gen-sdk
+	cd frontend/admin && npm run gen-sdk
 	@echo "✅ SDK 已生成"
 
 clean:

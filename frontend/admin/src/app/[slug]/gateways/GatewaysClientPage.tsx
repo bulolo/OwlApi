@@ -1,54 +1,39 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Server, Plus, Globe, Trash2, Eye, Copy, Check } from "lucide-react"
+import { useState } from "react"
+import { Server, Plus, Globe, Trash2, Eye, Copy, Check, Search } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useUIStore } from "@/store/useUIStore"
-import { apiListGateways, apiDeleteGateway, apiGetGateway, type Gateway } from "@/lib/api-client"
+import { useGateways, useDeleteGateway } from "@/hooks"
+import { apiGetGateway, type Gateway } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
+import { Input } from "@/components/ui/input"
+import { ListSkeleton } from "@/components/ui/skeletons"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Pager } from "@/components/ui/pager"
+import { toast } from "sonner"
 
 export default function GatewaysClientPage() {
   const { activeTenant } = useUIStore()
-  const [gateways, setGateways] = useState<Gateway[]>([])
-  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [keyword, setKeyword] = useState("")
+  const { gateways, pagination, isLoading, refetch } = useGateways(activeTenant, { page, size: 10, keyword })
+  const deleteMutation = useDeleteGateway(activeTenant)
   const [detail, setDetail] = useState<Gateway | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const fetchGateways = async () => {
-    if (!activeTenant) return
-    try {
-      setLoading(true)
-      const data = await apiListGateways(activeTenant)
-      setGateways(data.list || [])
-    } catch (err) {
-      console.error("Failed to fetch gateways", err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchGateways()
-  }, [activeTenant])
-
   const handleDelete = async (gw: Gateway) => {
     if (!confirm(`确定要删除网关节点 "${gw.name}" 吗？`)) return
-    try {
-      await apiDeleteGateway(activeTenant, gw.id)
-      setDetail(null)
-      fetchGateways()
-    } catch (err: any) {
-      alert(err.message)
-    }
+    deleteMutation.mutate(gw.id, { onSuccess: () => setDetail(null) })
   }
 
   const handleViewDeploy = async (gw: Gateway) => {
     try {
       const full = await apiGetGateway(activeTenant, gw.id)
       setDetail(full)
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "获取详情失败")
     }
   }
 
@@ -90,10 +75,10 @@ export default function GatewaysClientPage() {
           <p className="text-sm text-zinc-500 mt-1 font-medium">网关节点部署于数据库所在机器，提供安全的内网数据索引能力。</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="h-9 px-4 rounded-lg border-zinc-200 text-xs font-bold shadow-sm" onClick={fetchGateways}>
+          <Button variant="outline" className="h-9 px-4 rounded-lg border-zinc-200 text-xs font-bold shadow-sm" onClick={() => refetch()}>
             刷新
           </Button>
-          <Link href={`/${activeTenant}/gateways/register`}>
+          <Link href={`/${activeTenant}/gateways/new`}>
             <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
               <Plus className="w-4 h-4 mr-2" />
               安装新节点
@@ -102,14 +87,17 @@ export default function GatewaysClientPage() {
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-20 text-zinc-400 text-sm">加载中...</div>
-      ) : gateways.length === 0 ? (
-        <div className="text-center py-20">
-          <Server className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
-          <p className="text-zinc-500 text-sm">暂无网关节点</p>
-          <p className="text-zinc-400 text-xs mt-1">点击「安装新节点」创建第一个网关</p>
+      <div className="bg-white border border-zinc-100 rounded-lg p-3 shadow-sm">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+          <Input placeholder="搜索网关节点..." className="pl-9 h-9 text-xs bg-zinc-50 border-zinc-100 rounded-lg" value={keyword} onChange={(e) => { setKeyword(e.target.value); setPage(1) }} />
         </div>
+      </div>
+
+      {isLoading ? (
+        <ListSkeleton rows={3} />
+      ) : gateways.length === 0 ? (
+        <EmptyState icon={Server} title={keyword ? "无匹配节点" : "暂无网关节点"} description={keyword ? "尝试其他关键词" : "点击「安装新节点」创建第一个网关"} />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {gateways.map((gw) => (
@@ -158,6 +146,8 @@ export default function GatewaysClientPage() {
           ))}
         </div>
       )}
+
+      <Pager page={page} size={10} total={pagination?.total ?? 0} onPageChange={setPage} />
 
       {detail && (
         <div className="bg-white border border-zinc-100 rounded-lg shadow-sm p-6 space-y-4">

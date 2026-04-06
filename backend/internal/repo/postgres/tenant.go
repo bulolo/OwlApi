@@ -2,9 +2,10 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/domain"
 )
 
 type TenantRepo struct{ DB *DB }
@@ -39,20 +40,68 @@ func (r *TenantRepo) GetBySlug(ctx context.Context, slug string) (*domain.Tenant
 	return &t, nil
 }
 
-func (r *TenantRepo) List(ctx context.Context, page, size int) ([]*domain.Tenant, int, error) {
+func (r *TenantRepo) List(ctx context.Context, p domain.ListParams) ([]*domain.Tenant, int, error) {
+	where := "WHERE 1=1"
+	args := []interface{}{}
+	argN := 1
+	if p.Keyword != "" {
+		where += fmt.Sprintf(" AND (name ILIKE $%d OR slug ILIKE $%d)", argN, argN)
+		args = append(args, "%"+p.Keyword+"%")
+		argN++
+	}
+
 	var total int
-	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM tenants`).Scan(&total); err != nil {
+	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM tenants `+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	offset := (page - 1) * size
+	pgSuffix, pgArgs := appendPagination(p, argN, args)
 	rows, err := r.DB.Pool.Query(ctx,
-		`SELECT id, name, slug, plan, status, created_at, updated_at FROM tenants ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
-		size, offset)
+		fmt.Sprintf(`SELECT id, name, slug, plan, status, created_at, updated_at FROM tenants %s ORDER BY created_at DESC%s`, where, pgSuffix),
+		pgArgs...)
 	if err != nil {
 		return nil, 0, err
 	}
 	defer rows.Close()
 
+	var tenants []*domain.Tenant
+	for rows.Next() {
+		var t domain.Tenant
+		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Plan, &t.Status, &t.CreatedAt, &t.UpdatedAt); err != nil {
+			return nil, 0, err
+		}
+		tenants = append(tenants, &t)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	return tenants, total, nil
+}
+
+func (r *TenantRepo) ListByIDs(ctx context.Context, ids []int64, p domain.ListParams) ([]*domain.Tenant, int, error) {
+	if len(ids) == 0 {
+		return nil, 0, nil
+	}
+	where := "WHERE id = ANY($1)"
+	args := []interface{}{ids}
+	argN := 2
+	if p.Keyword != "" {
+		where += fmt.Sprintf(" AND (name ILIKE $%d OR slug ILIKE $%d)", argN, argN)
+		args = append(args, "%"+p.Keyword+"%")
+		argN++
+	}
+
+	var total int
+	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM tenants `+where, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	pgSuffix, pgArgs := appendPagination(p, argN, args)
+	rows, err := r.DB.Pool.Query(ctx,
+		fmt.Sprintf(`SELECT id, name, slug, plan, status, created_at, updated_at FROM tenants %s ORDER BY created_at DESC%s`, where, pgSuffix),
+		pgArgs...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
 	var tenants []*domain.Tenant
 	for rows.Next() {
 		var t domain.Tenant

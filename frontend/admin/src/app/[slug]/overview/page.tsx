@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Activity, Server, Users, Zap, ArrowUpRight, ArrowDownRight, Box, FolderGit2 } from "lucide-react"
 import { useUIStore } from "@/store/useUIStore"
-import { apiListGateways, apiListProjects, apiListUsers, apiListDataSources } from "@/lib/api-client"
-import { listEndpoints } from "@/lib/sdk"
+import { useGateways, useProjects, useDataSources } from "@/hooks"
 
 const TRAFFIC_DATA = {
   "24H": [30, 45, 32, 50, 65, 54, 80, 75, 90, 85, 120, 110, 140, 130, 125, 100, 95, 110, 125, 115, 100, 80, 60, 40],
@@ -21,36 +20,16 @@ const RANGE_LABELS = {
 export default function OverviewPage() {
   const [range, setRange] = useState<keyof typeof TRAFFIC_DATA>("24H")
   const { activeTenant } = useUIStore()
-  const [gatewayLabel, setGatewayLabel] = useState("0/0")
-  const [gatewayStatus, setGatewayStatus] = useState("--")
-  const [endpointCount, setEndpointCount] = useState(0)
-  const [projectCount, setProjectCount] = useState(0)
-  const [userCount, setUserCount] = useState(0)
-  const [dsCount, setDsCount] = useState(0)
+  const { gateways, pagination: gwPagination } = useGateways(activeTenant, { is_pager: 0 })
+  const { pagination: projPagination } = useProjects(activeTenant, { is_pager: 0 })
+  const { pagination: dsPagination } = useDataSources(activeTenant, { is_pager: 0 })
 
-  useEffect(() => {
-    if (!activeTenant) return
-    apiListGateways(activeTenant).then(({ list }) => {
-      const online = list.filter(g => g.status === 'online').length
-      setGatewayLabel(`${online}/${list.length}`)
-      setGatewayStatus(online === list.length && list.length > 0 ? 'Healthy' : `${online} Online`)
-    }).catch(() => {})
-    apiListProjects(activeTenant).then(async ({ list }) => {
-      setProjectCount(list.length)
-      let total = 0
-      for (const p of list) {
-        if (!p.id) continue
-        try {
-          const res = await listEndpoints({ path: { slug: activeTenant, projectId: p.id } })
-          const data = res.data as { total?: number; list?: unknown[] } | undefined
-          total += data?.total ?? data?.list?.length ?? 0
-        } catch { /* skip */ }
-      }
-      setEndpointCount(total)
-    }).catch(() => {})
-    apiListUsers(activeTenant, 1, 1).then(({ pagination }) => setUserCount(pagination?.total ?? 0)).catch(() => {})
-    apiListDataSources(activeTenant).then(({ list }) => setDsCount(list.length)).catch(() => {})
-  }, [activeTenant])
+  const onlineGw = gateways.filter(g => g.status === 'online').length
+  const gwTotal = gwPagination?.total ?? gateways.length
+  const gatewayLabel = `${onlineGw}/${gwTotal}`
+  const gatewayStatus = onlineGw === gwTotal && gwTotal > 0 ? 'Healthy' : `${onlineGw} Online`
+  const projectCount = projPagination?.total ?? 0
+  const dsCount = dsPagination?.total ?? 0
 
   return (
     <div className="space-y-8">
@@ -62,8 +41,8 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="网关节点" value={gatewayLabel} change={gatewayStatus} trend="up" icon={Server} color="blue" />
         <StatCard title="数据源" value={String(dsCount)} change="已接入" trend="up" icon={Activity} color="indigo" />
-        <StatCard title="项目" value={String(projectCount)} change={`${userCount} 成员`} trend="up" icon={FolderGit2} color="amber" />
-        <StatCard title="API 接口" value={String(endpointCount)} change={`${projectCount} 项目`} trend="up" icon={Box} color="emerald" />
+        <StatCard title="项目" value={String(projectCount)} change={`${dsCount} 数据源`} trend="up" icon={FolderGit2} color="amber" />
+        <StatCard title="数据源" value={String(dsCount)} change="已接入" trend="up" icon={Box} color="emerald" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

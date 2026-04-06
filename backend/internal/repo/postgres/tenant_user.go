@@ -2,8 +2,9 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/domain"
 )
 
 type TenantUserRepo struct{ DB *DB }
@@ -23,16 +24,26 @@ func (r *TenantUserRepo) Delete(ctx context.Context, tenantID, userID int64) err
 	return err
 }
 
-func (r *TenantUserRepo) List(ctx context.Context, tenantID int64, page, size int) ([]*domain.TenantUser, int, error) {
+func (r *TenantUserRepo) List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.TenantUser, int, error) {
+	where := "WHERE tu.tenant_id=$1"
+	args := []interface{}{tenantID}
+	argN := 2
+	if p.Keyword != "" {
+		where += fmt.Sprintf(" AND (u.name ILIKE $%d OR u.email ILIKE $%d)", argN, argN)
+		args = append(args, "%"+p.Keyword+"%")
+		argN++
+	}
+
 	var total int
-	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM tenant_users WHERE tenant_id=$1`, tenantID).Scan(&total); err != nil {
+	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM tenant_users tu JOIN users u ON tu.user_id = u.id `+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	offset := (page - 1) * size
+	pgSuffix, pgArgs := appendPagination(p, argN, args)
 	rows, err := r.DB.Pool.Query(ctx,
-		`SELECT tu.tenant_id, tu.user_id, tu.role, tu.joined_at, u.id, u.email, u.name, u.is_superadmin, u.created_at, u.updated_at
+		fmt.Sprintf(`SELECT tu.tenant_id, tu.user_id, tu.role, tu.joined_at, u.id, u.email, u.name, u.is_superadmin, u.created_at, u.updated_at
 		 FROM tenant_users tu JOIN users u ON tu.user_id = u.id
-		 WHERE tu.tenant_id=$1 ORDER BY tu.joined_at LIMIT $2 OFFSET $3`, tenantID, size, offset)
+		 %s ORDER BY tu.joined_at%s`, where, pgSuffix),
+		pgArgs...)
 	if err != nil {
 		return nil, 0, err
 	}

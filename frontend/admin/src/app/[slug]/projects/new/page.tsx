@@ -10,38 +10,33 @@ import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, Save } from "lucide-react"
 import Link from "next/link"
 import { useUIStore } from "@/store/useUIStore"
-import { apiCreateProject, apiUpdateProject, apiGetProject } from "@/lib/api-client"
+import { useProject, useCreateProject, useUpdateProject } from "@/hooks"
+import { toast } from "sonner"
 
 export default function ProjectFormPage({ projectId }: { projectId?: number }) {
   const { activeTenant } = useUIStore()
   const router = useRouter()
   const isEdit = !!projectId
-  const [saving, setSaving] = useState(false)
+
+  const { data: existing } = useProject(activeTenant, projectId ?? 0)
+  const createMutation = useCreateProject(activeTenant)
+  const updateMutation = useUpdateProject(activeTenant, projectId ?? 0)
 
   const [formData, setFormData] = useState({ name: "", description: "" })
 
   useEffect(() => {
-    if (isEdit && activeTenant) {
-      apiGetProject(activeTenant, projectId).then(p => {
-        setFormData({ name: p.name, description: p.description })
-      }).catch(() => {})
-    }
-  }, [projectId, activeTenant])
+    if (existing) setFormData({ name: existing.name ?? "", description: existing.description ?? "" })
+  }, [existing])
 
-  const handleSave = async () => {
-    if (!formData.name) return alert("请输入项目名称")
-    try {
-      setSaving(true)
-      if (isEdit) {
-        await apiUpdateProject(activeTenant, projectId, formData)
-      } else {
-        await apiCreateProject(activeTenant, formData)
-      }
-      router.push(`/${activeTenant}/projects`)
-    } catch (err: any) {
-      alert(err.message)
-    } finally {
-      setSaving(false)
+  const saving = createMutation.isPending || updateMutation.isPending
+
+  const handleSave = () => {
+    if (!formData.name) return toast.error("请输入项目名称")
+    const onSuccess = () => router.push(`/${activeTenant}/projects`)
+    if (isEdit) {
+      updateMutation.mutate(formData, { onSuccess })
+    } else {
+      createMutation.mutate(formData, { onSuccess })
     }
   }
 

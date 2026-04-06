@@ -1,12 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useUIStore } from "@/store/useUIStore"
 import { Box, ArrowLeft, Settings, Download, ChevronRight, Layers } from "lucide-react"
-import { apiGetProject, apiListEndpoints, apiExportOpenAPI, type Project } from "@/lib/api-client"
+import { useProject } from "@/hooks"
+import { apiExportOpenAPI } from "@/lib/api-client"
+import { listEndpoints } from "@/lib/sdk"
+import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export default function ProjectLayoutContent({
   children,
@@ -16,23 +19,22 @@ export default function ProjectLayoutContent({
   projectId: string
 }) {
   const { activeTenant } = useUIStore()
-  const [project, setProject] = useState<Project | null>(null)
-  const [endpointCount, setEndpointCount] = useState(0)
-
-  useEffect(() => {
-    if (activeTenant && projectId) {
-      apiGetProject(activeTenant, Number(projectId)).then(setProject).catch(() => {})
-      apiListEndpoints(activeTenant, Number(projectId))
-        .then(data => setEndpointCount(data.list?.length || 0))
-        .catch(() => {})
-    }
-  }, [activeTenant, projectId])
+  const { data: project } = useProject(activeTenant, Number(projectId))
+  const { data: epData } = useQuery({
+    queryKey: ["endpoints", activeTenant, projectId],
+    queryFn: async () => {
+      const res = await listEndpoints({ path: { slug: activeTenant, projectId: Number(projectId) } })
+      return res as unknown as { list?: unknown[] } | undefined
+    },
+    enabled: !!activeTenant && !!projectId,
+  })
+  const endpointCount = epData?.list?.length ?? 0
 
   const handleExport = async () => {
     try {
       await apiExportOpenAPI(activeTenant, Number(projectId))
-    } catch (err: any) {
-      alert("导出失败: " + err.message)
+    } catch (err: unknown) {
+      toast.error("导出失败: " + (err instanceof Error ? err.message : "未知错误"))
     }
   }
 

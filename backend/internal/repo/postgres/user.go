@@ -3,7 +3,7 @@ package postgres
 import (
 	"context"
 
-	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/domain"
 )
 
 type UserRepo struct{ DB *DB }

@@ -6,7 +6,7 @@ import { Hexagon, ArrowRight, ShieldCheck, Mail, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useUIStore } from "@/store/useUIStore"
-import { useTenantStore } from "@/store/useTenantStore"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function LoginPage() {
   return (
@@ -20,7 +20,7 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { login } = useUIStore()
-  const { fetchTenants } = useTenantStore()
+  const qc = useQueryClient()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -47,7 +47,7 @@ function LoginForm() {
         localStorage.removeItem('owlapi_remember_email')
       }
       const res = await login(email, password)
-      await fetchTenants()
+      await qc.invalidateQueries({ queryKey: ["tenants"] })
       const redirect = searchParams.get('redirect')
       if (redirect) {
         router.push(redirect)

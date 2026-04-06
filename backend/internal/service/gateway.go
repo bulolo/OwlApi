@@ -9,14 +9,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hongjunyao/owlapi/internal/domain"
-	"github.com/hongjunyao/owlapi/internal/pb"
+	"github.com/bulolo/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/pb"
 )
 
 type GatewayService interface {
 	// HTTP CRUD
 	Create(ctx context.Context, gw *domain.Gateway) error
-	List(ctx context.Context, tenantID int64) ([]*domain.Gateway, error)
+	List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.Gateway, int, error)
 	GetByID(ctx context.Context, tenantID, id int64) (*domain.Gateway, error)
 	Delete(ctx context.Context, tenantID, id int64) error
 
@@ -50,8 +50,8 @@ func (s *gatewayService) Create(ctx context.Context, gw *domain.Gateway) error {
 	return s.repo.Create(ctx, gw)
 }
 
-func (s *gatewayService) List(ctx context.Context, tenantID int64) ([]*domain.Gateway, error) {
-	return s.repo.List(ctx, tenantID)
+func (s *gatewayService) List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.Gateway, int, error) {
+	return s.repo.List(ctx, tenantID, p)
 }
 
 func (s *gatewayService) GetByID(ctx context.Context, tenantID, id int64) (*domain.Gateway, error) {

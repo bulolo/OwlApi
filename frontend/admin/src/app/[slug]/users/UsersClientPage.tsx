@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 
 import {
   Users,
@@ -16,75 +16,48 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/store/useUIStore"
-import { apiListUsers, apiAddUser, apiRemoveUser, apiUpdateUserRole, type TenantUser } from "@/lib/api-client"
+import { useUsers, useAddUser, useRemoveUser, useUpdateUserRole } from "@/hooks"
+import type { TenantUser } from "@/lib/api-client"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Pager } from "@/components/ui/pager"
+import { ListSkeleton } from "@/components/ui/skeletons"
+import { EmptyState } from "@/components/ui/empty-state"
+import { toast } from "sonner"
 
 export default function UsersClientPage() {
   const { activeTenant } = useUIStore()
-  const [users, setUsers] = useState<TenantUser[]>([])
-  const [search, setSearch] = useState("")
-  const [loading, setLoading] = useState(true)
+  const [keyword, setKeyword] = useState("")
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ email: "", name: "", password: "", role: "Viewer" })
   const [addError, setAddError] = useState("")
-  const [adding, setAdding] = useState(false)
   const [page, setPage] = useState(1)
-  const [size, setSize] = useState(10)
-  const [total, setTotal] = useState(0)
 
-  const fetchUsers = async (p?: number, s?: number) => {
-    if (!activeTenant) return
-    const currentPage = p ?? page
-    const currentSize = s ?? size
-    try {
-      const res = await apiListUsers(activeTenant, currentPage, currentSize)
-      setUsers(res.list || [])
-      setTotal(res.pagination.total)
-      setPage(res.pagination.page)
-      setSize(res.pagination.size)
-    } catch { /* ignore */ } finally {
-      setLoading(false)
-    }
-  }
+  const { users, pagination, isLoading } = useUsers(activeTenant, { page, size: 10, keyword })
 
-  useEffect(() => { fetchUsers() }, [activeTenant])
+  const addMutation = useAddUser(activeTenant)
+  const removeMutation = useRemoveUser(activeTenant)
+  const roleMutation = useUpdateUserRole(activeTenant)
 
   const handleAdd = async () => {
     if (!form.email || !form.name || !form.password || !activeTenant) return
-    setAdding(true)
     setAddError("")
-    try {
-      await apiAddUser(activeTenant, { ...form, role: form.role as any })
-      setForm({ email: "", name: "", password: "", role: "Viewer" })
-      setShowAdd(false)
-      fetchUsers()
-    } catch (err: any) {
-      setAddError(err?.message || "添加失败")
-    } finally {
-      setAdding(false)
-    }
+    addMutation.mutate(
+      { email: form.email, name: form.name, password: form.password, role: form.role as 'Admin' | 'Viewer' },
+      {
+        onSuccess: () => { setForm({ email: "", name: "", password: "", role: "Viewer" }); setShowAdd(false) },
+        onError: (err) => setAddError(err.message || "添加失败"),
+      },
+    )
   }
 
-  const handleRemove = async (userId: number) => {
-    if (!activeTenant || !confirm("确认移除该成员？")) return
-    try {
-      await apiRemoveUser(activeTenant, userId)
-      fetchUsers()
-    } catch { /* ignore */ }
+  const handleRemove = (userId: number) => {
+    if (!confirm("确认移除该成员？")) return
+    removeMutation.mutate(userId)
   }
 
-  const handleRoleChange = async (userId: number, role: string) => {
-    if (!activeTenant) return
-    try {
-      await apiUpdateUserRole(activeTenant, userId, role)
-      fetchUsers()
-    } catch { /* ignore */ }
+  const handleRoleChange = (userId: number, role: 'Admin' | 'Viewer') => {
+    roleMutation.mutate({ userId, role })
   }
-
-  const filtered = users.filter(m =>
-    (m.user?.name || "").toLowerCase().includes(search.toLowerCase()) ||
-    (m.user?.email || "").toLowerCase().includes(search.toLowerCase())
-  )
 
   const roleColor = (role?: string) => {
     if (role === "Admin") return "bg-blue-50 text-blue-600 border-blue-100"
@@ -131,16 +104,19 @@ export default function UsersClientPage() {
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-zinc-400 uppercase">角色</label>
-              <select value={form.role} onChange={(e) => setForm({...form, role: e.target.value})} className="w-full h-9 px-3 text-xs border border-zinc-200 rounded-lg bg-white">
-                <option value="Admin">Admin</option>
-                <option value="Viewer">Viewer</option>
-              </select>
+              <Select value={form.role} onValueChange={(v) => setForm({...form, role: v})}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="Viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           {addError && <p className="text-xs text-red-500">{addError}</p>}
           <div className="flex justify-end">
-            <Button onClick={handleAdd} disabled={adding} className="h-9 px-6 bg-blue-600 text-white text-xs font-bold">
-              {adding ? "添加中..." : "确认添加"}
+            <Button onClick={handleAdd} disabled={addMutation.isPending} className="h-9 px-6 bg-blue-600 text-white text-xs font-bold">
+              {addMutation.isPending ? "添加中..." : "确认添加"}
             </Button>
           </div>
         </div>
@@ -153,20 +129,20 @@ export default function UsersClientPage() {
           <Input
             placeholder="搜索姓名或邮箱..."
             className="pl-9 h-9 text-xs bg-zinc-50 border-zinc-100 rounded-lg"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={keyword}
+            onChange={(e) => { setKeyword(e.target.value); setPage(1) }}
           />
         </div>
       </div>
 
       {/* User List */}
       <div className="space-y-3">
-        {loading ? (
-          <div className="text-center py-12 text-sm text-zinc-400">加载中...</div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-sm text-zinc-400">暂无成员</div>
+        {isLoading ? (
+          <ListSkeleton rows={5} />
+        ) : users.length === 0 ? (
+          <EmptyState icon={Users} title="暂无成员" description="添加第一个团队成员" />
         ) : (
-          filtered.map((m, i) => (
+          users.map((m, i) => (
             <div
               key={m.user_id}
               className="bg-white border border-zinc-100 rounded-lg p-4 shadow-sm hover:shadow-sm transition-all group"
@@ -188,17 +164,13 @@ export default function UsersClientPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <select
-                    value={m.role}
-                    onChange={(e) => handleRoleChange(m.user_id!, e.target.value)}
-                    className={cn(
-                      "h-7 px-2 text-[10px] font-bold uppercase border rounded-full appearance-none cursor-pointer",
-                      roleColor(m.role)
-                    )}
-                  >
-                    <option value="Admin">Admin</option>
-                    <option value="Viewer">Viewer</option>
-                  </select>
+                  <Select value={m.role} onValueChange={(v) => handleRoleChange(m.user_id!, v as 'Admin' | 'Viewer')}>
+                    <SelectTrigger className={cn("h-7 w-24 text-[10px] font-bold uppercase rounded-full border", roleColor(m.role))}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Admin">Admin</SelectItem>
+                      <SelectItem value="Viewer">Viewer</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -214,7 +186,7 @@ export default function UsersClientPage() {
         )}
       </div>
 
-      <Pager page={page} size={size} total={total} onChange={(p, s) => fetchUsers(p, s)} />
+      <Pager page={page} size={10} total={pagination?.total ?? 0} onPageChange={setPage} />
     </div>
   )
 }

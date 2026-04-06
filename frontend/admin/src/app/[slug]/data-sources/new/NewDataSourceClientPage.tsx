@@ -19,22 +19,20 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useUIStore } from "@/store/useUIStore"
-import { apiListGateways, apiCreateDataSource, apiGetDataSource, apiUpdateDataSource, type Gateway } from "@/lib/api-client"
+import { useGateways, useDataSource, useCreateDataSource, useUpdateDataSource } from "@/hooks"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
 export default function NewDataSourceClientPage({ datasourceId }: { datasourceId?: number }) {
   const { activeTenant } = useUIStore()
   const router = useRouter()
-  const [gateways, setGateways] = useState<Gateway[]>([])
+  const { gateways } = useGateways(activeTenant, { is_pager: 0 })
+  const { data: existingDs } = useDataSource(activeTenant, datasourceId ?? 0)
+  const createMutation = useCreateDataSource(activeTenant)
+  const updateMutation = useUpdateDataSource(activeTenant, datasourceId ?? 0)
   const [saving, setSaving] = useState(false)
   const isEdit = !!datasourceId
-  
-  useEffect(() => {
-    if (activeTenant) {
-      apiListGateways(activeTenant).then(data => setGateways(data.list || [])).catch(() => {})
-    }
-  }, [activeTenant])
 
   const [formData, setFormData] = useState({
     name: "",
@@ -46,21 +44,19 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
 
   // Load existing data in edit mode
   useEffect(() => {
-    if (isEdit && activeTenant) {
-      apiGetDataSource(activeTenant, datasourceId).then(ds => {
-        const prodEnv = ds.envs?.find(e => e.env === "prod")
-        const devEnv = ds.envs?.find(e => e.env === "dev")
-        setFormData(prev => ({
-          ...prev,
-          name: ds.name,
-          type: ds.type,
-          isDual: ds.is_dual,
-          prod: { dsn: prodEnv?.dsn || "", gatewayId: prodEnv?.gateway_id || 0 },
-          dev: { dsn: devEnv?.dsn || "", gatewayId: devEnv?.gateway_id || 0 },
-        }))
-      }).catch(() => {})
+    if (existingDs) {
+      const prodEnv = existingDs.envs?.find(e => e.env === "prod")
+      const devEnv = existingDs.envs?.find(e => e.env === "dev")
+      setFormData(prev => ({
+        ...prev,
+        name: existingDs.name ?? "",
+        type: existingDs.type ?? "mysql",
+        isDual: existingDs.is_dual ?? false,
+        prod: { dsn: prodEnv?.dsn || "", gatewayId: prodEnv?.gateway_id || 0 },
+        dev: { dsn: devEnv?.dsn || "", gatewayId: devEnv?.gateway_id || 0 },
+      }))
     }
-  }, [datasourceId, activeTenant])
+  }, [existingDs])
 
   // Set default gateway when loaded (only for new)
   useEffect(() => {
@@ -74,39 +70,28 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
   }, [gateways])
 
   const handleSave = async () => {
-    if (!formData.name) return alert("请输入数据源名称")
-    if (!formData.prod.dsn) return alert("请输入连接串")
-    if (formData.isDual && !formData.dev.dsn) return alert("请输入测试环境连接串")
+    if (!formData.name) return toast.error("请输入数据源名称")
+    if (!formData.prod.dsn) return toast.error("请输入连接串")
+    if (formData.isDual && !formData.dev.dsn) return toast.error("请输入测试环境连接串")
 
-    try {
-      setSaving(true)
+    const envs: { env: 'dev' | 'prod'; dsn: string; gateway_id: number }[] = []
+    if (formData.isDual) {
+      envs.push({ env: "dev", dsn: formData.dev.dsn, gateway_id: formData.dev.gatewayId })
+    }
+    envs.push({ env: "prod", dsn: formData.prod.dsn, gateway_id: formData.prod.gatewayId })
 
-      const envs: { env: string; dsn: string; gateway_id: number }[] = []
-      if (formData.isDual) {
-        envs.push({ env: "dev", dsn: formData.dev.dsn, gateway_id: formData.dev.gatewayId })
-      }
-      envs.push({ env: "prod", dsn: formData.prod.dsn, gateway_id: formData.prod.gatewayId })
+    const body = {
+      name: formData.name,
+      type: formData.type as 'mysql' | 'postgres' | 'sqlserver' | 'starrocks' | 'doris' | 'sqlite',
+      is_dual: formData.isDual,
+      envs,
+    }
+    const onSuccess = () => router.push(`/${activeTenant}/data-sources`)
 
-      if (isEdit) {
-        await apiUpdateDataSource(activeTenant, datasourceId, {
-          name: formData.name,
-          type: formData.type,
-          is_dual: formData.isDual,
-          envs,
-        })
-      } else {
-        await apiCreateDataSource(activeTenant, {
-          name: formData.name,
-          type: formData.type,
-          is_dual: formData.isDual,
-          envs,
-        })
-      }
-      router.push(`/${activeTenant}/data-sources`)
-    } catch (err: any) {
-      alert(err.message)
-    } finally {
-      setSaving(false)
+    if (isEdit) {
+      updateMutation.mutate(body, { onSuccess })
+    } else {
+      createMutation.mutate(body, { onSuccess })
     }
   }
 

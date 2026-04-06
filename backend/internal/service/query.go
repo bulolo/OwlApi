@@ -6,11 +6,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
-	"github.com/hongjunyao/owlapi/internal/domain"
-	"github.com/hongjunyao/owlapi/internal/pb"
+	"github.com/bulolo/owlapi/internal/domain"
+	"github.com/bulolo/owlapi/internal/pb"
 )
 
 var (
@@ -20,20 +21,20 @@ var (
 )
 
 type QueryService interface {
-	Execute(ctx context.Context, tenantID, gatewayID string, endpoint *domain.APIEndpoint, params map[string]string) (*pb.QueryResult, error)
+	Execute(ctx context.Context, tenantID string, endpoint *domain.APIEndpoint, params map[string]string) (*pb.QueryResult, error)
 	ExecuteDirect(ctx context.Context, tenantID, gatewayID, dsn, sql string) (*pb.QueryResult, error)
 	NotifyResult(result *pb.QueryResult)
 }
 
 type queryService struct {
-	gateways   GatewayService
-	dsRepo     domain.DataSourceRepository
-	scriptRepo domain.ScriptRepository
-	pending    sync.Map
+	gateways    GatewayService
+	dataSources DataSourceService
+	scripts     ScriptService
+	pending     sync.Map
 }
 
-func NewQueryService(gateways GatewayService, dsRepo domain.DataSourceRepository, scriptRepo domain.ScriptRepository) QueryService {
-	return &queryService{gateways: gateways, dsRepo: dsRepo, scriptRepo: scriptRepo}
+func NewQueryService(gateways GatewayService, dataSources DataSourceService, scripts ScriptService) QueryService {
+	return &queryService{gateways: gateways, dataSources: dataSources, scripts: scripts}
 }
 
 func generateRequestID() string {
@@ -45,28 +46,28 @@ func generateRequestID() string {
 	return "req_" + hex.EncodeToString(b)
 }
 
-func (s *queryService) Execute(ctx context.Context, tenantID, gatewayID string, endpoint *domain.APIEndpoint, params map[string]string) (*pb.QueryResult, error) {
+func (s *queryService) Execute(ctx context.Context, tenantID string, endpoint *domain.APIEndpoint, params map[string]string) (*pb.QueryResult, error) {
+	dsEnv, err := s.dataSources.GetEnv(ctx, endpoint.DataSourceID, "prod")
+	if err != nil {
+		return nil, fmt.Errorf("%w: datasource %d: %v", ErrDatasourceNotFound, endpoint.DataSourceID, err)
+	}
+
+	gatewayID := strconv.FormatInt(dsEnv.GatewayID, 10)
 	stream := s.gateways.GetStream(tenantID, gatewayID)
 	if stream == nil {
 		return nil, fmt.Errorf("%w: gateway %s for tenant %s", ErrGatewayNotConnected, gatewayID, tenantID)
 	}
 
-	dsEnv, err := s.dsRepo.GetDataSourceEnv(ctx, endpoint.DataSourceID, "prod")
-	if err != nil {
-		return nil, fmt.Errorf("%w: datasource %d: %v", ErrDatasourceNotFound, endpoint.DataSourceID, err)
-	}
-
-	// Resolve scripts — distinguish "not found" from real DB errors
 	var preScript, postScript string
 	if endpoint.PreScriptID > 0 {
-		sc, err := s.scriptRepo.GetScriptByID(ctx, endpoint.TenantID, endpoint.PreScriptID)
+		sc, err := s.scripts.GetByID(ctx, endpoint.TenantID, endpoint.PreScriptID)
 		if err != nil {
 			return nil, fmt.Errorf("pre_script %d lookup failed: %w", endpoint.PreScriptID, err)
 		}
 		preScript = sc.Code
 	}
 	if endpoint.PostScriptID > 0 {
-		sc, err := s.scriptRepo.GetScriptByID(ctx, endpoint.TenantID, endpoint.PostScriptID)
+		sc, err := s.scripts.GetByID(ctx, endpoint.TenantID, endpoint.PostScriptID)
 		if err != nil {
 			return nil, fmt.Errorf("post_script %d lookup failed: %w", endpoint.PostScriptID, err)
 		}

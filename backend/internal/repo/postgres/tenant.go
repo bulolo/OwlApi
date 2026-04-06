@@ -61,6 +61,9 @@ func (r *TenantRepo) List(ctx context.Context, page, size int) ([]*domain.Tenant
 		}
 		tenants = append(tenants, &t)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 	return tenants, total, nil
 }
 

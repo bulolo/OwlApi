@@ -81,4 +81,6 @@ message ExecuteQueryRequest {
   string sql = 3;
   map<string, string> params = 4;
   int32 timeout_seconds = 5;
+  string pre_script = 6;
+  string post_script = 7;
 }

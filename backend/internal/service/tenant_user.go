@@ -2,11 +2,16 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var validRoles = map[domain.UserRole]bool{domain.RoleAdmin: true, domain.RoleViewer: true}
 
 type TenantUserService interface {
 	Create(ctx context.Context, tenantID int64, req AddTenantUserRequest) error
@@ -32,23 +37,25 @@ func NewTenantUserService(users domain.UserRepository, tenantUsers domain.Tenant
 }
 
 func (s *tenantUserService) Create(ctx context.Context, tenantID int64, req AddTenantUserRequest) error {
-	user, _ := s.users.GetByEmail(ctx, req.Email)
+	if !validRoles[req.Role] {
+		return fmt.Errorf("invalid role: %s", req.Role)
+	}
+
+	user, err := s.users.GetByEmail(ctx, req.Email)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
 	if user == nil {
 		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return err
 		}
-		user = &domain.User{
-			Email: req.Email, Name: req.Name,
-			PasswordHash: string(hash), CreatedAt: time.Now(), UpdatedAt: time.Now(),
-		}
+		user = &domain.User{Email: req.Email, Name: req.Name, PasswordHash: string(hash), CreatedAt: time.Now(), UpdatedAt: time.Now()}
 		if err := s.users.Create(ctx, user); err != nil {
 			return err
 		}
 	}
-	return s.tenantUsers.Create(ctx, &domain.TenantUser{
-		TenantID: tenantID, UserID: user.ID, Role: req.Role, JoinedAt: time.Now(),
-	})
+	return s.tenantUsers.Create(ctx, &domain.TenantUser{TenantID: tenantID, UserID: user.ID, Role: req.Role, JoinedAt: time.Now()})
 }
 
 func (s *tenantUserService) Delete(ctx context.Context, tenantID, userID int64) error {
@@ -60,5 +67,8 @@ func (s *tenantUserService) List(ctx context.Context, tenantID int64, page, size
 }
 
 func (s *tenantUserService) UpdateRole(ctx context.Context, tenantID, userID int64, role domain.UserRole) error {
+	if !validRoles[role] {
+		return fmt.Errorf("invalid role: %s", role)
+	}
 	return s.tenantUsers.UpdateRole(ctx, tenantID, userID, role)
 }

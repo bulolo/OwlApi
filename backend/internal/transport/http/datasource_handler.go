@@ -11,7 +11,7 @@ import (
 
 type DataSourceHandler struct {
 	tenants service.TenantService
-	repo    domain.ProjectRepository
+	repo    domain.DataSourceRepository
 }
 
 func (h *DataSourceHandler) HandleList(c *gin.Context) {
@@ -135,7 +135,11 @@ func (h *DataSourceHandler) HandleUpdate(c *gin.Context) {
 		return
 	}
 	// Reload with envs
-	ds, _ = h.repo.GetDataSourceByID(c.Request.Context(), tenant.ID, dsID)
+	ds, err = h.repo.GetDataSourceByID(c.Request.Context(), tenant.ID, dsID)
+	if err != nil {
+		Fail(c, http.StatusInternalServerError, "updated but failed to reload: "+err.Error())
+		return
+	}
 	OK(c, ds)
 }
 

@@ -53,7 +53,7 @@ export default function ProjectsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">项目</h1>
-          <p className="text-sm text-zinc-500 mt-1 font-medium">管理您的 API 项目，每个项目绑定一个数据源</p>
+          <p className="text-sm text-zinc-500 mt-1 font-medium">管理您的 API 项目，编写 SQL 即可生成 RESTful 接口</p>
         </div>
         <Link href={`/${activeTenant}/projects/register`}>
           <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
@@ -74,42 +74,44 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {projects.map((project) => (
             <Link key={project.id} href={`/${activeTenant}/projects/${project.id}/apis`}>
-              <Card className="bg-white border-zinc-100 rounded-lg shadow-sm hover:shadow-md hover:border-blue-600/30 transition-all duration-300 cursor-pointer h-full flex flex-col pt-1 group">
-                <CardHeader className="px-5 pt-5 pb-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-zinc-50 rounded-lg border border-zinc-100 flex items-center justify-center group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors">
-                      <FolderGit2 className="w-5 h-5 text-zinc-400 group-hover:text-blue-600" />
+              <Card className="bg-white border-zinc-100 rounded-lg shadow-sm hover:shadow-md hover:border-blue-600/30 transition-all duration-300 flex flex-col h-full overflow-hidden group">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center border shadow-sm text-blue-600 border-blue-100 bg-blue-50/30 group-hover:scale-105 transition-transform">
+                      <FolderGit2 className="w-6 h-6" />
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="w-7 h-7 rounded-lg hover:bg-blue-50 hover:text-blue-600" onClick={(e) => handleEdit(e, project)}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="w-7 h-7 rounded-lg hover:bg-red-50 hover:text-red-500" onClick={(e) => handleDelete(e, project)}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                    <div className="flex gap-1.5">
+                      <div className="px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-tight bg-zinc-50 text-zinc-500 border-zinc-100">
+                        Project
+                      </div>
                     </div>
                   </div>
-                  <CardTitle className="text-base font-bold text-zinc-900 group-hover:text-blue-600 transition-colors truncate">
-                    {project.name}
-                  </CardTitle>
-                  <CardDescription className="text-xs text-zinc-500 leading-relaxed line-clamp-2 mt-1.5 min-h-[32px]">
-                    {project.description || "暂无描述"}
-                  </CardDescription>
-                </CardHeader>
-                <div className="mt-auto px-5 py-4 border-t border-zinc-50 flex items-center bg-zinc-50/10">
-                  <Database className="w-3.5 h-3.5 mr-2 text-blue-500" />
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">数据源 #{project.datasource_id}</span>
+                  <h3 className="text-lg font-bold text-zinc-900 group-hover:text-blue-600 transition-colors tracking-tight">{project.name}</h3>
+                  <p className="text-[11px] text-zinc-500 line-clamp-2 mt-1.5 min-h-[32px]">{project.description || "暂无描述"}</p>
+                </div>
+                <div className="mt-auto px-6 py-4 border-t border-zinc-100 bg-zinc-50/10 flex items-center justify-between">
+                  <div className="flex items-center text-[10px] font-bold text-zinc-500">
+                    <Database className="w-3.5 h-3.5 mr-2 text-blue-500" /> SQL to API
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="w-7 h-7 rounded-lg hover:bg-blue-50 hover:text-blue-600" onClick={(e) => handleEdit(e, project)}>
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="w-7 h-7 rounded-lg hover:bg-red-50 hover:text-red-500" onClick={(e) => handleDelete(e, project)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </Card>
             </Link>
           ))}
 
           <Link href={`/${activeTenant}/projects/register`} className="group">
-            <div className="border-2 border-dashed border-zinc-200 rounded-lg flex flex-col items-center justify-center p-6 bg-zinc-50/20 hover:bg-white hover:border-blue-600/30 hover:shadow-sm transition-all cursor-pointer h-full min-h-[180px]">
-              <div className="w-12 h-12 rounded-full border border-zinc-100 flex items-center justify-center mb-4 bg-white shadow-sm group-hover:scale-110 group-hover:bg-blue-600 group-hover:border-blue-600 transition-all duration-300">
+            <div className="border-2 border-dashed border-zinc-200 rounded-lg flex flex-col items-center justify-center p-6 bg-zinc-50/20 hover:bg-white hover:border-blue-600/30 hover:shadow-sm transition-all cursor-pointer h-full min-h-[220px]">
+              <div className="w-12 h-12 rounded-lg border border-zinc-100 flex items-center justify-center mb-4 bg-white shadow-sm group-hover:scale-110 group-hover:bg-blue-600 group-hover:border-blue-600 transition-all duration-300">
                 <Plus className="w-6 h-6 text-zinc-300 group-hover:text-white" />
               </div>
-              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wide">创建项目</p>
+              <p className="text-sm font-bold text-zinc-400 uppercase tracking-wide">创建项目</p>
             </div>
           </Link>
         </div>

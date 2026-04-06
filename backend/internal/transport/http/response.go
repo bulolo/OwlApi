@@ -57,8 +57,14 @@ func parsePage(c *gin.Context) (page, size int, isPager bool) {
 	if isPagerStr == "0" {
 		return 1, 0, false
 	}
-	page, _ = strconv.Atoi(c.DefaultQuery("page", "1"))
-	size, _ = strconv.Atoi(c.DefaultQuery("size", "10"))
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil {
+		page = 1
+	}
+	size, err = strconv.Atoi(c.DefaultQuery("size", "10"))
+	if err != nil {
+		size = 10
+	}
 	if page < 1 {
 		page = 1
 	}

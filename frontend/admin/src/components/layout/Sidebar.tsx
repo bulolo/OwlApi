@@ -11,6 +11,7 @@ import {
   Hexagon,
   PanelLeftClose,
   PanelLeftOpen,
+  FileCode2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/store/useUIStore"
@@ -33,6 +34,7 @@ export function Sidebar({ slug }: { slug?: string }) {
       items: [
         { href: `/${activeTenant}/gateways`, label: "网关", icon: Server },
         { href: `/${activeTenant}/data-sources`, label: "数据源", icon: Database },
+        { href: `/${activeTenant}/scripts`, label: "脚本库", icon: FileCode2 },
       ]
     },
     {

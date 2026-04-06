@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -50,12 +51,18 @@ func main() {
 	tenantSvc := service.NewTenantService(tenantRepo, tenantUserRepo)
 	tenantUserSvc := service.NewTenantUserService(userRepo, tenantUserRepo)
 	gatewaySvc := service.NewGatewayService(gatewayRepo)
-	querySvc := service.NewQueryService(gatewaySvc, projectRepo)
+	querySvc := service.NewQueryService(gatewaySvc, projectRepo, projectRepo)
 
 	// HTTP Server
 	r := gin.Default()
+
+	// CORS — restrict to configured origins in production
+	allowedOrigin := os.Getenv("OWLAPI_CORS_ORIGIN")
+	if allowedOrigin == "" {
+		allowedOrigin = "*"
+	}
 	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Origin", allowedOrigin)
 		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Tenant-ID,X-Gateway-ID")
 		if c.Request.Method == "OPTIONS" {
@@ -64,13 +71,15 @@ func main() {
 		}
 		c.Next()
 	})
-	r.GET("/health", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
+	r.GET("/health", func(c *gin.Context) { transport_http.OK(c, gin.H{"status": "ok"}) })
 	transport_http.RegisterSwagger(r)
-	transport_http.RegisterRoutes(r, authSvc, tenantSvc, tenantUserSvc, gatewaySvc, querySvc, projectRepo, tenantRepo, tenantUserRepo)
+	transport_http.RegisterRoutes(r, authSvc, tenantSvc, tenantUserSvc, gatewaySvc, querySvc, projectRepo, projectRepo, projectRepo, projectRepo, projectRepo, tenantRepo, tenantUserRepo)
 
+	// Graceful HTTP server
+	httpServer := &http.Server{Addr: cfg.HTTPPort, Handler: r}
 	slog.Info("HTTP Server listening", "port", cfg.HTTPPort)
 	go func() {
-		if err := r.Run(cfg.HTTPPort); err != nil {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("HTTP server failed", "error", err)
 			os.Exit(1)
 		}
@@ -78,6 +87,8 @@ func main() {
 
 	// gRPC Server
 	grpcServer := grpc.NewServer(
+		grpc.MaxRecvMsgSize(4*1024*1024),
+		grpc.MaxSendMsgSize(4*1024*1024),
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			Time:    30 * time.Second,
 			Timeout: 10 * time.Second,
@@ -107,5 +118,12 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 	slog.Info("Shutting down OwlApi Control Plane...")
+
+	// Graceful shutdown with timeout
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		slog.Error("HTTP server shutdown error", "error", err)
+	}
 	grpcServer.GracefulStop()
 }

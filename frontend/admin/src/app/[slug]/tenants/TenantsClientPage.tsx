@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation"
 import { useTenantStore } from "@/store/useTenantStore"
 import { apiDeleteTenant, apiUpdateTenant, type Tenant } from "@/lib/api-client"
 import { Pager } from "@/components/ui/pager"
+import { toast } from "sonner"
 
 import TenantRegisterForm from "./TenantRegisterForm"
 
@@ -147,7 +148,13 @@ export default function TenantsClientPage() {
                     className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
                     onClick={async () => {
                       if (!confirm(`确认删除租户「${tenant.name}」？此操作不可恢复。`)) return
-                      try { await apiDeleteTenant(tenant.slug!); fetchTenants() } catch {}
+                      try { 
+                        await apiDeleteTenant(tenant.slug!)
+                        toast.success(`租户「${tenant.name}」已删除`)
+                        fetchTenants() 
+                      } catch (err: any) {
+                        toast.error(err.message || "删除失败")
+                      }
                     }}
                   >
                     <Trash2 className="w-3.5 h-3.5" />

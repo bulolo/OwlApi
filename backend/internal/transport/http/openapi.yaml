@@ -380,6 +380,27 @@ paths:
           description: OK
 
   /api/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}:
+    put:
+      operationId: updateEndpoint
+      tags: [Endpoints]
+      summary: 更新接口
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+        - { name: endpointId, in: path, required: true, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAPIEndpointRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIEndpoint"
     delete:
       operationId: deleteEndpoint
       tags: [Endpoints]
@@ -388,6 +409,147 @@ paths:
         - { name: slug, in: path, required: true, schema: { type: string } }
         - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
         - { name: endpointId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/projects/{projectId}/groups:
+    get:
+      operationId: listGroups
+      tags: [Groups]
+      summary: 分组列表
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+    post:
+      operationId: createGroup
+      tags: [Groups]
+      summary: 创建分组
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupRequest"
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/projects/{projectId}/groups/{groupId}:
+    put:
+      operationId: updateGroup
+      tags: [Groups]
+      summary: 编辑分组
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+        - { name: groupId, in: path, required: true, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAPIGroupRequest"
+      responses:
+        "200":
+          description: OK
+    delete:
+      operationId: deleteGroup
+      tags: [Groups]
+      summary: 删除分组
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+        - { name: groupId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/projects/{projectId}/openapi.json:
+    get:
+      operationId: exportOpenAPI
+      tags: [Endpoints]
+      summary: 导出 OpenAPI文档
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: projectId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/query/test:
+    post:
+      operationId: testQuery
+      tags: [Queries]
+      summary: 测试执行 SQL 查询
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestQueryRequest"
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/scripts:
+    get:
+      operationId: listScripts
+      tags: [Scripts]
+      summary: 脚本列表
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+    post:
+      operationId: createScript
+      tags: [Scripts]
+      summary: 创建脚本
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateScriptRequest"
+      responses:
+        "200":
+          description: OK
+
+  /api/v1/tenants/{slug}/scripts/{scriptId}:
+    put:
+      operationId: updateScript
+      tags: [Scripts]
+      summary: 编辑脚本
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: scriptId, in: path, required: true, schema: { type: integer, format: int64 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateScriptRequest"
+      responses:
+        "200":
+          description: OK
+    delete:
+      operationId: deleteScript
+      tags: [Scripts]
+      summary: 删除脚本
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+        - { name: scriptId, in: path, required: true, schema: { type: integer, format: int64 } }
       responses:
         "200":
           description: OK
@@ -518,30 +680,56 @@ components:
       properties:
         id: { type: integer, format: int64 }
         tenant_id: { type: integer, format: int64 }
-        gateway_id: { type: integer, format: int64 }
         name: { type: string }
-        env: { type: string, enum: [dev, prod] }
+        is_dual: { type: boolean }
         type: { type: string, enum: [mysql, postgres, sqlserver, starrocks, doris, sqlite] }
+        envs:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataSourceEnv"
         created_at: { type: string, format: date-time }
+
+    DataSourceEnv:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        datasource_id: { type: integer, format: int64 }
+        env: { type: string, enum: [dev, prod] }
+        dsn: { type: string }
+        gateway_id: { type: integer, format: int64 }
 
     CreateDataSourceRequest:
       type: object
-      required: [name, env, type, dsn, gateway_id]
+      required: [name, type, envs]
       properties:
         name: { type: string }
-        env: { type: string, enum: [dev, prod] }
         type: { type: string, enum: [mysql, postgres, sqlserver, starrocks, doris, sqlite] }
-        dsn: { type: string }
-        gateway_id: { type: integer, format: int64 }
+        is_dual: { type: boolean }
+        envs:
+          type: array
+          items:
+            type: object
+            required: [env, dsn, gateway_id]
+            properties:
+              env: { type: string, enum: [dev, prod] }
+              dsn: { type: string }
+              gateway_id: { type: integer, format: int64 }
 
     UpdateDataSourceRequest:
       type: object
       properties:
         name: { type: string }
-        env: { type: string, enum: [dev, prod] }
         type: { type: string, enum: [mysql, postgres, sqlserver, starrocks, doris, sqlite] }
-        dsn: { type: string }
-        gateway_id: { type: integer, format: int64 }
+        is_dual: { type: boolean }
+        envs:
+          type: array
+          items:
+            type: object
+            required: [env, dsn, gateway_id]
+            properties:
+              env: { type: string, enum: [dev, prod] }
+              dsn: { type: string }
+              gateway_id: { type: integer, format: int64 }
 
     Project:
       type: object
@@ -550,34 +738,42 @@ components:
         tenant_id: { type: integer, format: int64 }
         name: { type: string }
         description: { type: string }
-        datasource_id: { type: integer, format: int64 }
         created_at: { type: string, format: date-time }
 
     CreateProjectRequest:
       type: object
-      required: [name, datasource_id]
+      required: [name]
       properties:
         name: { type: string }
         description: { type: string }
-        datasource_id: { type: integer, format: int64 }
 
     UpdateProjectRequest:
       type: object
       properties:
         name: { type: string }
         description: { type: string }
-        datasource_id: { type: integer, format: int64 }
 
     APIEndpoint:
       type: object
+      required: [id, tenant_id, project_id, path, methods, sql]
       properties:
         id: { type: integer, format: int64 }
         tenant_id: { type: integer, format: int64 }
         project_id: { type: integer, format: int64 }
+        group_id: { type: integer, format: int64 }
+        datasource_id: { type: integer, format: int64 }
         path: { type: string }
         methods: { type: array, items: { type: string } }
+        summary: { type: string }
+        description: { type: string }
         sql: { type: string }
         params: { type: array, items: { type: string } }
+        param_defs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParamDef"
+        pre_script_id: { type: integer, format: int64 }
+        post_script_id: { type: integer, format: int64 }
         created_at: { type: string, format: date-time }
 
     CreateEndpointRequest:
@@ -588,3 +784,103 @@ components:
         methods: { type: array, items: { type: string } }
         sql: { type: string }
         params: { type: array, items: { type: string } }
+        param_defs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParamDef"
+        datasource_id: { type: integer, format: int64 }
+        group_id: { type: integer, format: int64 }
+        pre_script_id: { type: integer, format: int64 }
+        post_script_id: { type: integer, format: int64 }
+
+    UpdateAPIEndpointRequest:
+      type: object
+      properties:
+        path: { type: string }
+        methods: { type: array, items: { type: string } }
+        sql: { type: string }
+        summary: { type: string }
+        description: { type: string }
+        params: { type: array, items: { type: string } }
+        param_defs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParamDef"
+        datasource_id: { type: integer, format: int64 }
+        group_id: { type: integer, format: int64 }
+        pre_script_id: { type: integer, format: int64 }
+        post_script_id: { type: integer, format: int64 }
+
+    ParamDef:
+      type: object
+      required: [name, type, required]
+      properties:
+        name: { type: string }
+        type: { type: string }
+        required: { type: boolean }
+        default: { type: string }
+        desc: { type: string }
+
+    CreateGroupRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string }
+
+    UpdateAPIGroupRequest:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string }
+
+    APIGroup:
+      type: object
+      required: [id, tenant_id, project_id, name, created_at]
+      properties:
+        id: { type: integer, format: int64 }
+        tenant_id: { type: integer, format: int64 }
+        project_id: { type: integer, format: int64 }
+        name: { type: string }
+        description: { type: string }
+        created_at: { type: string, format: date-time }
+
+    TestQueryRequest:
+      type: object
+      required: [endpoint_id]
+      properties:
+        endpoint_id: { type: integer, format: int64 }
+        params:
+          type: object
+          additionalProperties:
+            type: string
+        ignore_scripts: { type: boolean }
+
+    Script:
+      type: object
+      required: [id, tenant_id, name, type, code]
+      properties:
+        id: { type: integer, format: int64 }
+        tenant_id: { type: integer, format: int64 }
+        name: { type: string }
+        type: { type: string, enum: [pre, post] }
+        code: { type: string }
+        description: { type: string }
+        created_at: { type: string, format: date-time }
+
+    CreateScriptRequest:
+      type: object
+      required: [name, type, code]
+      properties:
+        name: { type: string }
+        type: { type: string, enum: [pre, post] }
+        code: { type: string }
+        description: { type: string }
+
+    UpdateScriptRequest:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string, enum: [pre, post] }
+        code: { type: string }
+        description: { type: string }

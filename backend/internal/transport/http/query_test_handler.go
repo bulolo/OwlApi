@@ -11,15 +11,16 @@ import (
 )
 
 type QueryTestHandler struct {
-	tenants  service.TenantService
-	gateways service.GatewayService
-	queries  service.QueryService
-	repo     domain.ProjectRepository
+	tenants      service.TenantService
+	gateways     service.GatewayService
+	queries      service.QueryService
+	endpointRepo domain.APIEndpointRepository
+	dsRepo       domain.DataSourceRepository
 }
 
-// HandleTestQuery executes a SQL query against a datasource for testing purposes.
+// HandleTestQuery executes an endpoint with params, going through the full script pipeline.
 // POST /api/v1/tenants/:slug/query/test
-// Body: { "datasource_id": 1, "sql": "SELECT * FROM users" }
+// Body: { "endpoint_id": 1, "params": {"page":"1","size":"10"} }
 func (h *QueryTestHandler) HandleTestQuery(c *gin.Context) {
 	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("slug"))
 	if err != nil {
@@ -28,20 +29,30 @@ func (h *QueryTestHandler) HandleTestQuery(c *gin.Context) {
 	}
 
 	var req struct {
-		DataSourceID int64  `json:"datasource_id" binding:"required"`
-		SQL          string `json:"sql" binding:"required"`
-		Env          string `json:"env"` // default: prod
+		EndpointID    int64             `json:"endpoint_id" binding:"required"`
+		Params        map[string]string `json:"params"`
+		IgnoreScripts bool              `json:"ignore_scripts"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if req.Env == "" {
-		req.Env = "prod"
+	if req.Params == nil {
+		req.Params = make(map[string]string)
 	}
 
-	// Resolve datasource env → DSN + gateway_id
-	dsEnv, err := h.repo.GetDataSourceEnv(c.Request.Context(), req.DataSourceID, req.Env)
+	endpoint, err := h.endpointRepo.GetAPIEndpointByID(c.Request.Context(), tenant.ID, req.EndpointID)
+	if err != nil {
+		Fail(c, http.StatusNotFound, "endpoint not found")
+		return
+	}
+
+	if req.IgnoreScripts {
+		endpoint.PreScriptID = 0
+		endpoint.PostScriptID = 0
+	}
+
+	dsEnv, err := h.dsRepo.GetDataSourceEnv(c.Request.Context(), endpoint.DataSourceID, "prod")
 	if err != nil {
 		Fail(c, http.StatusNotFound, fmt.Sprintf("datasource env not found: %v", err))
 		return
@@ -50,22 +61,12 @@ func (h *QueryTestHandler) HandleTestQuery(c *gin.Context) {
 	tenantID := strconv.FormatInt(tenant.ID, 10)
 	gatewayID := strconv.FormatInt(dsEnv.GatewayID, 10)
 
-	// Check gateway is connected
-	stream := h.gateways.GetStream(tenantID, gatewayID)
-	if stream == nil {
+	if stream := h.gateways.GetStream(tenantID, gatewayID); stream == nil {
 		Fail(c, http.StatusServiceUnavailable, fmt.Sprintf("gateway %s is not connected", gatewayID))
 		return
 	}
 
-	// Build a temporary endpoint to reuse QueryService.Execute
-	fakeEndpoint := &domain.APIEndpoint{
-		ProjectID: 0,
-		SQL:       req.SQL,
-	}
-
-	// We need to pass DSN directly — override the normal flow
-	// Use the query service's internal mechanism
-	result, err := h.queries.ExecuteDirect(c.Request.Context(), tenantID, gatewayID, dsEnv.DSN, req.SQL)
+	result, err := h.queries.Execute(c.Request.Context(), tenantID, gatewayID, endpoint, req.Params)
 	if err != nil {
 		Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -76,6 +77,6 @@ func (h *QueryTestHandler) HandleTestQuery(c *gin.Context) {
 		return
 	}
 
-	c.Data(http.StatusOK, "application/json", result.Data)
-	_ = fakeEndpoint // suppress unused
+	// Raw JSON passthrough — result.Data is already JSON-encoded from gateway
+	c.Data(http.StatusOK, "application/json", result.Data) //nolint:passthrough
 }

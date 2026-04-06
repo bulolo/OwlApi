@@ -34,21 +34,50 @@ type GatewayRepository interface {
 	UpdateStatus(ctx context.Context, tenantID, id int64, status GatewayStatus, ip string) error
 }
 
-type ProjectRepository interface {
+type DataSourceRepository interface {
 	CreateDataSource(ctx context.Context, ds *DataSource) error
 	GetDataSourceByID(ctx context.Context, tenantID, id int64) (*DataSource, error)
+	GetDataSourceByName(ctx context.Context, tenantID int64, name string) (*DataSource, error)
 	ListDataSources(ctx context.Context, tenantID int64) ([]*DataSource, error)
 	DeleteDataSource(ctx context.Context, tenantID, id int64) error
 	UpdateDataSource(ctx context.Context, ds *DataSource) error
+	// Resolve datasource env for query execution
+	GetDataSourceEnv(ctx context.Context, datasourceID int64, env string) (*DataSourceEnv, error)
+}
+
+type ProjectRepository interface {
 	GetProjectByID(ctx context.Context, tenantID, id int64) (*Project, error)
+	GetProjectByName(ctx context.Context, tenantID int64, name string) (*Project, error)
 	CreateProject(ctx context.Context, p *Project) error
 	ListProjects(ctx context.Context, tenantID int64) ([]*Project, error)
 	UpdateProject(ctx context.Context, p *Project) error
 	DeleteProject(ctx context.Context, tenantID, id int64) error
+}
+
+type APIGroupRepository interface {
+	CreateAPIGroup(ctx context.Context, g *APIGroup) error
+	UpdateAPIGroup(ctx context.Context, g *APIGroup) error
+	DeleteAPIGroup(ctx context.Context, tenantID, id int64) error
+	ListAPIGroups(ctx context.Context, tenantID, projectID int64) ([]*APIGroup, error)
+	GetAPIGroupByID(ctx context.Context, tenantID, id int64) (*APIGroup, error)
+	GetAPIGroupByName(ctx context.Context, tenantID, projectID int64, name string) (*APIGroup, error)
+}
+
+type APIEndpointRepository interface {
 	GetAPIEndpointByPath(ctx context.Context, tenantID int64, path string) (*APIEndpoint, error)
+	GetAPIEndpointByID(ctx context.Context, tenantID, id int64) (*APIEndpoint, error)
 	CreateAPIEndpoint(ctx context.Context, ep *APIEndpoint) error
+	UpdateAPIEndpoint(ctx context.Context, ep *APIEndpoint) error
 	ListAPIEndpoints(ctx context.Context, tenantID, projectID int64) ([]*APIEndpoint, error)
 	DeleteAPIEndpoint(ctx context.Context, tenantID, id int64) error
-	// Resolve datasource env for query execution
-	GetDataSourceEnv(ctx context.Context, datasourceID int64, env string) (*DataSourceEnv, error)
 }
+
+type ScriptRepository interface {
+	CreateScript(ctx context.Context, s *Script) error
+	UpdateScript(ctx context.Context, s *Script) error
+	GetScriptByID(ctx context.Context, tenantID, id int64) (*Script, error)
+	GetScriptByName(ctx context.Context, tenantID int64, name string) (*Script, error)
+	ListScripts(ctx context.Context, tenantID int64) ([]*Script, error)
+	DeleteScript(ctx context.Context, tenantID, id int64) error
+}
+

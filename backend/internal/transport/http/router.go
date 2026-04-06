@@ -15,6 +15,10 @@ func RegisterRoutes(
 	gatewaySvc service.GatewayService,
 	querySvc service.QueryService,
 	projectRepo domain.ProjectRepository,
+	dsRepo domain.DataSourceRepository,
+	endpointRepo domain.APIEndpointRepository,
+	groupRepo domain.APIGroupRepository,
+	scriptRepo domain.ScriptRepository,
 	tenantRepo domain.TenantRepository,
 	tenantUserRepo domain.TenantUserRepository,
 ) {
@@ -22,10 +26,13 @@ func RegisterRoutes(
 	tenant := &TenantHandler{tenants: tenantSvc}
 	tenantUser := &TenantUserHandler{tenants: tenantSvc, tenantUsers: tenantUserSvc}
 	gateway := &GatewayHandler{gateways: gatewaySvc, tenants: tenantSvc}
-	datasource := &DataSourceHandler{tenants: tenantSvc, repo: projectRepo}
+	datasource := &DataSourceHandler{tenants: tenantSvc, repo: dsRepo}
 	project := &ProjectHandler{tenants: tenantSvc, repo: projectRepo}
-	apiEndpoint := &APIEndpointHandler{tenants: tenantSvc, repo: projectRepo}
-	queryTest := &QueryTestHandler{tenants: tenantSvc, gateways: gatewaySvc, queries: querySvc, repo: projectRepo}
+	queryHandler := NewQueryHandler(querySvc, endpointRepo)
+	apiEndpoint := &APIEndpointHandler{tenants: tenantSvc, repo: endpointRepo}
+	apiGroup := &APIGroupHandler{tenants: tenantSvc, repo: groupRepo}
+	scriptHandler := &ScriptHandler{tenants: tenantSvc, repo: scriptRepo}
+	queryTest := &QueryTestHandler{tenants: tenantSvc, gateways: gatewaySvc, queries: querySvc, endpointRepo: endpointRepo, dsRepo: dsRepo}
 
 	// Public
 	r.POST("/api/v1/auth/register", auth.HandleRegister)
@@ -76,8 +83,28 @@ func RegisterRoutes(
 	// API Endpoint management
 	viewer.GET("/api/v1/tenants/:slug/projects/:projectId/endpoints", apiEndpoint.HandleList)
 	admin.POST("/api/v1/tenants/:slug/projects/:projectId/endpoints", apiEndpoint.HandleCreate)
+	admin.PUT("/api/v1/tenants/:slug/projects/:projectId/endpoints/:endpointId", apiEndpoint.HandleUpdate)
 	admin.DELETE("/api/v1/tenants/:slug/projects/:projectId/endpoints/:endpointId", apiEndpoint.HandleDelete)
+
+	// API Group management
+	viewer.GET("/api/v1/tenants/:slug/projects/:projectId/groups", apiGroup.HandleList)
+	admin.POST("/api/v1/tenants/:slug/projects/:projectId/groups", apiGroup.HandleCreate)
+	admin.PUT("/api/v1/tenants/:slug/projects/:projectId/groups/:groupId", apiGroup.HandleUpdate)
+	admin.DELETE("/api/v1/tenants/:slug/projects/:projectId/groups/:groupId", apiGroup.HandleDelete)
+
+	// OpenAPI export
+	openapi := &OpenAPIHandler{tenants: tenantSvc, projectRepo: projectRepo, endpointRepo: endpointRepo, groupRepo: groupRepo}
+	viewer.GET("/api/v1/tenants/:slug/projects/:projectId/openapi.json", openapi.HandleExportOpenAPI)
 
 	// Query test execution
 	authed.POST("/api/v1/tenants/:slug/query/test", queryTest.HandleTestQuery)
+
+	// Script management
+	viewer.GET("/api/v1/tenants/:slug/scripts", scriptHandler.HandleList)
+	admin.POST("/api/v1/tenants/:slug/scripts", scriptHandler.HandleCreate)
+	admin.PUT("/api/v1/tenants/:slug/scripts/:scriptId", scriptHandler.HandleUpdate)
+	admin.DELETE("/api/v1/tenants/:slug/scripts/:scriptId", scriptHandler.HandleDelete)
+
+	// Dynamic API query endpoint
+	queryHandler.RegisterRoutes(r)
 }

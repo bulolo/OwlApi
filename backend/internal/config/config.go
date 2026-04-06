@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 )
 
@@ -24,7 +25,7 @@ type Config struct {
 
 // LoadFromEnv loads configuration from environment variables
 func LoadFromEnv() *Config {
-	return &Config{
+	cfg := &Config{
 		LogLevel: getEnv("OWLAPI_LOG_LEVEL", "info"),
 
 		ServerURL:    getEnv("OWLAPI_SERVER_URL", "dns:///localhost:9090"),
@@ -35,11 +36,17 @@ func LoadFromEnv() *Config {
 		HTTPPort:    getEnv("OWLAPI_HTTP_PORT", ":3000"),
 		GRPCPort:    getEnv("OWLAPI_GRPC_PORT", ":9090"),
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/owlapi?sslmode=disable"),
-		JWTSecret:   getEnv("OWLAPI_JWT_SECRET", "owlapi-dev-secret-change-me"),
+		JWTSecret:   getEnv("OWLAPI_JWT_SECRET", ""),
 	}
+
+	if cfg.JWTSecret == "" {
+		slog.Warn("OWLAPI_JWT_SECRET not set, using insecure default (DO NOT use in production)")
+		cfg.JWTSecret = "owlapi-dev-secret-change-me"
+	}
+
+	return cfg
 }
 
-// Helper to get env string with default
 func getEnv(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value

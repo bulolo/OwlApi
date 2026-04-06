@@ -35,15 +35,14 @@ func (h *ProjectHandler) HandleCreate(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Name         string `json:"name" binding:"required"`
-		Description  string `json:"description"`
-		DataSourceID int64  `json:"datasource_id" binding:"required"`
+		Name        string `json:"name" binding:"required"`
+		Description string `json:"description"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	p := &domain.Project{TenantID: tenant.ID, Name: req.Name, Description: req.Description, DataSourceID: req.DataSourceID}
+	p := &domain.Project{TenantID: tenant.ID, Name: req.Name, Description: req.Description}
 	if err := h.repo.CreateProject(c.Request.Context(), p); err != nil {
 		Fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -87,9 +86,8 @@ func (h *ProjectHandler) HandleUpdate(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Name         string `json:"name"`
-		Description  string `json:"description"`
-		DataSourceID *int64 `json:"datasource_id"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
@@ -100,9 +98,6 @@ func (h *ProjectHandler) HandleUpdate(c *gin.Context) {
 	}
 	if req.Description != "" {
 		p.Description = req.Description
-	}
-	if req.DataSourceID != nil {
-		p.DataSourceID = *req.DataSourceID
 	}
 	if err := h.repo.UpdateProject(c.Request.Context(), p); err != nil {
 		Fail(c, http.StatusInternalServerError, err.Error())

@@ -3,12 +3,20 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/hongjunyao/owlapi/internal/domain"
+	"github.com/jackc/pgx/v5"
 )
 
 var ErrSlugExists = errors.New("tenant slug already exists")
+
+// Valid plan and status values for validation.
+var (
+	validPlans    = map[domain.TenantPlan]bool{domain.PlanFree: true, domain.PlanPro: true, domain.PlanEnterprise: true}
+	validStatuses = map[domain.TenantStatus]bool{domain.TenantActive: true, domain.TenantWarning: true, domain.TenantSuspended: true}
+)
 
 type TenantService interface {
 	Create(ctx context.Context, tenant *domain.Tenant, creatorUserID int64) error
@@ -29,7 +37,11 @@ func NewTenantService(tenants domain.TenantRepository, tenantUsers domain.Tenant
 }
 
 func (s *tenantService) Create(ctx context.Context, tenant *domain.Tenant, creatorUserID int64) error {
-	if existing, _ := s.tenants.GetBySlug(ctx, tenant.Slug); existing != nil {
+	existing, err := s.tenants.GetBySlug(ctx, tenant.Slug)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	if existing != nil {
 		return ErrSlugExists
 	}
 	tenant.CreatedAt = time.Now()
@@ -65,10 +77,18 @@ func (s *tenantService) Update(ctx context.Context, slug string, name, plan, sta
 		t.Name = name
 	}
 	if plan != "" {
-		t.Plan = domain.TenantPlan(plan)
+		p := domain.TenantPlan(plan)
+		if !validPlans[p] {
+			return nil, fmt.Errorf("invalid plan: %s", plan)
+		}
+		t.Plan = p
 	}
 	if status != "" {
-		t.Status = domain.TenantStatus(status)
+		st := domain.TenantStatus(status)
+		if !validStatuses[st] {
+			return nil, fmt.Errorf("invalid status: %s", status)
+		}
+		t.Status = st
 	}
 	t.UpdatedAt = time.Now()
 	if err := s.tenants.Update(ctx, t); err != nil {

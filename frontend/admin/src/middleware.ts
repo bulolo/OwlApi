@@ -3,22 +3,28 @@ import type { NextRequest } from 'next/server'
 
 const PUBLIC_PATHS = ['/login', '/register']
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp ? payload.exp * 1000 < Date.now() : false
+  } catch {
+    return true
+  }
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  
-  // Allow public paths
+
   if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
     return NextResponse.next()
   }
 
-  // Allow static assets and API routes
-  if (pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname.includes('.')) {
+  if (pathname.startsWith('/_next') || pathname.includes('.')) {
     return NextResponse.next()
   }
 
-  // Check for token in cookie (set by client-side on login)
   const token = request.cookies.get('owlapi_token')?.value
-  if (!token) {
+  if (!token || isTokenExpired(token)) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)

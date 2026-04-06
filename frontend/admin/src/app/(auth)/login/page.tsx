@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Hexagon, ArrowRight, ShieldCheck, Mail, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -27,20 +27,14 @@ function LoginForm() {
   const [error, setError] = useState("")
   const [remember, setRemember] = useState(false)
 
-  // Restore saved credentials
-  useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('owlapi_remember')
-      if (saved) {
-        try {
-          const { email: e, password: p } = JSON.parse(saved)
-          setEmail(e)
-          setPassword(p)
-          setRemember(true)
-        } catch {}
-      }
+  // Restore saved email only (never store password)
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('owlapi_remember_email')
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setRemember(true)
     }
-  })
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,9 +42,9 @@ function LoginForm() {
     setError("")
     try {
       if (remember) {
-        localStorage.setItem('owlapi_remember', JSON.stringify({ email, password }))
+        localStorage.setItem('owlapi_remember_email', email)
       } else {
-        localStorage.removeItem('owlapi_remember')
+        localStorage.removeItem('owlapi_remember_email')
       }
       const res = await login(email, password)
       await fetchTenants()
@@ -61,8 +55,9 @@ function LoginForm() {
         const slug = res.tenant?.slug || "default"
         router.push(`/${slug}/overview`)
       }
-    } catch (err: any) {
-      setError(err?.message || "登录失败，请检查账号密码")
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "登录失败，请检查账号密码"
+      setError(message)
     } finally {
       setIsLoading(false)
     }
@@ -70,9 +65,7 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 selection:bg-blue-100">
-      <div
-        className="w-full max-w-[400px] p-6 lg:p-0"
-      >
+      <div className="w-full max-w-[400px] p-6 lg:p-0">
         <div className="bg-white border border-zinc-200 rounded-lg p-8 shadow-sm space-y-8">
           <div className="flex flex-col items-center space-y-4">
             <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center shadow-sm">
@@ -87,10 +80,11 @@ function LoginForm() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase px-1">账号邮件</label>
+                <label htmlFor="login-email" className="text-[10px] font-bold text-zinc-500 uppercase px-1">账号邮件</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
                   <Input
+                    id="login-email"
                     type="email"
                     placeholder="admin@corp.com"
                     required
@@ -101,10 +95,11 @@ function LoginForm() {
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase px-1">访问秘钥</label>
+                <label htmlFor="login-password" className="text-[10px] font-bold text-zinc-500 uppercase px-1">访问秘钥</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
                   <Input
+                    id="login-password"
                     type="password"
                     placeholder="••••••••"
                     required
@@ -123,11 +118,11 @@ function LoginForm() {
                 onChange={(e) => setRemember(e.target.checked)}
                 className="w-3.5 h-3.5 rounded border-zinc-300 text-blue-600 focus:ring-blue-600"
               />
-              <span className="text-[11px] text-zinc-500 font-medium">记住账号密码</span>
+              <span className="text-[11px] text-zinc-500 font-medium">记住账号</span>
             </label>
 
             {error && (
-              <p className="text-xs text-red-500 font-medium px-1">{error}</p>
+              <p className="text-xs text-red-500 font-medium px-1" role="alert">{error}</p>
             )}
 
             <Button

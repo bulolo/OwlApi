@@ -7,6 +7,7 @@ import (
 
 	"github.com/hongjunyao/owlapi/internal/domain"
 	"github.com/hongjunyao/owlapi/internal/pkg/auth"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -46,7 +47,11 @@ func NewAuthService(users domain.UserRepository, tenants domain.TenantRepository
 }
 
 func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthResponse, error) {
-	if existing, _ := s.users.GetByEmail(ctx, req.Email); existing != nil {
+	existing, err := s.users.GetByEmail(ctx, req.Email)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	if existing != nil {
 		return nil, ErrEmailExists
 	}
 
@@ -73,7 +78,11 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 	resp := &AuthResponse{User: user, Token: token}
 
 	if req.TenantSlug != "" {
-		if existing, _ := s.tenants.GetBySlug(ctx, req.TenantSlug); existing != nil {
+		existingTenant, err := s.tenants.GetBySlug(ctx, req.TenantSlug)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return nil, err
+		}
+		if existingTenant != nil {
 			return nil, ErrSlugExists
 		}
 		tenant := &domain.Tenant{
@@ -97,7 +106,7 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 
 func (s *authService) Login(ctx context.Context, email, password string) (*AuthResponse, error) {
 	user, err := s.users.GetByEmail(ctx, email)
-	if err != nil || user == nil {
+	if err != nil {
 		return nil, ErrInvalidCredentials
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {

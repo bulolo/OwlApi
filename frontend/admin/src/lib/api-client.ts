@@ -1,303 +1,168 @@
+/**
+ * OwlApi Client — 拦截器 + Token + 类型化 SDK 包装
+ *
+ * hey-api.ts 的 responseTransformer 全局拆 {code,msg,data} 信封。
+ * 本文件提供类型化的一行包装函数，消除 SDK 返回 `unknown` 的问题。
+ */
+
+import { client } from '@/lib/sdk/client.gen'
 import {
-  OpenAPI,
-  AuthService,
-  TenantsService,
-  UsersService,
-  GatewaysService,
-  DataSourcesService,
-  ProjectsService,
-  type RegisterRequest,
-  type LoginRequest,
-  type AuthResponse,
-  type Tenant,
-  type TenantUser,
-  type CreateTenantRequest,
-  type AddUserRequest,
+  login as sdkLogin, register as sdkRegister,
+  myTenants, getTenant, createTenant, updateTenant, deleteTenant,
+  listUsers, addUser, updateUserRole, removeUser,
+  listGateways, createGateway, getGateway, deleteGateway,
+  listDataSources, createDataSource, getDataSource, deleteDataSource, updateDataSource,
+  listProjects, createProject, getProject, updateProject, deleteProject,
+  listEndpoints, createEndpoint, deleteEndpoint, updateEndpoint,
+  listGroups, createGroup, updateGroup, deleteGroup,
+  listScripts, createScript, updateScript, deleteScript,
+  testQuery, exportOpenApi,
+} from '@/lib/sdk'
+import type {
+  AuthResponse, Tenant, TenantUser, User,
+  ApiEndpoint, ApiGroup, DataSource, DataSourceEnv, Project, Script, Gateway,
+  CreateTenantRequest, UpdateTenantRequest, AddUserRequest,
+  CreateDataSourceRequest, UpdateDataSourceRequest,
+  CreateProjectRequest, UpdateProjectRequest,
+  CreateEndpointRequest, UpdateApiEndpointRequest,
+  CreateGroupRequest, UpdateApiGroupRequest,
+  CreateScriptRequest, UpdateScriptRequest,
+  CreateGatewayResponse,
 } from '@/lib/sdk'
 
-// ---- 配置 ----
-
-OpenAPI.BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-OpenAPI.TOKEN = async () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('owlapi_token') || ''
-  }
-  return ''
+export type {
+  AuthResponse, Tenant, TenantUser, User,
+  ApiEndpoint, ApiGroup, DataSource, DataSourceEnv, Project, Script, Gateway,
+  CreateTenantRequest, UpdateTenantRequest,
+  CreateGatewayResponse,
 }
 
-// ---- Unwrap {code, msg, data} response ----
+export type { ListData }
 
-type PaginationInfo = {
-  is_pager: number
-  page: number
-  size: number
-  total: number
-}
-
-type PaginatedData<T> = {
-  list: T[]
-  pagination: PaginationInfo
-}
-
-async function unwrap<T>(promise: Promise<any>): Promise<T> {
-  try {
-    const res = await promise
-    if (res && typeof res === 'object' && 'code' in res) {
-      if (res.code !== 0) {
-        throw new Error(res.msg || 'request failed')
-      }
-      return res.data as T
-    }
-    return res as T
-  } catch (err: any) {
-    // 网络错误（后端未启动、CORS 等）
-    if (err instanceof TypeError && err.message === 'Failed to fetch') {
-      console.error('[OwlApi] 无法连接后端服务，请确认 API 服务已启动:', OpenAPI.BASE)
-      throw new Error('无法连接服务器，请检查后端是否已启动')
-    }
-    // 401 → token 失效，自动跳转登录页
-    if (err?.status === 401 || err?.body?.code === 401) {
-      clearToken()
-      localStorage.removeItem('owlapi_user')
-      if (typeof window !== 'undefined') {
-        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`
-      }
-    }
-    if (err?.body && typeof err.body === 'object' && 'msg' in err.body) {
-      throw new Error(err.body.msg)
-    }
-    throw err
-  }
-}
-
-// ---- Token 管理 ----
+// ---- Token ----
 
 export function setToken(token: string) {
   localStorage.setItem('owlapi_token', token)
-  document.cookie = `owlapi_token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`
+  const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+  document.cookie = `owlapi_token=${token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax${secure}`
 }
-
 export function clearToken() {
   localStorage.removeItem('owlapi_token')
   document.cookie = 'owlapi_token=; path=/; max-age=0'
 }
-
 export function getToken(): string | null {
   return typeof window !== 'undefined' ? localStorage.getItem('owlapi_token') : null
 }
 
+// ---- 401 拦截器 ----
+
+client.interceptors.response.use((response) => {
+  if (response.status === 401) {
+    clearToken()
+    localStorage.removeItem('owlapi_user')
+    if (typeof window !== 'undefined') {
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`
+    }
+  }
+  return response
+})
+
+// ---- 类型化辅助 ----
+
+type ListData<T> = { list: T[]; total: number }
+type PaginatedData<T> = { list: T[]; pagination: { is_pager: number; page: number; size: number; total: number } }
+
+async function d<T>(p: Promise<{ data?: unknown }>): Promise<T> {
+  return (await p).data as T
+}
+
 // ---- Auth ----
 
-export async function apiLogin(req: LoginRequest): Promise<AuthResponse> {
-  const res = await unwrap<AuthResponse>(AuthService.login(req))
+export async function apiLogin(req: { email: string; password: string }): Promise<AuthResponse> {
+  const res = await d<AuthResponse>(sdkLogin({ body: req, throwOnError: true }))
   if (res.token) setToken(res.token)
   return res
 }
-
-export async function apiRegister(req: RegisterRequest): Promise<AuthResponse> {
-  const res = await unwrap<AuthResponse>(AuthService.register(req))
+export async function apiRegister(req: { email: string; name: string; password: string; tenant_name?: string; tenant_slug?: string }): Promise<AuthResponse> {
+  const res = await d<AuthResponse>(sdkRegister({ body: req, throwOnError: true }))
   if (res.token) setToken(res.token)
   return res
 }
 
 // ---- Tenants ----
 
-export async function apiListTenants(page = 1, size = 20): Promise<PaginatedData<Tenant>> {
-  return unwrap<PaginatedData<Tenant>>(TenantsService.myTenants(page, size))
-}
+export const apiListTenants = (page = 1, size = 20) => d<PaginatedData<Tenant>>(myTenants({ query: { page, size } }))
+export const apiGetTenant = (slug: string) => d<Tenant>(getTenant({ path: { slug } }))
+export const apiCreateTenant = (req: CreateTenantRequest) => d<Tenant>(createTenant({ body: req }))
+export const apiUpdateTenant = (slug: string, data: UpdateTenantRequest) => d<Tenant>(updateTenant({ path: { slug }, body: data }))
+export const apiDeleteTenant = (slug: string) => d<void>(deleteTenant({ path: { slug } }))
 
-export async function apiGetTenant(slug: string): Promise<Tenant> {
-  return unwrap<Tenant>(TenantsService.getTenant(slug))
-}
+// ---- Users ----
 
-export async function apiCreateTenant(req: CreateTenantRequest): Promise<Tenant> {
-  return unwrap<Tenant>(TenantsService.createTenant(req))
-}
+export const apiListUsers = (slug: string, page = 1, size = 10) => d<PaginatedData<TenantUser>>(listUsers({ path: { slug }, query: { page, size } }))
+export const apiAddUser = (slug: string, req: AddUserRequest) => d<void>(addUser({ path: { slug }, body: req }))
+export const apiUpdateUserRole = (slug: string, userId: number, role: string) => d<void>(updateUserRole({ path: { slug, userId }, body: { role: role as 'Admin' | 'Viewer' } }))
+export const apiRemoveUser = (slug: string, userId: number) => d<void>(removeUser({ path: { slug, userId } }))
 
-export async function apiUpdateTenant(slug: string, data: { name?: string; plan?: string; status?: string }): Promise<Tenant> {
-  return unwrap<Tenant>(TenantsService.updateTenant(slug, data as any))
-}
+// ---- Gateways ----
 
-export async function apiDeleteTenant(slug: string): Promise<void> {
-  await unwrap<any>(TenantsService.deleteTenant(slug))
-}
+export const apiListGateways = (slug: string) => d<ListData<Gateway>>(listGateways({ path: { slug } }))
+export const apiCreateGateway = (slug: string, name: string) => d<CreateGatewayResponse>(createGateway({ path: { slug }, body: { name } }))
+export const apiGetGateway = (slug: string, gatewayId: number) => d<Gateway>(getGateway({ path: { slug, gatewayId } }))
+export const apiDeleteGateway = (slug: string, gatewayId: number) => d<void>(deleteGateway({ path: { slug, gatewayId } }))
 
-// ---- Users (tenant-scoped) ----
+// ---- DataSources ----
 
-export async function apiListUsers(slug: string, page = 1, size = 10): Promise<PaginatedData<TenantUser>> {
-  return unwrap<PaginatedData<TenantUser>>(UsersService.listUsers(slug, page, size))
-}
+export const apiListDataSources = (slug: string) => d<ListData<DataSource>>(listDataSources({ path: { slug } }))
+export const apiCreateDataSource = (slug: string, req: CreateDataSourceRequest) => d<DataSource>(createDataSource({ path: { slug }, body: req }))
+export const apiGetDataSource = (slug: string, datasourceId: number) => d<DataSource>(getDataSource({ path: { slug, datasourceId } }))
+export const apiDeleteDataSource = (slug: string, datasourceId: number) => d<void>(deleteDataSource({ path: { slug, datasourceId } }))
+export const apiUpdateDataSource = (slug: string, datasourceId: number, req: UpdateDataSourceRequest) => d<DataSource>(updateDataSource({ path: { slug, datasourceId }, body: req }))
 
-export async function apiAddUser(slug: string, req: AddUserRequest) {
-  return unwrap<any>(UsersService.addUser(slug, req))
-}
+// ---- Projects ----
 
-export async function apiUpdateUserRole(slug: string, userId: number, role: string) {
-  return unwrap<any>(UsersService.updateUserRole(slug, userId, { role: role as any }))
-}
+export const apiListProjects = (slug: string) => d<ListData<Project>>(listProjects({ path: { slug } }))
+export const apiCreateProject = (slug: string, req: CreateProjectRequest) => d<Project>(createProject({ path: { slug }, body: req }))
+export const apiGetProject = (slug: string, projectId: number) => d<Project>(getProject({ path: { slug, projectId } }))
+export const apiUpdateProject = (slug: string, projectId: number, req: UpdateProjectRequest) => d<Project>(updateProject({ path: { slug, projectId }, body: req }))
+export const apiDeleteProject = (slug: string, projectId: number) => d<void>(deleteProject({ path: { slug, projectId } }))
 
-export async function apiRemoveUser(slug: string, userId: number) {
-  return unwrap<any>(UsersService.removeUser(slug, userId))
-}
+// ---- Endpoints ----
 
-// Re-export types for convenience
-export type { AuthResponse, Tenant, TenantUser, RegisterRequest, LoginRequest, PaginatedData, PaginationInfo }
+export const apiListEndpoints = (slug: string, projectId: number) => d<ListData<ApiEndpoint>>(listEndpoints({ path: { slug, projectId } }))
+export const apiCreateEndpoint = (slug: string, projectId: number, req: CreateEndpointRequest) => d<ApiEndpoint>(createEndpoint({ path: { slug, projectId }, body: req }))
+export const apiUpdateEndpoint = (slug: string, projectId: number, endpointId: number, req: UpdateApiEndpointRequest) => d<ApiEndpoint>(updateEndpoint({ path: { slug, projectId, endpointId }, body: req }))
+export const apiDeleteEndpoint = (slug: string, projectId: number, endpointId: number) => d<void>(deleteEndpoint({ path: { slug, projectId, endpointId } }))
 
-// ---- Gateways (tenant-scoped) ----
+// ---- Groups ----
 
-export type Gateway = {
-  id: number
-  tenant_id: number
-  name: string
-  token?: string
-  status: string
-  ip: string
-  last_seen: string
-  version: string
-}
+export const apiListGroups = (slug: string, projectId: number) => d<ListData<ApiGroup>>(listGroups({ path: { slug, projectId } }))
+export const apiCreateGroup = (slug: string, projectId: number, req: CreateGroupRequest) => d<ApiGroup>(createGroup({ path: { slug, projectId }, body: req }))
+export const apiUpdateGroup = (slug: string, projectId: number, groupId: number, req: UpdateApiGroupRequest) => d<ApiGroup>(updateGroup({ path: { slug, projectId, groupId }, body: req }))
+export const apiDeleteGroup = (slug: string, projectId: number, groupId: number) => d<void>(deleteGroup({ path: { slug, projectId, groupId } }))
 
-export type CreateGatewayResponse = {
-  id: number
-  tenant_id: number
-  name: string
-  token: string
-  status: string
-  version: string
-}
+// ---- Scripts ----
 
-export async function apiListGateways(slug: string): Promise<{ list: Gateway[]; total: number }> {
-  return unwrap<{ list: Gateway[]; total: number }>(GatewaysService.listGateways(slug))
-}
+export const apiListScripts = (slug: string) => d<ListData<Script>>(listScripts({ path: { slug } }))
+export const apiCreateScript = (slug: string, req: CreateScriptRequest) => d<Script>(createScript({ path: { slug }, body: req }))
+export const apiUpdateScript = (slug: string, scriptId: number, req: UpdateScriptRequest) => d<Script>(updateScript({ path: { slug, scriptId }, body: req }))
+export const apiDeleteScript = (slug: string, scriptId: number) => d<void>(deleteScript({ path: { slug, scriptId } }))
 
-export async function apiCreateGateway(slug: string, name: string): Promise<CreateGatewayResponse> {
-  return unwrap<CreateGatewayResponse>(GatewaysService.createGateway(slug, { name }))
-}
+// ---- Query & Export ----
 
-export async function apiGetGateway(slug: string, gatewayId: number): Promise<Gateway> {
-  return unwrap<Gateway>(GatewaysService.getGateway(slug, gatewayId))
-}
+export const apiTestQuery = (slug: string, endpointId: number, params: Record<string, string>, ignoreScripts = false) =>
+  d<unknown>(testQuery({ path: { slug }, body: { endpoint_id: endpointId, params, ignore_scripts: ignoreScripts } }))
 
-export async function apiDeleteGateway(slug: string, gatewayId: number): Promise<void> {
-  await unwrap<any>(GatewaysService.deleteGateway(slug, gatewayId))
-}
-
-// ---- DataSources (tenant-scoped) ----
-
-export type DataSourceEnv = {
-  id: number
-  datasource_id: number
-  env: string
-  dsn?: string
-  gateway_id: number
-}
-
-export type DataSource = {
-  id: number
-  tenant_id: number
-  name: string
-  is_dual: boolean
-  type: string
-  envs?: DataSourceEnv[]
-  created_at: string
-}
-
-export async function apiListDataSources(slug: string): Promise<{ list: DataSource[]; total: number }> {
-  return unwrap<{ list: DataSource[]; total: number }>(DataSourcesService.listDataSources(slug))
-}
-
-export async function apiCreateDataSource(slug: string, req: {
-  name: string; type: string; is_dual: boolean;
-  envs: { env: string; dsn: string; gateway_id: number }[]
-}): Promise<DataSource> {
-  return unwrap<DataSource>(DataSourcesService.createDataSource(slug, req as any))
-}
-
-export async function apiGetDataSource(slug: string, datasourceId: number): Promise<DataSource> {
-  return unwrap<DataSource>(DataSourcesService.getDataSource(slug, datasourceId))
-}
-
-export async function apiDeleteDataSource(slug: string, datasourceId: number): Promise<void> {
-  await unwrap<any>(DataSourcesService.deleteDataSource(slug, datasourceId))
-}
-
-export async function apiUpdateDataSource(slug: string, datasourceId: number, req: {
-  name?: string; type?: string; is_dual?: boolean;
-  envs?: { env: string; dsn: string; gateway_id: number }[]
-}): Promise<DataSource> {
-  return unwrap<DataSource>(DataSourcesService.updateDataSource(slug, datasourceId, req as any))
-}
-
-// ---- Projects (tenant-scoped) ----
-
-export type Project = {
-  id: number
-  tenant_id: number
-  name: string
-  description: string
-  datasource_id: number
-  created_at: string
-}
-
-export async function apiListProjects(slug: string): Promise<{ list: Project[]; total: number }> {
-  return unwrap<{ list: Project[]; total: number }>(ProjectsService.listProjects(slug))
-}
-
-export async function apiCreateProject(slug: string, req: { name: string; description?: string; datasource_id: number }): Promise<Project> {
-  return unwrap<Project>(ProjectsService.createProject(slug, req as any))
-}
-
-export async function apiGetProject(slug: string, projectId: number): Promise<Project> {
-  return unwrap<Project>(ProjectsService.getProject(slug, projectId))
-}
-
-export async function apiUpdateProject(slug: string, projectId: number, req: { name?: string; description?: string; datasource_id?: number }): Promise<Project> {
-  return unwrap<Project>(ProjectsService.updateProject(slug, projectId, req as any))
-}
-
-export async function apiDeleteProject(slug: string, projectId: number): Promise<void> {
-  await unwrap<any>(ProjectsService.deleteProject(slug, projectId))
-}
-
-// ---- API Endpoints (project-scoped) ----
-
-import { EndpointsService } from '@/lib/sdk'
-
-export type APIEndpoint = {
-  id: number
-  tenant_id: number
-  project_id: number
-  path: string
-  methods: string[]
-  sql: string
-  params: string[]
-  created_at: string
-}
-
-export async function apiListEndpoints(slug: string, projectId: number): Promise<{ list: APIEndpoint[]; total: number }> {
-  return unwrap<{ list: APIEndpoint[]; total: number }>(EndpointsService.listEndpoints(slug, projectId))
-}
-
-export async function apiCreateEndpoint(slug: string, projectId: number, req: { path: string; methods: string[]; sql: string; params?: string[] }): Promise<APIEndpoint> {
-  return unwrap<APIEndpoint>(EndpointsService.createEndpoint(slug, projectId, req as any))
-}
-
-export async function apiDeleteEndpoint(slug: string, projectId: number, endpointId: number): Promise<void> {
-  await unwrap<any>(EndpointsService.deleteEndpoint(slug, projectId, endpointId))
-}
-
-// ---- Query Test ----
-
-export async function apiTestQuery(slug: string, datasourceId: number, sql: string, env = "prod"): Promise<any[]> {
-  const token = getToken()
-  const res = await fetch(`${OpenAPI.BASE}/api/v1/tenants/${slug}/query/test`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ datasource_id: datasourceId, sql, env }),
-  })
-  if (!res.ok) {
-    const json = await res.json().catch(() => ({}))
-    throw new Error(json.msg || `Query failed: ${res.status}`)
-  }
-  // Response is raw JSON array from gateway
-  return res.json()
+export async function apiExportOpenAPI(slug: string, projectId: number): Promise<void> {
+  if (typeof window === 'undefined') return
+  const spec = await d<Record<string, unknown>>(exportOpenApi({ path: { slug, projectId } }))
+  const blob = new Blob([JSON.stringify(spec, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'openapi.json'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }

@@ -51,7 +51,7 @@ export default function DataSourcesClientPage() {
   useEffect(() => { fetchData() }, [activeTenant])
 
   const handleDelete = async (ds: DataSource) => {
-    if (!confirm(`确定要删除数据源 "${ds.name} (${ds.env})" 吗？`)) return
+    if (!confirm(`确定要删除数据源 "${ds.name} (${ds.envs?.[0]?.env || "default"})" 吗？`)) return
     try {
       await apiDeleteDataSource(activeTenant, ds.id)
       fetchData()
@@ -116,9 +116,9 @@ export default function DataSourcesClientPage() {
                     {isDualEnv(ds) && (
                       <div className={cn(
                         "px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-tight",
-                        ds.env === "prod" ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                        ds.envs?.[0]?.env === "prod" ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
                       )}>
-                        {ds.env}
+                        {ds.envs?.[0]?.env || "default"}
                       </div>
                     )}
                     <div className="px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-tight bg-zinc-50 text-zinc-500 border-zinc-100">

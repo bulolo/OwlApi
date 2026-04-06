@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -20,6 +21,18 @@ import (
 type App struct {
 	config   *config.Config
 	executor *Executor
+}
+
+// streamWriter wraps a gRPC client stream with a mutex for safe concurrent Send.
+type streamWriter struct {
+	mu     sync.Mutex
+	stream pb.GatewayService_ConnectClient
+}
+
+func (sw *streamWriter) Send(msg *pb.GatewayMessage) error {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	return sw.stream.Send(msg)
 }
 
 func New() *App {
@@ -38,7 +51,6 @@ func New() *App {
 }
 
 func (a *App) Run() {
-	// Initialize demo SQLite data if the file path is configured
 	a.executor.InitDemoData("/data/owlapi_demo.db")
 	slog.Info("OwlApi Gateway starting...",
 		"tenant_id", a.config.TenantID,
@@ -76,8 +88,10 @@ func (a *App) connectAndServe() error {
 		return err
 	}
 
+	sw := &streamWriter{stream: stream}
+
 	// Register
-	err = stream.Send(&pb.GatewayMessage{
+	err = sw.Send(&pb.GatewayMessage{
 		Payload: &pb.GatewayMessage_Register{
 			Register: &pb.RegisterRequest{
 				GatewayId:    a.config.GatewayID,
@@ -91,10 +105,11 @@ func (a *App) connectAndServe() error {
 		return err
 	}
 
-	go a.startHeartbeat(ctx, stream)
+	go a.startHeartbeat(ctx, sw)
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(stop)
 
 	errorChan := make(chan error, 1)
 	go func() {
@@ -108,7 +123,7 @@ func (a *App) connectAndServe() error {
 				errorChan <- err
 				return
 			}
-			go a.handleServerMessage(stream, msg)
+			go a.handleServerMessage(sw, msg)
 		}
 	}()
 
@@ -121,14 +136,14 @@ func (a *App) connectAndServe() error {
 	}
 }
 
-func (a *App) startHeartbeat(ctx context.Context, stream pb.GatewayService_ConnectClient) {
+func (a *App) startHeartbeat(ctx context.Context, sw *streamWriter) {
 	ticker := time.NewTicker(20 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			if err := stream.Send(&pb.GatewayMessage{
+			if err := sw.Send(&pb.GatewayMessage{
 				Payload: &pb.GatewayMessage_Heartbeat{
 					Heartbeat: &pb.HeartbeatRequest{Timestamp: time.Now().Unix()},
 				},
@@ -142,7 +157,7 @@ func (a *App) startHeartbeat(ctx context.Context, stream pb.GatewayService_Conne
 	}
 }
 
-func (a *App) handleServerMessage(stream pb.GatewayService_ConnectClient, msg *pb.ServerMessage) {
+func (a *App) handleServerMessage(sw *streamWriter, msg *pb.ServerMessage) {
 	switch p := msg.Payload.(type) {
 	case *pb.ServerMessage_RegisterAck:
 		if p.RegisterAck.Success {
@@ -154,7 +169,7 @@ func (a *App) handleServerMessage(stream pb.GatewayService_ConnectClient, msg *p
 	case *pb.ServerMessage_ExecuteQuery:
 		slog.Info("Executing query", "request_id", p.ExecuteQuery.RequestId)
 		res := a.executor.Execute(p.ExecuteQuery)
-		if err := stream.Send(&pb.GatewayMessage{
+		if err := sw.Send(&pb.GatewayMessage{
 			Payload: &pb.GatewayMessage_QueryResult{QueryResult: res},
 		}); err != nil {
 			slog.Error("Failed to send query result", "error", err)

@@ -47,6 +47,9 @@ func (r *TenantUserRepo) List(ctx context.Context, tenantID int64, page, size in
 		}
 		list = append(list, tu)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 	return list, total, nil
 }
 
@@ -65,6 +68,9 @@ func (r *TenantUserRepo) GetByUserID(ctx context.Context, userID int64) ([]*doma
 			return nil, err
 		}
 		list = append(list, &tu)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return list, nil
 }

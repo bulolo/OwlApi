@@ -74,7 +74,6 @@ func (db *DB) initSchema(ctx context.Context) error {
 			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
 			name TEXT NOT NULL,
 			description TEXT DEFAULT '',
-			datasource_id BIGINT NOT NULL DEFAULT 0,
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			PRIMARY KEY (tenant_id, id)
 		)`,
@@ -96,17 +95,43 @@ func (db *DB) initSchema(ctx context.Context) error {
 			gateway_id BIGINT NOT NULL,
 			UNIQUE (tenant_id, datasource_id, env)
 		)`,
+		`CREATE TABLE IF NOT EXISTS api_groups (
+			id BIGSERIAL NOT NULL,
+			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+			project_id BIGINT NOT NULL,
+			name TEXT NOT NULL,
+			description TEXT DEFAULT '',
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			PRIMARY KEY (tenant_id, id)
+		)`,
 		`CREATE TABLE IF NOT EXISTS api_endpoints (
 			id BIGSERIAL NOT NULL,
 			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
 			project_id BIGINT NOT NULL,
+			group_id BIGINT NOT NULL DEFAULT 0,
+			datasource_id BIGINT NOT NULL DEFAULT 0,
 			path TEXT NOT NULL,
 			methods TEXT[] NOT NULL,
+			summary TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
 			sql_query TEXT NOT NULL,
 			params TEXT[] DEFAULT '{}',
+			param_defs JSONB DEFAULT '[]',
+			pre_script_id BIGINT NOT NULL DEFAULT 0,
+			post_script_id BIGINT NOT NULL DEFAULT 0,
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			PRIMARY KEY (tenant_id, id),
 			UNIQUE (tenant_id, path)
+		)`,
+		`CREATE TABLE IF NOT EXISTS scripts (
+			id BIGSERIAL NOT NULL,
+			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+			name TEXT NOT NULL,
+			type TEXT NOT NULL DEFAULT 'pre',
+			code TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			PRIMARY KEY (tenant_id, id)
 		)`,
 	}
 	for _, q := range queries {

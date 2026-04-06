@@ -60,6 +60,31 @@ func (r *ProjectRepo) GetDataSourceByID(ctx context.Context, tenantID, id int64)
 	return &ds, nil
 }
 
+func (r *ProjectRepo) GetDataSourceByName(ctx context.Context, tenantID int64, name string) (*domain.DataSource, error) {
+	var ds domain.DataSource
+	err := r.DB.Pool.QueryRow(ctx,
+		`SELECT id, tenant_id, name, is_dual, type, created_at FROM datasources WHERE tenant_id=$1 AND name=$2`,
+		tenantID, name).Scan(&ds.ID, &ds.TenantID, &ds.Name, &ds.IsDual, &ds.Type, &ds.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.DB.Pool.Query(ctx,
+		`SELECT id, datasource_id, env, dsn, gateway_id FROM datasource_envs WHERE tenant_id=$1 AND datasource_id=$2 ORDER BY env`,
+		tenantID, ds.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var e domain.DataSourceEnv
+		if err := rows.Scan(&e.ID, &e.DataSourceID, &e.Env, &e.DSN, &e.GatewayID); err != nil {
+			return nil, err
+		}
+		ds.Envs = append(ds.Envs, &e)
+	}
+	return &ds, nil
+}
+
 func (r *ProjectRepo) ListDataSources(ctx context.Context, tenantID int64) ([]*domain.DataSource, error) {
 	rows, err := r.DB.Pool.Query(ctx,
 		`SELECT id, tenant_id, name, is_dual, type, created_at FROM datasources WHERE tenant_id=$1 ORDER BY id`,
@@ -75,6 +100,9 @@ func (r *ProjectRepo) ListDataSources(ctx context.Context, tenantID int64) ([]*d
 			return nil, err
 		}
 		list = append(list, &ds)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	for _, ds := range list {
 		envRows, err := r.DB.Pool.Query(ctx,
@@ -97,9 +125,19 @@ func (r *ProjectRepo) ListDataSources(ctx context.Context, tenantID int64) ([]*d
 }
 
 func (r *ProjectRepo) DeleteDataSource(ctx context.Context, tenantID, id int64) error {
-	_, _ = r.DB.Pool.Exec(ctx, `DELETE FROM datasource_envs WHERE tenant_id=$1 AND datasource_id=$2`, tenantID, id)
-	_, err := r.DB.Pool.Exec(ctx, `DELETE FROM datasources WHERE tenant_id=$1 AND id=$2`, tenantID, id)
-	return err
+	tx, err := r.DB.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, `DELETE FROM datasource_envs WHERE tenant_id=$1 AND datasource_id=$2`, tenantID, id); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM datasources WHERE tenant_id=$1 AND id=$2`, tenantID, id); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *ProjectRepo) UpdateDataSource(ctx context.Context, ds *domain.DataSource) error {

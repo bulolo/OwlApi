@@ -1,7 +1,6 @@
 package grpc
 
 import (
-	"context"
 	"io"
 	"log/slog"
 	"net"
@@ -25,10 +24,10 @@ func NewHandler(gateways service.GatewayService, queries service.QueryService) *
 func (h *Handler) Connect(stream pb.GatewayService_ConnectServer) error {
 	var gatewayID string
 	var tenantID string
+	ctx := stream.Context()
 
-	// Extract peer IP from gRPC connection
 	peerIP := ""
-	if p, ok := peer.FromContext(stream.Context()); ok && p.Addr != nil {
+	if p, ok := peer.FromContext(ctx); ok && p.Addr != nil {
 		host, _, err := net.SplitHostPort(p.Addr.String())
 		if err == nil {
 			peerIP = host
@@ -55,7 +54,7 @@ func (h *Handler) Connect(stream pb.GatewayService_ConnectServer) error {
 		case *pb.GatewayMessage_Register:
 			gatewayID = p.Register.GatewayId
 			tenantID = p.Register.TenantId
-			resp, err := h.gateways.Register(context.Background(), p.Register, peerIP)
+			resp, err := h.gateways.Register(ctx, p.Register, peerIP)
 			if err != nil {
 				return err
 			}
@@ -74,7 +73,7 @@ func (h *Handler) Connect(stream pb.GatewayService_ConnectServer) error {
 				slog.Warn("Heartbeat received before registration")
 				continue
 			}
-			if err := h.gateways.Heartbeat(context.Background(), tenantID, gatewayID, peerIP); err != nil {
+			if err := h.gateways.Heartbeat(ctx, tenantID, gatewayID, peerIP); err != nil {
 				slog.Error("Failed to process heartbeat", "tenant_id", tenantID, "gateway_id", gatewayID, "error", err)
 			}
 			if err := stream.Send(&pb.ServerMessage{

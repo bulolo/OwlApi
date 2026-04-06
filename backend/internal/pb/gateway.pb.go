@@ -606,6 +606,8 @@ type ExecuteQueryRequest struct {
 	Sql            string                 `protobuf:"bytes,3,opt,name=sql,proto3" json:"sql,omitempty"`
 	Params         map[string]string      `protobuf:"bytes,4,rep,name=params,proto3" json:"params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	TimeoutSeconds int32                  `protobuf:"varint,5,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
+	PreScript      string                 `protobuf:"bytes,6,opt,name=pre_script,json=preScript,proto3" json:"pre_script,omitempty"`
+	PostScript     string                 `protobuf:"bytes,7,opt,name=post_script,json=postScript,proto3" json:"post_script,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -675,6 +677,20 @@ func (x *ExecuteQueryRequest) GetTimeoutSeconds() int32 {
 	return 0
 }
 
+func (x *ExecuteQueryRequest) GetPreScript() string {
+	if x != nil {
+		return x.PreScript
+	}
+	return ""
+}
+
+func (x *ExecuteQueryRequest) GetPostScript() string {
+	if x != nil {
+		return x.PostScript
+	}
+	return ""
+}
+
 var File_gateway_proto protoreflect.FileDescriptor
 
 const file_gateway_proto_rawDesc = "" +
@@ -723,14 +739,18 @@ const file_gateway_proto_rawDesc = "" +
 	"session_id\x18\x03 \x01(\tR\tsessionId\"4\n" +
 	"\x11HeartbeatResponse\x12\x1f\n" +
 	"\vserver_time\x18\x01 \x01(\x03R\n" +
-	"serverTime\"\x9b\x02\n" +
+	"serverTime\"\xdb\x02\n" +
 	"\x13ExecuteQueryRequest\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12#\n" +
 	"\rdatasource_id\x18\x02 \x01(\tR\fdatasourceId\x12\x10\n" +
 	"\x03sql\x18\x03 \x01(\tR\x03sql\x12J\n" +
 	"\x06params\x18\x04 \x03(\v22.owlapi.gateway.v1.ExecuteQueryRequest.ParamsEntryR\x06params\x12'\n" +
-	"\x0ftimeout_seconds\x18\x05 \x01(\x05R\x0etimeoutSeconds\x1a9\n" +
+	"\x0ftimeout_seconds\x18\x05 \x01(\x05R\x0etimeoutSeconds\x12\x1d\n" +
+	"\n" +
+	"pre_script\x18\x06 \x01(\tR\tpreScript\x12\x1f\n" +
+	"\vpost_script\x18\a \x01(\tR\n" +
+	"postScript\x1a9\n" +
 	"\vParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012d\n" +

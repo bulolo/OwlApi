@@ -52,6 +52,9 @@ func (r *GatewayRepo) List(ctx context.Context, tenantID int64) ([]*domain.Gatew
 		}
 		list = append(list, &gw)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return list, nil
 }
 

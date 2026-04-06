@@ -1,31 +1,32 @@
 import { create } from 'zustand'
 import { apiLogin, apiRegister, clearToken, getToken, type AuthResponse } from '@/lib/api-client'
-import type { User } from '@/lib/sdk'
+import type { User } from '@/lib/api-client'
 
 export type ViewContext = 'SYSTEM' | 'TENANT'
 
-interface UIState {
+interface UIStore {
+  // UI
   viewContext: ViewContext
   activeTenant: string
-  user: User | null
-  token: string | null
   sidebarCollapsed: boolean
-
   setViewContext: (context: ViewContext) => void
   setActiveTenant: (tenantId: string) => void
   setSidebarCollapsed: (collapsed: boolean) => void
+  // Auth
+  user: User | null
+  token: string | null
   login: (email: string, password: string) => Promise<AuthResponse>
   register: (email: string, name: string, password: string, tenantName?: string, tenantSlug?: string) => Promise<AuthResponse>
   logout: () => void
   restoreSession: () => void
 }
 
-export const useUIStore = create<UIState>((set) => ({
+export const useUIStore = create<UIStore>((set) => ({
   viewContext: 'SYSTEM',
   activeTenant: '',
+  sidebarCollapsed: false,
   user: null,
   token: null,
-  sidebarCollapsed: false,
 
   setViewContext: (viewContext) => set({ viewContext }),
   setActiveTenant: (activeTenant) => set({ activeTenant }),
@@ -53,13 +54,14 @@ export const useUIStore = create<UIState>((set) => ({
 
   restoreSession: () => {
     const token = getToken()
-    if (token) {
-      try {
-        const user = JSON.parse(localStorage.getItem('owlapi_user') || 'null')
-        set({ token, user })
-      } catch {
-        set({ token })
-      }
+    if (!token) return
+    try {
+      const raw = localStorage.getItem('owlapi_user')
+      set({ token, user: raw ? JSON.parse(raw) as User : null })
+    } catch {
+      clearToken()
+      localStorage.removeItem('owlapi_user')
+      set({ token: null, user: null })
     }
   },
 }))

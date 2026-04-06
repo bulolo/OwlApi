@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -12,15 +13,15 @@ import (
 
 type QueryHandler struct {
 	queryService service.QueryService
-	repo         domain.ProjectRepository
+	repo         domain.APIEndpointRepository
 }
 
-func NewQueryHandler(queryService service.QueryService, repo domain.ProjectRepository) *QueryHandler {
+func NewQueryHandler(queryService service.QueryService, repo domain.APIEndpointRepository) *QueryHandler {
 	return &QueryHandler{queryService: queryService, repo: repo}
 }
 
 func (h *QueryHandler) RegisterRoutes(r *gin.Engine) {
-	r.Match([]string{"GET", "POST"}, "/api/v1/query/*path", h.HandleQuery)
+	r.POST("/api/v1/query/*path", h.HandleQuery)
 }
 
 func (h *QueryHandler) HandleQuery(c *gin.Context) {
@@ -43,13 +44,17 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 		return
 	}
 
+	// All params from JSON body
 	params := make(map[string]string)
+	var body map[string]interface{}
+	if err := c.ShouldBindJSON(&body); err != nil && err.Error() != "EOF" {
+		Fail(c, http.StatusBadRequest, "invalid request body: "+err.Error())
+		return
+	}
 	for _, p := range endpoint.Params {
-		val := c.Query(p)
-		if val == "" {
-			val = c.PostForm(p)
+		if bv, ok := body[p]; ok {
+			params[p] = fmt.Sprintf("%v", bv)
 		}
-		params[p] = val
 	}
 
 	gatewayID := c.GetHeader("X-Gateway-ID")
@@ -70,5 +75,6 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 		return
 	}
 
-	c.Data(http.StatusOK, "application/json", result.Data)
+	// Raw JSON passthrough — result.Data is already JSON-encoded from gateway
+	c.Data(http.StatusOK, "application/json", result.Data) //nolint:passthrough
 }

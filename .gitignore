@@ -9,3 +9,10 @@ Thumbs.db
 
 # Environment
 .env
+
+# Dependencies
+node_modules/
+.next/
+dist/
+build/
+.cache/

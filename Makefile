@@ -6,7 +6,7 @@
 # ==============================================================================
 
 .PHONY: help \
-	dev-init dev-up dev-down dev-build dev-rebuild dev-restart dev-restart-backend dev-logs dev-logs-backend dev-clean dev-db-psql \
+	check-dev-env dev-init dev-up dev-down dev-build dev-rebuild dev-restart dev-restart-backend dev-logs dev-logs-backend dev-clean dev-db-psql \
 	prod-init prod-up prod-up-build prod-down prod-rebuild prod-restart prod-logs prod-clean check-prod-env \
 	gen-proto gen-sdk gen-swagger clean \
  publish-ce-github
@@ -67,17 +67,25 @@ help:
 # ------------------------------------------------------------------------------
 # 3. [开发环境] Development Targets
 # ------------------------------------------------------------------------------
+# 前置检查: 确保 .env 存在
+check-dev-env:
+	@if [ ! -f "backend/.env" ]; then \
+		echo "❌ [OwlApi] 错误: 未检测到开发环境配置文件 backend/.env"; \
+		echo "💡 [OwlApi] 请先执行 'make dev-init' 生成配置文件。"; \
+		exit 1; \
+	fi
+
 # 初始化开发环境配置
 dev-init:
 	@echo "🔧 [OwlApi] 正在初始化开发环境配置..."
 	@cp backend/.env.example backend/.env
 	@echo "✅ [OwlApi] 开发环境配置文件已生成: backend/.env"
 
-dev-build:
+dev-build: check-dev-env
 	@echo "🐳 [DEV] 正在构建开发镜像..."
 	$(DEV_COMPOSE) build
 
-dev-up:
+dev-up: check-dev-env
 	@echo "🐳 [DEV] 正在启动热更新环境 (前台日志模式)..."
 	@echo "    - Admin:    http://localhost:8001"
 	@echo "    - API:      http://localhost:3000"
@@ -90,7 +98,7 @@ dev-down:
 	@echo "🛑 [DEV] 正在停止开发环境..."
 	$(DEV_COMPOSE) down
 
-dev-rebuild:
+dev-rebuild: check-dev-env
 	@echo "🔧 [DEV] 重建并启动开发环境..."
 	$(DEV_COMPOSE) up -d --build
 

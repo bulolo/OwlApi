@@ -49,7 +49,12 @@
 
 ## 📸 应用截图
 
-> 🚧 截图正在准备中，敬请期待...
+<p align="center">
+  <img src="./frontend/docs/docs/public/images/1.png" width="800" alt="Dashboard">
+</p>
+<p align="center">
+  <img src="./frontend/docs/docs/public/images/2.png" width="800" alt="Projects">
+</p>
 
 ---
 

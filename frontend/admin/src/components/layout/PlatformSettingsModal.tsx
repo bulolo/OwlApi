@@ -46,7 +46,7 @@ export default function PlatformSettingsModal({ open, onOpenChange }: PlatformSe
                 )}
               >
                 <Building2 className={cn("w-4 h-4", activeTab === "tenants" ? "text-blue-500" : "text-zinc-400")} />
-                租户管理
+                组织管理
               </button>
 
               <div className="px-3 py-2 mt-4 text-[10px] font-black text-zinc-400 uppercase tracking-widest">配置</div>

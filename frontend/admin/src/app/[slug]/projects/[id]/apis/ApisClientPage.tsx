@@ -100,7 +100,7 @@ export default function ApisPage({ projectId: _propProjectId }: { projectId: str
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className="h-11 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-zinc-400 data-[state=active]:text-blue-600 font-semibold px-3 text-[12px] tracking-wide transition-all"
+                      className="h-11 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-zinc-400 data-[state=active]:text-blue-600 font-semibold px-3 text-xs tracking-wide transition-all"
                     >
                       <tab.icon className="w-3.5 h-3.5 mr-1.5" /> {tab.label}
                     </TabsTrigger>
@@ -194,7 +194,7 @@ function EndpointHeader({
           <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded-lg h-8 px-2.5 transition-colors focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-500/10 hover:border-blue-300">
             <Folder className="w-3.5 h-3.5 text-zinc-400" />
             <Select value={String(groupId)} onValueChange={v => onGroupChange(Number(v))}>
-              <SelectTrigger className="h-7 border-none shadow-none bg-transparent text-[11px] font-bold p-0 min-w-[60px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-7 border-none shadow-none bg-transparent text-xs font-bold p-0 min-w-[60px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">未分类</SelectItem>
                 {groups.map(g => <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>)}
@@ -205,7 +205,7 @@ function EndpointHeader({
           <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded-lg h-8 px-2.5 transition-colors focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-500/10 hover:border-blue-300">
             <Database className="w-3.5 h-3.5 text-zinc-400" />
             <Select value={String(datasourceId)} onValueChange={v => onDatasourceChange(Number(v))}>
-              <SelectTrigger className="h-7 border-none shadow-none bg-transparent text-[11px] font-bold p-0 min-w-[60px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-7 border-none shadow-none bg-transparent text-xs font-bold p-0 min-w-[60px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {dataSources.map(ds => <SelectItem key={ds.id} value={String(ds.id)}>{ds.name}</SelectItem>)}
               </SelectContent>
@@ -248,7 +248,7 @@ function LogsPlaceholder() {
       <div className="w-14 h-14 bg-zinc-50 rounded-xl flex items-center justify-center mb-5 border border-zinc-100">
         <ScrollText className="w-7 h-7 text-zinc-300" />
       </div>
-      <h3 className="text-sm font-bold text-zinc-700 tracking-tight">访问日志即将上线</h3>
+      <h3 className="text-sm font-bold text-zinc-600 tracking-tight">访问日志即将上线</h3>
       <p className="text-xs text-zinc-400 mt-2 max-w-xs text-center leading-relaxed">
         高性能日志模块正在开发中，未来可在此查看接口调用频次和延迟分析。
       </p>

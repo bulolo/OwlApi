@@ -61,8 +61,8 @@ export default function ScriptsClientPage() {
   const { activeTenant } = useUIStore()
   const [keyword, setKeyword] = useState("")
   const [page, setPage] = useState(1)
-  const SIZE = 20
-  const { scripts, pagination, isLoading: loading } = useScripts(activeTenant, { page, size: SIZE, keyword })
+  const [size, setSize] = useState(20)
+  const { scripts, pagination, isLoading: loading } = useScripts(activeTenant, { page, size, keyword })
   const createMutation = useCreateScript(activeTenant)
   const updateMutation = useUpdateScript(activeTenant)
   const deleteMutation = useDeleteScript(activeTenant)
@@ -154,7 +154,7 @@ export default function ScriptsClientPage() {
             <div className="p-8 text-center text-zinc-400 text-xs">加载中...</div>
           ) : scripts.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-6">
-              <FileCode2 className="w-10 h-10 text-zinc-200 mb-3" />
+              <FileCode2 className="w-10 h-10 text-zinc-300 mb-3" />
               <p className="text-xs text-zinc-400">暂无脚本</p>
             </div>
           ) : (
@@ -177,9 +177,9 @@ export default function ScriptsClientPage() {
               )}
             </div>
           )}
-          {(pagination?.total ?? 0) > SIZE && (
+          {(pagination?.total ?? 0) > size && (
             <div className="border-t border-zinc-100">
-              <Pager page={page} size={SIZE} total={pagination?.total ?? 0} onPageChange={setPage} />
+              <Pager page={page} size={size} total={pagination?.total ?? 0} onPageChange={setPage} onSizeChange={setSize} />
             </div>
           )}
         </div>
@@ -192,7 +192,7 @@ export default function ScriptsClientPage() {
               <div className="h-12 border-b border-zinc-100 flex items-center justify-between px-4 bg-zinc-50/20">
                 <div className="flex items-center gap-3">
                   <Input className="h-7 w-[200px] text-xs font-bold border-zinc-200 rounded-lg" placeholder="脚本名称" value={formName} onChange={e => setFormName(e.target.value)} />
-                  <Badge variant="secondary" className={cn("text-[9px] h-5 px-2 rounded-md", formType === "pre" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600")}>
+                  <Badge variant="secondary" className={cn("text-[10px] h-5 px-2 rounded-md", formType === "pre" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600")}>
                     {formType === "pre" ? "前置" : "后置"}
                   </Badge>
                 </div>
@@ -205,7 +205,7 @@ export default function ScriptsClientPage() {
 
               {/* Description */}
               <div className="px-4 py-2 border-b border-zinc-100 bg-zinc-50/10">
-                <Input className="h-7 text-[11px] border-zinc-200 rounded-lg" placeholder="脚本描述（可选）" value={formDesc} onChange={e => setFormDesc(e.target.value)} />
+                <Input className="h-7 text-xs border-zinc-200 rounded-lg" placeholder="脚本描述（可选）" value={formDesc} onChange={e => setFormDesc(e.target.value)} />
               </div>
 
               {/* Code editor */}

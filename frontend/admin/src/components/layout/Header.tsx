@@ -54,9 +54,9 @@ export function Header({ slug }: { slug?: string }) {
                     {initials}
                   </div>
                   <div className="hidden sm:flex flex-col items-start">
-                    <span className="text-[11px] font-bold text-zinc-900 leading-none group-hover:text-blue-600 transition-colors">{name}</span>
+                    <span className="text-xs font-bold text-zinc-900 leading-none group-hover:text-blue-600 transition-colors">{name}</span>
                     {user?.is_superadmin && <span className="text-[10px] text-amber-600 font-bold uppercase tracking-widest mt-1">超级管理员</span>}
-                    {!user?.is_superadmin && <span className="text-[10px] text-zinc-400 font-bold tracking-widest mt-1">租户用户</span>}
+                    {!user?.is_superadmin && <span className="text-[10px] text-zinc-400 font-bold tracking-widest mt-1">组织用户</span>}
                   </div>
                 </button>
               </DropdownMenuTrigger>

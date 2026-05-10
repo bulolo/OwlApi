@@ -17,9 +17,9 @@ export function SettingsTab() {
 
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-300">
-      <Card className="border-zinc-200/60 shadow-sm overflow-hidden rounded-xl">
+      <Card className="border-zinc-200/60 shadow-sm overflow-hidden rounded-lg">
         <CardHeader className="pb-3 pt-5 px-6 bg-white border-b border-zinc-100">
-          <CardTitle className="text-[13px] font-bold text-zinc-800 flex items-center gap-2">
+          <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
             <Settings2 className="w-4 h-4 text-zinc-500" /> 高级配置
           </CardTitle>
         </CardHeader>
@@ -27,11 +27,11 @@ export function SettingsTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
             <div className="space-y-2.5">
               <Label className="text-xs font-bold text-zinc-600">前置注入逻辑（Pre-script）</Label>
-              <p className="text-[11px] text-zinc-400 font-medium leading-relaxed mb-3">
+              <p className="text-xs text-zinc-400 font-medium leading-relaxed mb-3">
                 在执行核心 SQL 操作之前允许您通过自定义脚本处理特定的鉴权验证、入参变换或是设置特定的环境变量。
               </p>
               <Select value={String(preScriptId)} onValueChange={v => setFormField("preScriptId", Number(v))}>
-                <SelectTrigger className="h-10"><SelectValue placeholder="无执行脚本" /></SelectTrigger>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="无执行脚本" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">无执行脚本</SelectItem>
                   {scripts.filter(s => s.type === "pre").map(s => (
@@ -42,11 +42,11 @@ export function SettingsTab() {
             </div>
             <div className="space-y-2.5">
               <Label className="text-xs font-bold text-zinc-600">后置处理（Post-script）</Label>
-              <p className="text-[11px] text-zinc-400 font-medium leading-relaxed mb-3">
+              <p className="text-xs text-zinc-400 font-medium leading-relaxed mb-3">
                 在得到 SQL 执行结果且返回到客户端之前执行，您可以用来对返回字段进行脱敏、转换嵌套结构或者注入额外业务字段。
               </p>
               <Select value={String(postScriptId)} onValueChange={v => setFormField("postScriptId", Number(v))}>
-                <SelectTrigger className="h-10"><SelectValue placeholder="无执行脚本" /></SelectTrigger>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="无执行脚本" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">无执行脚本</SelectItem>
                   {scripts.filter(s => s.type === "post").map(s => (

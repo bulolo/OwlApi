@@ -17,8 +17,9 @@ import { toast } from "sonner"
 export default function GatewaysClientPage() {
   const { activeTenant } = useUIStore()
   const [page, setPage] = useState(1)
+  const [size, setSize] = useState(10)
   const [keyword, setKeyword] = useState("")
-  const { gateways, pagination, isLoading, refetch } = useGateways(activeTenant, { page, size: 10, keyword })
+  const { gateways, pagination, isLoading, refetch } = useGateways(activeTenant, { page, size, keyword })
   const deleteMutation = useDeleteGateway(activeTenant)
   const [detail, setDetail] = useState<Gateway | null>(null)
   const [copied, setCopied] = useState(false)
@@ -129,8 +130,8 @@ export default function GatewaysClientPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-zinc-100 border-dashed">
-                <div className="text-[11px] font-medium text-zinc-400">
+              <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+                <div className="text-xs font-medium text-zinc-400">
                   最后心跳: {formatTime(gw.last_seen)}
                 </div>
                 <div className="flex gap-1">
@@ -147,7 +148,7 @@ export default function GatewaysClientPage() {
         </div>
       )}
 
-      <Pager page={page} size={10} total={pagination?.total ?? 0} onPageChange={setPage} />
+      <Pager page={page} size={size} total={pagination?.total ?? 0} onPageChange={setPage} onSizeChange={setSize} />
 
       {detail && (
         <div className="bg-white border border-zinc-100 rounded-lg shadow-sm p-6 space-y-4">
@@ -161,9 +162,9 @@ export default function GatewaysClientPage() {
                 {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
-            <pre className="whitespace-pre pr-12 text-[13px]">{composeYaml}</pre>
+            <pre className="whitespace-pre pr-12 text-sm">{composeYaml}</pre>
           </div>
-          <p className="text-[11px] text-zinc-400">
+          <p className="text-xs text-zinc-400">
             将 <code className="bg-zinc-100 px-1 rounded">your-server:9090</code> 替换为 Control Plane 的实际地址，然后执行 <code className="bg-zinc-100 px-1 rounded">docker compose up -d</code>
           </p>
         </div>

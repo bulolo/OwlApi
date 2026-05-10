@@ -15,7 +15,7 @@ export function GroupModal() {
 
   return (
     <Dialog open={groupModal.open} onOpenChange={(open) => { if (!open) closeGroupModal() }}>
-      <DialogContent className="sm:max-w-[400px] rounded-2xl">
+      <DialogContent className="sm:max-w-[400px] rounded-lg">
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-zinc-900">
             {groupModal.mode === "create" ? "创建新分组" : "编辑分组"}
@@ -26,7 +26,7 @@ export function GroupModal() {
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">分组名称</label>
+            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">分组名称</label>
             <Input
               placeholder="例如：用户中心、订单系统..."
               className="h-9 text-sm rounded-lg"
@@ -40,7 +40,7 @@ export function GroupModal() {
           <Button variant="ghost" onClick={closeGroupModal} className="h-9 text-xs font-bold rounded-lg">取消</Button>
           <Button
             onClick={() => submitGroupModal(activeTenant, projectId)}
-            className="h-9 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm shadow-blue-500/15"
+            className="h-9 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-sm"
           >
             {groupModal.mode === "create" ? "创建" : "保存"}
           </Button>

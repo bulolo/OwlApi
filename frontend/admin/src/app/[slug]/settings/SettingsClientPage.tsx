@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import {
-  Settings,
   Shield,
   Globe,
   Bell,
@@ -21,14 +20,11 @@ export default function SettingsClientPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+    <div className="space-y-8 max-w-5xl">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
-            <Settings className="w-5 h-5 text-zinc-400" />
-            系统设置
-          </h1>
-          <p className="text-xs text-zinc-500 mt-1 font-medium">配置平台全局行为及网关节点集群参数。</p>
+          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">系统设置</h1>
+          <p className="text-sm text-zinc-500 mt-1 font-medium">配置平台全局行为及网关节点集群参数。</p>
         </div>
         <div className="flex gap-2">
            <Button variant="outline" className="h-9 px-4 text-xs font-bold border-zinc-200">恢复默认</Button>
@@ -201,7 +197,7 @@ export default function SettingsClientPage() {
                 <Zap className="w-5 h-5 text-blue-600 shrink-0" />
                 <div>
                    <h4 className="text-xs font-bold text-blue-900 uppercase">配置建议</h4>
-                   <p className="text-[11px] text-blue-800 mt-1 leading-relaxed">
+                   <p className="text-xs text-blue-800 mt-1 leading-relaxed">
                      建议配合飞书或钉钉机器人的“安全设置”使用密钥校验模式，以确保运维通知的安全性。
                    </p>
                 </div>

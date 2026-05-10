@@ -37,7 +37,7 @@ export default function RegisterTenantPage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
-            开通新租户
+            开通新组织
           </h1>
           <p className="text-sm text-zinc-500 mt-0.5 font-medium">
             为新的合作伙伴或企业客户分配独立的资源空间与访问路径。
@@ -59,7 +59,7 @@ export default function RegisterTenantPage() {
                <ShieldCheck className="w-5 h-5 text-blue-600 mb-2" />
                <p className="text-[10px] font-bold text-blue-900 uppercase">安全隔离保证</p>
                <p className="text-[10px] text-blue-700 mt-1 leading-normal">
-                 每个租户通过唯一的 Tenant ID 在统一数据库中实现逻辑隔离，确保数据访问的绝对安全性。
+                 每个组织通过唯一的 Tenant ID 在统一数据库中实现逻辑隔离，确保数据访问的绝对安全性。
                </p>
              </div>
           </div>
@@ -163,9 +163,9 @@ export default function RegisterTenantPage() {
                   <CheckCircle2 className="w-8 h-8 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-zinc-900">租户开通成功!</h3>
+                  <h3 className="text-lg font-bold text-zinc-900">组织开通成功!</h3>
                   <p className="text-sm text-zinc-500 mt-2">
-                    系统已自动为您完成租户 ID 分配与默认工作区逻辑隔离。<br/>
+                    系统已自动为您完成组织 ID 分配与默认工作区逻辑隔离。<br/>
                     管理员激活邮件已发送至 <strong>{formData.adminEmail}</strong>
                   </p>
                 </div>
@@ -175,7 +175,7 @@ export default function RegisterTenantPage() {
                       <span className="font-mono font-bold text-blue-600">owlapi.cn/{formData.slug}</span>
                    </div>
                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-zinc-400">租户识别码 (Tenant ID):</span>
+                      <span className="text-zinc-400">组织识别码 (Tenant ID):</span>
                       <span className="font-mono font-bold text-zinc-900 uppercase">SH-T-{Math.floor(Math.random()*10000)}</span>
                    </div>
                 </div>
@@ -200,7 +200,7 @@ function StepIndicator({ number, title, active }: { number: number; title: strin
       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 ${active ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-zinc-200 text-zinc-400"}`}>
         {number}
       </div>
-      <span className={`text-[11px] font-bold ${active ? "text-zinc-900" : "text-zinc-400"}`}>{title}</span>
+      <span className={`text-xs font-bold ${active ? "text-zinc-900" : "text-zinc-400"}`}>{title}</span>
     </div>
   )
 }

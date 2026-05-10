@@ -37,16 +37,16 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
         <Button 
           variant="ghost" 
           size="icon" 
-          className="rounded-full hover:bg-zinc-100"
+          className="rounded-lg hover:bg-zinc-100"
           onClick={onCancel}
         >
           <ArrowLeft className="w-5 h-5 text-zinc-500" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
-            开通新租户
+          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
+            开通新组织
           </h1>
-          <p className="text-xs text-zinc-500 mt-0.5 font-medium">
+          <p className="text-sm text-zinc-500 mt-1 font-medium">
             为新的合作伙伴或企业客户分配独立的资源空间与访问路径。
           </p>
         </div>
@@ -66,7 +66,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                <ShieldCheck className="w-5 h-5 text-blue-600 mb-2" />
                <p className="text-[10px] font-bold text-blue-900 uppercase">安全隔离保证</p>
                <p className="text-[10px] text-blue-700 mt-1 leading-normal">
-                 每个租户通过唯一的 Tenant ID 在统一数据库中实现逻辑隔离，确保数据访问的绝对安全性。
+                 每个组织通过唯一的 Tenant ID 在统一数据库中实现逻辑隔离，确保数据访问的绝对安全性。
                </p>
              </div>
           </div>
@@ -80,42 +80,42 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                 className="space-y-6"
               >
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase text-zinc-400">公司/企业名称</Label>
+                  <Label className="text-xs font-bold uppercase text-zinc-400">公司/企业名称</Label>
                   <Input 
                     placeholder="e.g. 阿里巴巴 (中国) 网络技术有限公司" 
                     value={formData.companyName}
                     onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-                    className="h-10 bg-zinc-50/50 focus:bg-white transition-all"
+                    className="h-9 bg-zinc-50/50 focus:bg-white transition-all"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase text-zinc-400">专属访问路径</Label>
+                  <Label className="text-xs font-bold uppercase text-zinc-400">专属访问路径</Label>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-zinc-400">owlapi.cn/</span>
                     <Input 
                       placeholder="aliyun" 
                       value={formData.slug}
                       onChange={(e) => setFormData({...formData, slug: e.target.value})}
-                      className="h-10 font-mono"
+                      className="h-9 font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase text-zinc-400">初始管理员邮箱</Label>
+                  <Label className="text-xs font-bold uppercase text-zinc-400">初始管理员邮箱</Label>
                   <Input 
                     type="email"
                     placeholder="it-admin@company.com" 
                     value={formData.adminEmail}
                     onChange={(e) => setFormData({...formData, adminEmail: e.target.value})}
-                    className="h-10 bg-zinc-50/50"
+                    className="h-9 bg-zinc-50/50"
                   />
                 </div>
 
                 <Button 
                   onClick={() => setStep(2)}
-                  className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-sm"
+                  className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm"
                 >
                   下一步: 选择订阅套餐
                 </Button>
@@ -127,7 +127,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                 className="space-y-6"
               >
                 <div className="space-y-4">
-                  <Label className="text-xs font-black uppercase text-zinc-400">选择服务等级</Label>
+                  <Label className="text-xs font-bold uppercase text-zinc-400">选择服务等级</Label>
                   <div className="grid grid-cols-1 gap-3">
                     <PlanOption 
                       active={formData.plan === 'Free'} 
@@ -152,7 +152,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
 
                 {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
                 <div className="flex gap-3 pt-4">
-                  <Button variant="outline" onClick={() => setStep(1)} className="flex-1 h-10 font-bold">返回修改</Button>
+                  <Button variant="outline" onClick={() => setStep(1)} className="flex-1 h-9 text-xs font-bold">返回修改</Button>
                   <Button 
                     disabled={loading}
                     onClick={async () => {
@@ -173,7 +173,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                         setLoading(false)
                       }
                     }}
-                    className="flex-[2] h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg"
+                    className="flex-[2] h-9 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg"
                   >
                     {loading ? "创建中..." : "确认并初始化资源"}
                   </Button>
@@ -189,9 +189,9 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                   <CheckCircle2 className="w-8 h-8 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-zinc-900">租户开通成功!</h3>
+                  <h3 className="text-lg font-bold text-zinc-900">组织开通成功!</h3>
                   <p className="text-sm text-zinc-500 mt-2">
-                    系统已自动为您完成租户 ID 分配与默认工作区逻辑隔离。<br/>
+                    系统已自动为您完成组织 ID 分配与默认工作区逻辑隔离。<br/>
                     管理员激活邮件已发送至 <strong>{formData.adminEmail}</strong>
                   </p>
                 </div>
@@ -201,7 +201,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                       <span className="font-mono font-bold text-blue-600">owlapi.cn/{formData.slug}</span>
                    </div>
                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-zinc-400">租户识别码 (Tenant ID):</span>
+                      <span className="text-zinc-400">组织识别码 (Tenant ID):</span>
                       <span className="font-mono font-bold text-zinc-900 uppercase">{tenantId}</span>
                    </div>
                 </div>
@@ -210,7 +210,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                     if (onSuccess) onSuccess()
                     else onCancel()
                   }}
-                  className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                  className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold"
                 >
                   返回列表
                 </Button>
@@ -229,7 +229,7 @@ function StepIndicator({ number, title, active }: { number: number; title: strin
       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 ${active ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-zinc-200 text-zinc-400"}`}>
         {number}
       </div>
-      <span className={`text-[11px] font-bold ${active ? "text-zinc-900" : "text-zinc-400"}`}>{title}</span>
+      <span className={`text-xs font-bold ${active ? "text-zinc-900" : "text-zinc-400"}`}>{title}</span>
     </div>
   )
 }

@@ -44,9 +44,9 @@ export function ParamDefCard() {
   }
 
   return (
-    <Card className="border-zinc-200/60 shadow-sm overflow-hidden flex flex-col h-[500px] rounded-xl">
+    <Card className="border-zinc-200/60 shadow-sm overflow-hidden flex flex-col h-[500px] rounded-lg">
       <CardHeader className="pb-3 pt-4 px-5 border-b border-zinc-100 bg-white shrink-0">
-        <CardTitle className="text-[13px] font-bold text-zinc-800 flex items-center gap-2">
+        <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
           <LayoutTemplate className="w-4 h-4 text-blue-500" /> 参数定义
         </CardTitle>
       </CardHeader>
@@ -57,7 +57,7 @@ export function ParamDefCard() {
           return (
             <div
               key={def.name}
-              className={`p-3.5 rounded-xl border ${
+              className={`p-3.5 rounded-lg border ${
                 def._isAuto && !isInStore
                   ? "border-dashed border-blue-200 bg-blue-50/30"
                   : "border-zinc-100 bg-zinc-50/30"
@@ -67,7 +67,7 @@ export function ParamDefCard() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono font-bold text-blue-600">{def.name || "未命名"}</span>
                   <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded-sm ${
+                    className={`text-[10px] px-1.5 py-0.5 rounded-sm ${
                       def._isAuto ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"
                     }`}
                   >

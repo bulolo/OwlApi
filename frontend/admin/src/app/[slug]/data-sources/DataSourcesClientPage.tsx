@@ -32,8 +32,9 @@ const DB_TYPE_LABELS: Record<string, string> = {
 export default function DataSourcesClientPage() {
   const { activeTenant } = useUIStore()
   const [page, setPage] = useState(1)
+  const [size, setSize] = useState(10)
   const [keyword, setKeyword] = useState("")
-  const { dataSources, pagination, isLoading } = useDataSources(activeTenant, { page, size: 10, keyword })
+  const { dataSources, pagination, isLoading } = useDataSources(activeTenant, { page, size, keyword })
   const { gateways } = useGateways(activeTenant, { is_pager: 0 })
   const deleteMutation = useDeleteDataSource(activeTenant)
 
@@ -131,7 +132,7 @@ export default function DataSourcesClientPage() {
         </div>
       )}
 
-      <Pager page={page} size={10} total={pagination?.total ?? 0} onPageChange={setPage} />
+      <Pager page={page} size={size} total={pagination?.total ?? 0} onPageChange={setPage} onSizeChange={setSize} />
     </div>
   )
 }

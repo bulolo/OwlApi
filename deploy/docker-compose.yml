@@ -10,7 +10,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:latest
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.0}
     container_name: owlapi_backend
     restart: unless-stopped
     ports:
@@ -36,6 +36,11 @@ services:
         limits:
           memory: 512M
           cpus: '1'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
 
   # Admin Frontend
   admin:
@@ -44,7 +49,7 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:latest
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:${DOCKER_IMAGE_TAG:-v0.1.0}
     container_name: owlapi_admin
     restart: unless-stopped
     ports:
@@ -59,6 +64,11 @@ services:
         limits:
           memory: 256M
           cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   # PostgreSQL Database
   postgres:
@@ -82,13 +92,18 @@ services:
         limits:
           memory: 512M
           cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
   # Backend Init: schema + seed demo data (runs every startup)
   backend-init:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:latest
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.0}
     container_name: owlapi_init
     command: ["./init"]
     environment:

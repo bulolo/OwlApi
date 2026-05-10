@@ -65,7 +65,7 @@ export default function ProjectLayoutContent({
               </div>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-xl font-bold text-zinc-900 tracking-tight">
+                  <h1 className="text-lg font-bold text-zinc-900 tracking-tight">
                     {project?.name || "加载中..."}
                   </h1>
                   <Badge variant="secondary" className="bg-zinc-100 text-zinc-500 border-zinc-200 text-[10px] font-bold px-2 py-0.5 rounded-md">

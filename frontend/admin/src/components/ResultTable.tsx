@@ -44,7 +44,7 @@ export function ResultTable({ data }: ResultTableProps) {
               {columns.map((col) => (
                 <TableHead 
                   key={col} 
-                  className="h-8 px-4 text-[11px] font-bold text-zinc-500 uppercase whitespace-nowrap"
+                  className="h-8 px-4 text-xs font-bold text-zinc-500 uppercase whitespace-nowrap"
                 >
                   {col}
                 </TableHead>
@@ -57,7 +57,7 @@ export function ResultTable({ data }: ResultTableProps) {
                 {columns.map((col) => (
                   <TableCell 
                     key={`${i}-${col}`} 
-                    className="py-2 px-4 text-xs font-mono text-zinc-700 whitespace-nowrap"
+                    className="py-2 px-4 text-xs font-mono text-zinc-600 whitespace-nowrap"
                   >
                      {/* Handle object/array rendering simply */}
                     {typeof row[col] === 'object' 

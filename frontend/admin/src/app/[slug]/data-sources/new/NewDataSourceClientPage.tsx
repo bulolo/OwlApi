@@ -98,10 +98,10 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between border-b pb-6">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href={`/${activeTenant}/data-sources`}>
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-zinc-100">
+            <Button variant="ghost" size="icon" className="rounded-lg hover:bg-zinc-100">
               <ArrowLeft className="w-5 h-5 text-zinc-500" />
             </Button>
           </Link>
@@ -111,8 +111,8 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
           </div>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => router.back()} className="h-10 px-6 font-bold text-zinc-600">取消</Button>
-          <Button onClick={handleSave} disabled={saving} className="h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm">
+          <Button variant="outline" onClick={() => router.back()} className="h-9 px-6 text-xs font-bold text-zinc-600">取消</Button>
+          <Button onClick={handleSave} disabled={saving} className="h-9 px-8 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm">
             <Save className="w-4 h-4 mr-2" />
             {saving ? (isEdit ? "保存中..." : "创建中...") : (isEdit ? "保存修改" : "创建数据源")}
           </Button>
@@ -140,13 +140,13 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
                   placeholder="例如：核心业务从库" 
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="h-10 text-sm focus:ring-1 border-zinc-200 shadow-none"
+                  className="h-9 text-sm focus:ring-1 border-zinc-200 shadow-none"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-zinc-500 uppercase">数据库类型</Label>
                 <Select value={formData.type} onValueChange={v => setFormData({...formData, type: v})}>
-                  <SelectTrigger className="h-10 text-sm border-zinc-200 shadow-none">
+                  <SelectTrigger className="h-9 text-sm border-zinc-200 shadow-none">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -180,7 +180,7 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
                 <ShieldCheck className="w-3.5 h-3.5" />
                 安全与合规
              </h4>
-             <p className="text-[11px] text-blue-600/80 leading-relaxed font-medium">
+             <p className="text-xs text-blue-600/80 leading-relaxed font-medium">
                OwlAPI 采用<strong>隧道穿透</strong>技术。您的数据库凭据在浏览器端脱敏，仅在网关节点内部加密存储。
              </p>
           </div>
@@ -215,7 +215,7 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
                       ? setFormData({...formData, dev: {...formData.dev, dsn: e.target.value}})
                       : setFormData({...formData, prod: {...formData.prod, dsn: e.target.value}})
                     }
-                    className="h-10 font-mono text-xs border-zinc-200 shadow-none focus:ring-emerald-500/20 bg-white"
+                    className="h-9 font-mono text-xs border-zinc-200 shadow-none focus:ring-emerald-500/20 bg-white"
                   />
                   {formData.type === "sqlite" && (
                     <p className="text-[10px] text-zinc-400">填写 Gateway 容器内的绝对路径，需通过 Docker volume 挂载宿主机目录</p>
@@ -230,7 +230,7 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
                       : setFormData({...formData, prod: {...formData.prod, gatewayId: Number(v)}})
                     }
                   >
-                    <SelectTrigger className="h-12 border-zinc-200 bg-white hover:bg-zinc-50 transition-colors">
+                    <SelectTrigger className="h-9 border-zinc-200 bg-white hover:bg-zinc-50 transition-colors">
                       <SelectValue placeholder="选择网关节点..." />
                     </SelectTrigger>
                     <SelectContent className="bg-white">
@@ -272,7 +272,7 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
                       placeholder={formData.type === "sqlite" ? "/data/mydb.db" : "user:password@tcp(host:port)/dbname"}
                       value={formData.prod.dsn}
                       onChange={e => setFormData({...formData, prod: {...formData.prod, dsn: e.target.value}})}
-                      className="h-10 font-mono text-xs border-zinc-200 shadow-none focus:ring-blue-600/20"
+                      className="h-9 font-mono text-xs border-zinc-200 shadow-none focus:ring-blue-600/20"
                     />
                     {formData.type === "sqlite" && (
                       <p className="text-[10px] text-zinc-400">填写 Gateway 容器内的绝对路径，需通过 Docker volume 挂载宿主机目录</p>
@@ -281,7 +281,7 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
                  <div className="col-span-2 space-y-2">
                     <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider text-opacity-70">绑定网关节点 (Gateway Node)</Label>
                     <Select value={String(formData.prod.gatewayId)} onValueChange={v => setFormData({...formData, prod: {...formData.prod, gatewayId: Number(v)}})}>
-                      <SelectTrigger className="h-12 border-zinc-200 bg-blue-600/5 hover:bg-blue-600/10 transition-colors">
+                      <SelectTrigger className="h-9 border-zinc-200 bg-blue-600/5 hover:bg-blue-600/10 transition-colors">
                         <SelectValue placeholder="选择网关节点..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -304,7 +304,7 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
           {!formData.isDual && (
             <div className="p-10 border-2 border-dashed border-zinc-100 rounded-lg flex flex-col items-center justify-center text-center space-y-3">
               <div className="w-12 h-12 rounded-full bg-zinc-50 flex items-center justify-center">
-                <ArrowLeft className="w-6 h-6 text-zinc-200 rotate-180" />
+                <ArrowLeft className="w-6 h-6 text-zinc-300 rotate-180" />
               </div>
               <div>
                 <p className="text-sm font-bold text-zinc-400">单环境模式</p>

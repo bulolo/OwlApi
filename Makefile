@@ -9,7 +9,7 @@
 	check-dev-env dev-init dev-up dev-down dev-build dev-rebuild dev-restart dev-restart-backend dev-logs dev-logs-backend dev-clean dev-db-psql \
 	prod-init prod-up prod-up-build prod-down prod-rebuild prod-restart prod-logs prod-clean check-prod-env \
 	prod-static-up prod-static-up-build prod-static-down prod-static-logs \
-	gen-proto gen-sdk gen-swagger clean \
+	gen-proto gen-sdk gen-swagger clean set-version \
  publish-ce-github
 
 # ------------------------------------------------------------------------------
@@ -67,6 +67,7 @@ help:
 	@echo "  make help                显示此帮助信息"
 	@echo ""
 	@echo " 📦 [发布同步] (Release & Sync)"
+	@echo "  make set-version v=0.1.0 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
 	@echo "  make             从 ee 生成 Community Edition (CE) 分支"
 	@echo "  make   将 origin/ce 同步并推送到 GitHub 公开仓库"
 	@echo ""

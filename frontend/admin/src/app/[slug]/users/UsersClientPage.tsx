@@ -31,8 +31,9 @@ export default function UsersClientPage() {
   const [form, setForm] = useState({ email: "", name: "", password: "", role: "Viewer" })
   const [addError, setAddError] = useState("")
   const [page, setPage] = useState(1)
+  const [size, setSize] = useState(10)
 
-  const { users, pagination, isLoading } = useUsers(activeTenant, { page, size: 10, keyword })
+  const { users, pagination, isLoading } = useUsers(activeTenant, { page, size, keyword })
 
   const addMutation = useAddUser(activeTenant)
   const removeMutation = useRemoveUser(activeTenant)
@@ -65,11 +66,11 @@ export default function UsersClientPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">成员管理</h1>
-          <p className="text-sm text-zinc-500 mt-1 font-medium">管理当前租户的成员及角色</p>
+          <p className="text-sm text-zinc-500 mt-1 font-medium">管理当前组织的成员及角色</p>
         </div>
         <Button
           onClick={() => setShowAdd(true)}
@@ -157,7 +158,7 @@ export default function UsersClientPage() {
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-zinc-900">{m.user?.name}</h4>
-                    <p className="text-[11px] text-zinc-400 font-medium flex items-center gap-1.5 mt-0.5">
+                    <p className="text-xs text-zinc-400 font-medium flex items-center gap-1.5 mt-0.5">
                       <Mail className="w-3 h-3" />
                       {m.user?.email}
                     </p>
@@ -186,7 +187,7 @@ export default function UsersClientPage() {
         )}
       </div>
 
-      <Pager page={page} size={10} total={pagination?.total ?? 0} onPageChange={setPage} />
+      <Pager page={page} size={size} total={pagination?.total ?? 0} onPageChange={setPage} onSizeChange={setSize} />
     </div>
   )
 }

@@ -76,7 +76,7 @@ export default function RegisterGatewayPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
-              <p className="text-[11px] text-zinc-400">仅用于在控制台中识别该节点，建议包含位置和用途。</p>
+              <p className="text-xs text-zinc-400">仅用于在控制台中识别该节点，建议包含位置和用途。</p>
             </div>
 
             {error && <p className="text-sm text-red-500">{error}</p>}
@@ -85,7 +85,7 @@ export default function RegisterGatewayPage() {
               <Shield className="w-5 h-5 text-blue-600 shrink-0" />
               <div>
                 <h4 className="text-xs font-bold text-blue-900 uppercase">通用接入模式</h4>
-                <p className="text-[11px] text-blue-800 mt-1 leading-relaxed">
+                <p className="text-xs text-blue-800 mt-1 leading-relaxed">
                   创建后会生成唯一的 Gateway Token，用于在目标服务器上启动 Gateway 进程并注册到 Control Plane。
                 </p>
               </div>
@@ -110,7 +110,7 @@ export default function RegisterGatewayPage() {
                     {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
-                <div className="leading-relaxed pr-12 text-emerald-400 whitespace-pre text-[13px]">{composeYaml}</div>
+                <div className="leading-relaxed pr-12 text-emerald-400 whitespace-pre text-sm">{composeYaml}</div>
               </div>
             </div>
 
@@ -124,8 +124,8 @@ export default function RegisterGatewayPage() {
             <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
               <Shield className="w-5 h-5 text-amber-600 shrink-0" />
               <div>
-                <h4 className="text-xs font-bold text-amber-900 uppercase">安全须知</h4>
-                <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                <h4 className="text-xs font-bold text-amber-800 uppercase">安全须知</h4>
+                <p className="text-xs text-amber-700 mt-1 leading-relaxed">
                   Token 仅在此页面显示一次，请妥善保存。如果丢失需要删除节点重新创建。
                   请将 <code className="bg-amber-100 px-1 rounded">your-server:9090</code> 替换为 Control Plane 的实际地址。
                 </p>

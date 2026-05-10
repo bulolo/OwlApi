@@ -17,10 +17,10 @@ export function SqlEditorCard() {
   const formatSQL = useEndpointStore(s => s.formatSQL)
 
   return (
-    <Card className="lg:col-span-2 border-zinc-200/60 shadow-sm overflow-hidden flex flex-col h-[500px] rounded-xl">
+    <Card className="lg:col-span-2 border-zinc-200/60 shadow-sm overflow-hidden flex flex-col h-[500px] rounded-lg">
       <CardHeader className="pb-3 pt-4 px-5 border-b border-zinc-100 bg-white shrink-0">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-[13px] font-bold text-zinc-800 flex items-center gap-2">
+          <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
             <Code2 className="w-4 h-4 text-blue-500" /> SQL 查询
           </CardTitle>
           <div className="flex items-center gap-1.5">

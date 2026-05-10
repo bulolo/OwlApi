@@ -24,7 +24,7 @@ export function Sidebar({ slug }: { slug?: string }) {
 
   const MENUS = [
     {
-      group: "工作空间",
+      group: "控制台",
       items: [
         { href: `/${activeTenant}/overview`, label: "概览", icon: LayoutDashboard },
       ]
@@ -38,15 +38,15 @@ export function Sidebar({ slug }: { slug?: string }) {
       ]
     },
     {
-      group: "服务中心",
+      group: "工作空间",
       items: [
         { href: `/${activeTenant}/projects`, label: "项目", icon: Box },
       ]
     },
     {
-      group: "组织管理",
+      group: "成员管理",
       items: [
-        { href: `/${activeTenant}/users`, label: "成员管理", icon: Users },
+        { href: `/${activeTenant}/users`, label: "成员", icon: Users },
       ]
     }
   ]
@@ -65,7 +65,7 @@ export function Sidebar({ slug }: { slug?: string }) {
           {!collapsed && (
             <div className="flex flex-col">
               <span className="text-base font-bold text-zinc-900 tracking-tight leading-none group-hover:text-blue-600 transition-colors">OwlAPI</span>
-              <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-1.5">API网关平台</span>
+              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1.5">API网关平台</span>
             </div>
           )}
         </Link>

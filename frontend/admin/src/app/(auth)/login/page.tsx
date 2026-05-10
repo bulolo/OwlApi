@@ -73,7 +73,7 @@ function LoginForm() {
             </div>
             <div className="text-center space-y-1">
               <h1 className="text-xl font-black text-zinc-900 uppercase tracking-tighter">OwlAPI 云平台</h1>
-              <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">企业级 SQL-API 网关</p>
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">企业级 SQL-API 网关</p>
             </div>
           </div>
 
@@ -118,7 +118,7 @@ function LoginForm() {
                 onChange={(e) => setRemember(e.target.checked)}
                 className="w-3.5 h-3.5 rounded border-zinc-300 text-blue-600 focus:ring-blue-600"
               />
-              <span className="text-[11px] text-zinc-500 font-medium">记住账号</span>
+              <span className="text-xs text-zinc-500 font-medium">记住账号</span>
             </label>
 
             {error && (

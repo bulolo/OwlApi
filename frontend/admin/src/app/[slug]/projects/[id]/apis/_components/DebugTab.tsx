@@ -25,9 +25,9 @@ export function DebugTab() {
     <div className="p-6 animate-in fade-in duration-300">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Test Parameters Card */}
-        <Card className="border-zinc-200/60 shadow-sm bg-white overflow-hidden flex flex-col h-[500px] rounded-xl">
+        <Card className="border-zinc-200/60 shadow-sm bg-white overflow-hidden flex flex-col h-[500px] rounded-lg">
           <CardHeader className="pb-3 pt-4 px-5 border-b border-zinc-100">
-            <CardTitle className="text-[13px] font-bold text-zinc-800 flex items-center gap-2">
+            <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
               <Terminal className="w-4 h-4 text-blue-500" /> 请求参数
             </CardTitle>
           </CardHeader>
@@ -45,7 +45,7 @@ export function DebugTab() {
             </div>
             <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
               <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">参数 JSON</Label>
-              <Badge variant="outline" className="text-[9px] font-bold opacity-30 rounded-md">JSON</Badge>
+              <Badge variant="outline" className="text-[10px] font-bold opacity-30 rounded-md">JSON</Badge>
             </div>
             <div className="flex-1 relative border-t border-zinc-100">
               <Editor
@@ -72,7 +72,7 @@ export function DebugTab() {
             <Button
               onClick={() => runDebug(activeTenant)}
               disabled={executing}
-              className="w-full h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95 rounded-lg group"
+              className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95 rounded-lg group"
             >
               <Send className={cn("w-3.5 h-3.5 mr-2 transition-all", executing && "animate-pulse")} />
               {executing ? "正在处理..." : "执行测试请求"}
@@ -81,10 +81,10 @@ export function DebugTab() {
         </Card>
 
         {/* Execution Result Card */}
-        <Card className="lg:col-span-2 border-zinc-200/60 shadow-sm bg-white overflow-hidden flex flex-col h-[500px] rounded-xl">
+        <Card className="lg:col-span-2 border-zinc-200/60 shadow-sm bg-white overflow-hidden flex flex-col h-[500px] rounded-lg">
           <CardHeader className="pb-3 pt-4 px-5 border-b border-zinc-100">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-[13px] font-bold text-zinc-800 flex items-center gap-2">
+              <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
                 <ScrollText className="w-4 h-4 text-emerald-500" /> 响应结果
               </CardTitle>
               {execResult && !("error" in execResult) && (
@@ -129,7 +129,7 @@ export function DebugTab() {
                 <div className="w-14 h-14 bg-zinc-50 rounded-xl border border-zinc-100 flex items-center justify-center mb-5">
                   <Play className="w-6 h-6 text-zinc-300" />
                 </div>
-                <h4 className="text-sm font-bold text-zinc-700">等待执行</h4>
+                <h4 className="text-sm font-bold text-zinc-600">等待执行</h4>
                 <p className="text-xs text-zinc-400 mt-2 max-w-[220px] leading-relaxed">
                   配置参数后点击左侧按钮发起请求，结果将在此展示。
                 </p>

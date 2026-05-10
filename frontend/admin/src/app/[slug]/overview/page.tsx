@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Activity, Server, Users, Zap, ArrowUpRight, ArrowDownRight, Box, FolderGit2 } from "lucide-react"
 import { useUIStore } from "@/store/useUIStore"
-import { useGateways, useProjects, useDataSources } from "@/hooks"
+import { useGateways, useProjects, useDataSources, useScripts } from "@/hooks"
 
 const TRAFFIC_DATA = {
   "24H": [30, 45, 32, 50, 65, 54, 80, 75, 90, 85, 120, 110, 140, 130, 125, 100, 95, 110, 125, 115, 100, 80, 60, 40],
@@ -23,6 +23,7 @@ export default function OverviewPage() {
   const { gateways, pagination: gwPagination } = useGateways(activeTenant, { is_pager: 0 })
   const { pagination: projPagination } = useProjects(activeTenant, { is_pager: 0 })
   const { pagination: dsPagination } = useDataSources(activeTenant, { is_pager: 0 })
+  const { pagination: scriptPagination } = useScripts(activeTenant, { is_pager: 0 })
 
   const onlineGw = gateways.filter(g => g.status === 'online').length
   const gwTotal = gwPagination?.total ?? gateways.length
@@ -30,19 +31,20 @@ export default function OverviewPage() {
   const gatewayStatus = onlineGw === gwTotal && gwTotal > 0 ? 'Healthy' : `${onlineGw} Online`
   const projectCount = projPagination?.total ?? 0
   const dsCount = dsPagination?.total ?? 0
+  const scriptCount = scriptPagination?.total ?? 0
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">概览</h1>
-        <p className="text-sm text-zinc-500 mt-1 font-medium">查看当前租户的 API 资产运行状态、流量统计及最新动态。</p>
+        <p className="text-sm text-zinc-500 mt-1 font-medium">查看当前组织的 API 资产运行状态、流量统计及最新动态。</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="网关节点" value={gatewayLabel} change={gatewayStatus} trend="up" icon={Server} color="blue" />
         <StatCard title="数据源" value={String(dsCount)} change="已接入" trend="up" icon={Activity} color="indigo" />
         <StatCard title="项目" value={String(projectCount)} change={`${dsCount} 数据源`} trend="up" icon={FolderGit2} color="amber" />
-        <StatCard title="数据源" value={String(dsCount)} change="已接入" trend="up" icon={Box} color="emerald" />
+        <StatCard title="脚本" value={String(scriptCount)} change="已配置" trend="up" icon={Box} color="emerald" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -77,14 +79,14 @@ export default function OverviewPage() {
             <div className="flex gap-6">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                <span className="text-[11px] font-bold text-zinc-600">正常请求</span>
+                <span className="text-xs font-bold text-zinc-600">正常请求</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
-                <span className="text-[11px] font-bold text-zinc-400">平均负载</span>
+                <span className="text-xs font-bold text-zinc-400">平均负载</span>
               </div>
             </div>
-            <div className="text-[11px] text-zinc-400 font-medium">
+            <div className="text-xs text-zinc-400 font-medium">
               峰值数据: <span className="text-zinc-900 font-black">
                 {range === "24H"
                   ? `${Math.max(...TRAFFIC_DATA[range])} req/min`

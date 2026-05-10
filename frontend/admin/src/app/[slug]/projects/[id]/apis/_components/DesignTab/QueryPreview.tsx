@@ -69,7 +69,7 @@ function ResultRenderer({ data }: { data: unknown }) {
           <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
             <tr>
               {keys.map(key => (
-                <th key={key} className="px-3 py-2 text-[9px] font-black text-zinc-400 uppercase bg-zinc-50/50">
+                <th key={key} className="px-3 py-2 text-[10px] font-black text-zinc-400 uppercase bg-zinc-50/50">
                   {key}
                 </th>
               ))}
@@ -79,7 +79,7 @@ function ResultRenderer({ data }: { data: unknown }) {
             {arr.map((row, i) => (
               <tr key={i} className="hover:bg-zinc-50 transition-colors">
                 {Object.values(row as Record<string, unknown>).map((val, j) => (
-                  <td key={j} className="px-3 py-2 text-[11px] text-zinc-600 font-mono whitespace-nowrap">
+                  <td key={j} className="px-3 py-2 text-xs text-zinc-600 font-mono whitespace-nowrap">
                     {typeof val === "object" ? JSON.stringify(val) : String(val ?? "")}
                   </td>
                 ))}
@@ -92,7 +92,7 @@ function ResultRenderer({ data }: { data: unknown }) {
 
     return (
       <div className="p-4 bg-zinc-50 h-full">
-        <pre className="text-[11px] text-zinc-600 font-mono whitespace-pre-wrap">
+        <pre className="text-xs text-zinc-600 font-mono whitespace-pre-wrap">
           {JSON.stringify(data, null, 2)}
         </pre>
       </div>

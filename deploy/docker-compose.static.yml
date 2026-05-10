@@ -6,13 +6,18 @@ services:
     build:
       context: ../frontend/docs
       dockerfile: Dockerfile.prod
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/docs:${DOCKER_IMAGE_TAG:-latest}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/docs:${DOCKER_IMAGE_TAG:-v0.1.0}
     container_name: owlapi_docs
     environment:
       - TZ=Asia/Shanghai
-    restart: always
+    restart: unless-stopped
     ports:
       - "127.0.0.1:${DOCS_PORT:-8003}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     deploy:
       resources:
         limits:
@@ -32,13 +37,18 @@ services:
     build:
       context: ../frontend/website
       dockerfile: Dockerfile.prod
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/website:${DOCKER_IMAGE_TAG:-latest}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/website:${DOCKER_IMAGE_TAG:-v0.1.0}
     container_name: owlapi_website
     environment:
       - TZ=Asia/Shanghai
-    restart: always
+    restart: unless-stopped
     ports:
       - "127.0.0.1:${WEBSITE_PORT:-8004}:8004"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8004/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     deploy:
       resources:
         limits:

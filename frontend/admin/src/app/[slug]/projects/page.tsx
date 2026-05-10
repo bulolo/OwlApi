@@ -18,8 +18,9 @@ export default function ProjectsPage() {
   const { activeTenant } = useUIStore()
   const router = useRouter()
   const [page, setPage] = useState(1)
+  const [size, setSize] = useState(12)
   const [keyword, setKeyword] = useState("")
-  const { projects, pagination, isLoading } = useProjects(activeTenant, { page, size: 12, keyword })
+  const { projects, pagination, isLoading } = useProjects(activeTenant, { page, size, keyword })
   const deleteMutation = useDeleteProject(activeTenant)
 
   const handleDelete = async (e: React.MouseEvent, p: Project) => {
@@ -77,7 +78,7 @@ export default function ProjectsPage() {
                     </div>
                   </div>
                   <h3 className="text-lg font-bold text-zinc-900 group-hover:text-blue-600 transition-colors tracking-tight">{project.name}</h3>
-                  <p className="text-[11px] text-zinc-500 line-clamp-2 mt-1.5 min-h-[32px]">{project.description || "暂无描述"}</p>
+                  <p className="text-xs text-zinc-500 line-clamp-2 mt-1.5 min-h-[32px]">{project.description || "暂无描述"}</p>
                 </div>
                 <div className="mt-auto px-6 py-4 border-t border-zinc-100 bg-zinc-50/10 flex items-center justify-between">
                   <div className="flex items-center text-[10px] font-bold text-zinc-500">
@@ -107,7 +108,7 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <Pager page={page} size={12} total={pagination?.total ?? 0} onPageChange={setPage} />
+      <Pager page={page} size={size} total={pagination?.total ?? 0} onPageChange={setPage} onSizeChange={setSize} sizeOptions={[12, 24, 48]} />
     </div>
   )
 }

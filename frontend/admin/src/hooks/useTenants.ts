@@ -8,5 +8,5 @@ export function useTenants(q: ListQuery = {}) {
 }
 
 export function useCreateTenant() {
-  return useApiMutation((req: CreateTenantRequest) => apiCreateTenant(req), { successMessage: "租户创建成功", invalidateKeys: [["tenants"]] })
+  return useApiMutation((req: CreateTenantRequest) => apiCreateTenant(req), { successMessage: "组织创建成功", invalidateKeys: [["tenants"]] })
 }

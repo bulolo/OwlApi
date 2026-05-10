@@ -29,7 +29,7 @@ export function Pager({
 
   return (
     <div className={cn("flex items-center justify-between gap-4 px-4 py-3 border-t border-zinc-100 bg-zinc-50/30", className)}>
-      <div className="flex items-center gap-3 text-[11px] text-zinc-500 font-medium">
+      <div className="flex items-center gap-3 text-xs text-zinc-500 font-medium">
         <span>第 {start}-{end} 条，共 {total} 条</span>
         {onSizeChange && (
           <>
@@ -37,7 +37,7 @@ export function Pager({
             <div className="flex items-center gap-1.5">
               <span>每页</span>
               <Select value={String(size)} onValueChange={(v) => { onSizeChange(Number(v)); onPageChange(1) }}>
-                <SelectTrigger className="h-7 w-[72px] text-[11px] border-zinc-200"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-7 w-[72px] text-xs border-zinc-200"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {sizeOptions.map((s) => (
                     <SelectItem key={s} value={String(s)}>{s} 条</SelectItem>

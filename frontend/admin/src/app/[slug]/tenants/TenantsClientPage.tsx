@@ -28,8 +28,9 @@ export default function TenantsClientPage() {
   const [keyword, setKeyword] = useState("")
   const [editing, setEditing] = useState<Tenant | null>(null)
   const [page, setPage] = useState(1)
+  const [size, setSize] = useState(20)
   const { setViewContext, setActiveTenant } = useUIStore()
-  const { tenants, pagination, isLoading } = useTenants({ page, size: 20, keyword })
+  const { tenants, pagination, isLoading } = useTenants({ page, size, keyword })
   const qc = useQueryClient()
   const router = useRouter()
 
@@ -40,20 +41,17 @@ export default function TenantsClientPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-zinc-900 tracking-tight flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-zinc-400" />
-            租户管理
-          </h1>
-          <p className="text-xs text-zinc-500 mt-1 font-medium">查看并管理所有企业租户、订阅状态及资源使用情况。</p>
+          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">组织管理</h1>
+          <p className="text-sm text-zinc-500 mt-1 font-medium">查看并管理所有企业组织、订阅状态及资源使用情况。</p>
         </div>
         <Button 
           onClick={() => setIsRegistering(true)}
           className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm"
         >
           <Plus className="w-4 h-4 mr-2" />
-          开通新租户
+          开通新组织
         </Button>
       </div>
 
@@ -72,7 +70,7 @@ export default function TenantsClientPage() {
           <div className="relative w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <Input 
-              placeholder="搜索租户名称、Slug 或 ID..." 
+              placeholder="搜索组织名称、Slug 或 ID..." 
               className="pl-9 h-9 text-xs border-zinc-200 bg-white"
               value={keyword}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setKeyword(e.target.value); setPage(1) }}
@@ -104,7 +102,7 @@ export default function TenantsClientPage() {
                         {tenant.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-[11px] text-zinc-400 font-medium">
+                    <div className="flex items-center gap-3 mt-1 text-xs text-zinc-400 font-medium">
                       <span className="flex items-center gap-1">
                         <Globe className="w-3 h-3" /> owlapi.cn/{tenant.slug}
                       </span>
@@ -119,7 +117,7 @@ export default function TenantsClientPage() {
                 <div className="flex items-center gap-2">
                   <div className="hidden md:block text-right mr-6">
                     <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">计划</p>
-                    <p className="text-xs font-bold text-zinc-700">{tenant.plan || 'Free'}</p>
+                    <p className="text-xs font-bold text-zinc-800">{tenant.plan || 'Free'}</p>
                   </div>
                   <Button 
                     variant="ghost" 
@@ -145,10 +143,10 @@ export default function TenantsClientPage() {
                     variant="ghost" size="icon"
                     className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
                     onClick={async () => {
-                      if (!confirm(`确认删除租户「${tenant.name}」？此操作不可恢复。`)) return
+                      if (!confirm(`确认删除组织「${tenant.name}」？此操作不可恢复。`)) return
                       try { 
                         await apiDeleteTenant(tenant.slug!)
-                        toast.success(`租户「${tenant.name}」已删除`)
+                        toast.success(`组织「${tenant.name}」已删除`)
                         qc.invalidateQueries({ queryKey: ["tenants"] }) 
                       } catch (err: any) {
                         toast.error(err.message || "删除失败")
@@ -162,11 +160,11 @@ export default function TenantsClientPage() {
             </div>
           ))}
           {tenants.length === 0 && (
-            <div className="p-12 text-center text-sm text-zinc-400">暂无租户</div>
+            <div className="p-12 text-center text-sm text-zinc-400">暂无组织</div>
           )}
         </div>
         
-        <Pager page={page} size={20} total={pagination?.total ?? 0} onPageChange={setPage} />
+        <Pager page={page} size={size} total={pagination?.total ?? 0} onPageChange={setPage} onSizeChange={setSize} />
       </div>
     </div>
   )
@@ -197,7 +195,7 @@ function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose
   return (
     <div className="bg-white border border-zinc-200 rounded-lg p-6 shadow-sm space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-zinc-900">编辑租户 — {tenant.slug}</h3>
+        <h3 className="text-sm font-bold text-zinc-900">编辑组织 — {tenant.slug}</h3>
         <Button variant="ghost" size="icon" className="w-7 h-7" onClick={onClose}>
           <X className="w-4 h-4" />
         </Button>
@@ -205,7 +203,7 @@ function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">租户名称</label>
+          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">组织名称</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-xs" />
         </div>
         <div className="space-y-1.5">

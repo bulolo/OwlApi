@@ -3,8 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { Trash2, Save } from "lucide-react"
 import { useEndpointStore } from "../../_store/useEndpointStore"
-import type { ExecutionResult } from "../../_types"
-
 /**
  * FeedbackBanner — 操作反馈横幅（错误/成功提示）
  *

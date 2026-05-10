@@ -19,6 +19,7 @@ export function DocTab() {
   const { extractedParams } = useParamSync()
 
   const apiParams = paramDefs.map(d => d.name).filter(Boolean)
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
 
   return (
     <div className="p-0 animate-in fade-in duration-300">
@@ -106,7 +107,7 @@ export function DocTab() {
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">cURL</span>
                   <Badge variant="outline" className="text-[10px] text-zinc-500 border-zinc-700 rounded-md">Bash</Badge>
                 </div>
-                {`curl -X ${formMethod} "http://localhost:3000/api/v1/query${formPath}" \\\n  -H "Content-Type: application/json" \\\n  -H "X-Tenant-Slug: ${slug}" \\\n  -d '${JSON.stringify(
+                {`curl -X ${formMethod} "${baseUrl}/api/v1/query${formPath}" \\\n  -H "Content-Type: application/json" \\\n  -H "X-Tenant-Slug: ${slug}" \\\n  -d '${JSON.stringify(
                   Object.fromEntries(apiParams.map(p => [p, getDefaultValue(paramDefs, p) || "value"])),
                   null,
                   2

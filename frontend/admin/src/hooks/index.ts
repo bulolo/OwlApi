@@ -5,3 +5,4 @@ export { useUsers, useAddUser, useRemoveUser, useUpdateUserRole } from './useUse
 export { useScripts, useCreateScript, useUpdateScript, useDeleteScript } from './useScripts'
 export { useTenants, useCreateTenant } from './useTenants'
 export { useApiMutation } from './useApiMutation'
+export { usePaginatedQuery } from './usePaginatedQuery'

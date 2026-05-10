@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Building2, ArrowLeft, Save, ShieldCheck, Users, Globe, Zap, CheckCircle2 } from "lucide-react"
-import Link from "next/link"
+import { ArrowLeft, ShieldCheck, CheckCircle2 } from "lucide-react"
 import { useUIStore } from "@/store/useUIStore"
 
 export default function RegisterTenantPage() {
@@ -30,7 +28,7 @@ export default function RegisterTenantPage() {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="rounded-full hover:bg-zinc-100"
+          className="rounded-lg hover:bg-zinc-100"
           onClick={() => router.back()}
         >
           <ArrowLeft className="w-5 h-5 text-zinc-500" />
@@ -73,7 +71,7 @@ export default function RegisterTenantPage() {
                 className="space-y-6"
               >
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase text-zinc-400">公司/企业名称</Label>
+                  <Label className="text-xs font-bold uppercase text-zinc-400">公司/企业名称</Label>
                   <Input 
                     placeholder="e.g. 阿里巴巴 (中国) 网络技术有限公司" 
                     value={formData.companyName}
@@ -83,7 +81,7 @@ export default function RegisterTenantPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase text-zinc-400">专属访问路径</Label>
+                  <Label className="text-xs font-bold uppercase text-zinc-400">专属访问路径</Label>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-zinc-400">owlapi.cn/</span>
                     <Input 
@@ -96,7 +94,7 @@ export default function RegisterTenantPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-black uppercase text-zinc-400">初始管理员邮箱</Label>
+                  <Label className="text-xs font-bold uppercase text-zinc-400">初始管理员邮箱</Label>
                   <Input 
                     type="email"
                     placeholder="it-admin@company.com" 
@@ -120,7 +118,7 @@ export default function RegisterTenantPage() {
                 className="space-y-6"
               >
                 <div className="space-y-4">
-                  <Label className="text-xs font-black uppercase text-zinc-400">选择服务等级</Label>
+                  <Label className="text-xs font-bold uppercase text-zinc-400">选择服务等级</Label>
                   <div className="grid grid-cols-1 gap-3">
                     <PlanOption 
                       active={formData.plan === 'standard'} 
@@ -176,7 +174,7 @@ export default function RegisterTenantPage() {
                    </div>
                    <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-400">组织识别码 (Tenant ID):</span>
-                      <span className="font-mono font-bold text-zinc-900 uppercase">SH-T-{Math.floor(Math.random()*10000)}</span>
+                      <span className="font-mono font-bold text-zinc-900 uppercase">{formData.slug}</span>
                    </div>
                 </div>
                 <Button 
@@ -205,7 +203,7 @@ function StepIndicator({ number, title, active }: { number: number; title: strin
   )
 }
 
-function PlanOption({ title, desc, active, onClick }: any) {
+function PlanOption({ title, desc, active, onClick }: { title: string; desc: string; active: boolean; onClick: () => void }) {
   return (
     <div 
       onClick={onClick}

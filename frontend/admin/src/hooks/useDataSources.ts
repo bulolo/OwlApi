@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiListDataSources, apiGetDataSource, apiCreateDataSource, apiUpdateDataSource, apiDeleteDataSource, type ListQuery, type CreateDataSourceRequest, type UpdateDataSourceRequest } from "@/lib/api-client"
 import { useApiMutation } from "./useApiMutation"
+import { usePaginatedQuery } from "./usePaginatedQuery"
 
 export function useDataSources(slug: string, q: ListQuery = {}) {
-  const query = useQuery({ queryKey: ["datasources", slug, q], queryFn: () => apiListDataSources(slug, q), enabled: !!slug })
-  return { ...query, dataSources: query.data?.list ?? [], pagination: query.data?.pagination }
+  const result = usePaginatedQuery(["datasources", slug, q], () => apiListDataSources(slug, q), !!slug)
+  return { ...result, dataSources: result.list }
 }
 
 export function useDataSource(slug: string, id: number) {

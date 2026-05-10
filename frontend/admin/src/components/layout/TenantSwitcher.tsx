@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter } from "next/navigation"
+import { useIsClient } from "@/hooks/useIsClient"
 import { ChevronsUpDown, Building2, Check } from "lucide-react"
 import { useUIStore } from "@/store/useUIStore"
+import { useAuthStore } from "@/store/useAuthStore"
 import { useTenants } from "@/hooks"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -18,16 +19,13 @@ import {
 
 export function TenantSwitcher({ slug }: { slug?: string }) {
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
-  const { activeTenant: storeTenant, setActiveTenant, user } = useUIStore()
-  
+  const mounted = useIsClient()
+  const { activeTenant: storeTenant } = useUIStore()
+  const { user } = useAuthStore()
+
   const activeTenant = slug !== 'system' ? (slug || storeTenant) : storeTenant
   const { tenants } = useTenants({ is_pager: 0 })
   const isSuperAdmin = user?.is_superadmin === true
-  
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const currentTenantObj = tenants.find(t => t.slug === activeTenant) || tenants[0]
 

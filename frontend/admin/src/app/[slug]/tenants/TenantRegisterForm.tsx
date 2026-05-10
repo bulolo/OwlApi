@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, ShieldCheck, CheckCircle2 } from "lucide-react"
 import { apiCreateTenant } from "@/lib/api-client"
-import { useUIStore } from "@/store/useUIStore"
 import { useQueryClient } from "@tanstack/react-query"
 
 interface TenantRegisterFormProps {
@@ -20,7 +19,6 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [tenantId, setTenantId] = useState("")
-  const { user } = useUIStore()
   const qc = useQueryClient()
   const [formData, setFormData] = useState({
     companyName: "",
@@ -162,13 +160,13 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                         const tenant = await apiCreateTenant({
                           name: formData.companyName,
                           slug: formData.slug,
-                          plan: formData.plan as any,
+                          plan: formData.plan as 'Free' | 'Pro' | 'Enterprise',
                         })
                         setTenantId(String(tenant.id || ""))
                         await qc.invalidateQueries({ queryKey: ["tenants"] })
                         setStep(3)
-                      } catch (err: any) {
-                        setError(err?.message || "创建失败")
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : "创建失败")
                       } finally {
                         setLoading(false)
                       }
@@ -234,7 +232,7 @@ function StepIndicator({ number, title, active }: { number: number; title: strin
   )
 }
 
-function PlanOption({ title, desc, active, onClick }: any) {
+function PlanOption({ title, desc, active, onClick }: { title: string; desc: string; active: boolean; onClick: () => void }) {
   return (
     <div 
       onClick={onClick}

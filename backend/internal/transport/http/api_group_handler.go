@@ -3,9 +3,9 @@ package http
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/bulolo/owlapi/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
 type APIGroupHandler struct{ groups service.APIGroupService }

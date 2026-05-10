@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Activity, Server, Users, Zap, ArrowUpRight, ArrowDownRight, Box, FolderGit2 } from "lucide-react"
+import { Activity, Server, ArrowUpRight, ArrowDownRight, Box, FolderGit2 } from "lucide-react"
 import { useUIStore } from "@/store/useUIStore"
 import { useGateways, useProjects, useDataSources, useScripts } from "@/hooks"
 
@@ -177,8 +177,11 @@ function TrafficChart({ data, rangeType }: { data: number[], rangeType: string }
   )
 }
 
-function StatCard({ title, value, change, trend, icon: Icon, color }: any) {
-  const colorMap: any = {
+function StatCard({ title, value, change, trend, icon: Icon, color }: {
+  title: string; value: string | number; change: string; trend: 'up' | 'down';
+  icon: React.ComponentType<{ className?: string }>; color: string
+}) {
+  const colorMap: Record<string, string> = {
     blue: "text-blue-600 bg-blue-50",
     indigo: "text-indigo-600 bg-indigo-50",
     amber: "text-amber-600 bg-amber-50",

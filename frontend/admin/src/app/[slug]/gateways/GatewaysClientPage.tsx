@@ -13,6 +13,7 @@ import { ListSkeleton } from "@/components/ui/skeletons"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pager } from "@/components/ui/pager"
 import { toast } from "sonner"
+import { showConfirm } from "@/store/useConfirmStore"
 
 export default function GatewaysClientPage() {
   const { activeTenant } = useUIStore()
@@ -25,7 +26,7 @@ export default function GatewaysClientPage() {
   const [copied, setCopied] = useState(false)
 
   const handleDelete = async (gw: Gateway) => {
-    if (!confirm(`确定要删除网关节点 "${gw.name}" 吗？`)) return
+    if (!await showConfirm(`确定要删除网关节点 "${gw.name}" 吗？`)) return
     deleteMutation.mutate(gw.id, { onSuccess: () => setDetail(null) })
   }
 

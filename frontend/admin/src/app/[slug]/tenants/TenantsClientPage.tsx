@@ -1,15 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { 
-  Building2, Plus, Search, Shield, Activity, Clock,
+import {
+  Building2, Plus, Search, Clock,
   ChevronRight, Trash2, Globe, Pencil, X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
 import { useUIStore } from "@/store/useUIStore"
 import { useRouter } from "next/navigation"
 import { useTenants } from "@/hooks"
@@ -17,9 +16,8 @@ import { apiDeleteTenant, apiUpdateTenant, type Tenant } from "@/lib/api-client"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Pager } from "@/components/ui/pager"
 import { toast } from "sonner"
-import { ListSkeleton } from "@/components/ui/skeletons"
-import { EmptyState } from "@/components/ui/empty-state"
 import { useQueryClient } from "@tanstack/react-query"
+import { showConfirm } from "@/store/useConfirmStore"
 
 import TenantRegisterForm from "./TenantRegisterForm"
 
@@ -30,7 +28,7 @@ export default function TenantsClientPage() {
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(20)
   const { setViewContext, setActiveTenant } = useUIStore()
-  const { tenants, pagination, isLoading } = useTenants({ page, size, keyword })
+  const { tenants, pagination } = useTenants({ page, size, keyword })
   const qc = useQueryClient()
   const router = useRouter()
 
@@ -79,7 +77,7 @@ export default function TenantsClientPage() {
         </div>
 
         <div className="divide-y divide-zinc-100">
-          {tenants.map((tenant, i) => (
+          {tenants.map((tenant) => (
             <div 
               key={tenant.id}
               className="p-4 hover:bg-zinc-50/50 transition-colors group"
@@ -143,13 +141,13 @@ export default function TenantsClientPage() {
                     variant="ghost" size="icon"
                     className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
                     onClick={async () => {
-                      if (!confirm(`确认删除组织「${tenant.name}」？此操作不可恢复。`)) return
+                      if (!await showConfirm(`确认删除组织「${tenant.name}」？此操作不可恢复。`)) return
                       try { 
                         await apiDeleteTenant(tenant.slug!)
                         toast.success(`组织「${tenant.name}」已删除`)
                         qc.invalidateQueries({ queryKey: ["tenants"] }) 
-                      } catch (err: any) {
-                        toast.error(err.message || "删除失败")
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "删除失败")
                       }
                     }}
                   >
@@ -185,8 +183,8 @@ function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose
     try {
       await apiUpdateTenant(tenant.slug!, { name, plan, status })
       onSaved()
-    } catch (err: any) {
-      setError(err?.message || "保存失败")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "保存失败")
     } finally {
       setSaving(false)
     }

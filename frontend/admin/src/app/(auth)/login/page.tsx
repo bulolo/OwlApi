@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Hexagon, ArrowRight, ShieldCheck, Mail, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useUIStore } from "@/store/useUIStore"
+import { useAuthStore } from "@/store/useAuthStore"
+import { STORAGE_KEYS } from "@/lib/constants"
 import { useQueryClient } from "@tanstack/react-query"
 
 export default function LoginPage() {
@@ -19,7 +20,7 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { login } = useUIStore()
+  const { login } = useAuthStore()
   const qc = useQueryClient()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -29,7 +30,7 @@ function LoginForm() {
 
   // Restore saved email only (never store password)
   useEffect(() => {
-    const savedEmail = localStorage.getItem('owlapi_remember_email')
+    const savedEmail = localStorage.getItem(STORAGE_KEYS.REMEMBER_EMAIL)
     if (savedEmail) {
       setEmail(savedEmail)
       setRemember(true)
@@ -42,9 +43,9 @@ function LoginForm() {
     setError("")
     try {
       if (remember) {
-        localStorage.setItem('owlapi_remember_email', email)
+        localStorage.setItem(STORAGE_KEYS.REMEMBER_EMAIL, email)
       } else {
-        localStorage.removeItem('owlapi_remember_email')
+        localStorage.removeItem(STORAGE_KEYS.REMEMBER_EMAIL)
       }
       const res = await login(email, password)
       await qc.invalidateQueries({ queryKey: ["tenants"] })

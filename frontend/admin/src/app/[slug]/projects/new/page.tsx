@@ -25,6 +25,7 @@ export default function ProjectFormPage({ projectId }: { projectId?: number }) {
   const [formData, setFormData] = useState({ name: "", description: "" })
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (existing) setFormData({ name: existing.name ?? "", description: existing.description ?? "" })
   }, [existing])
 

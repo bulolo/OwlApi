@@ -1,7 +1,5 @@
 "use client"
 
-import { useEndpointStore } from "../../_store/useEndpointStore"
-import { useTenantProject } from "../../_hooks/useTenantProject"
 import { SqlEditorCard } from "./SqlEditorCard"
 import { ParamDefCard } from "./ParamDefCard"
 import { FeedbackBanner } from "./FeedbackBanner"

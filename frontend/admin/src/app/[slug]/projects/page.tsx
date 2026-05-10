@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useUIStore } from "@/store/useUIStore"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, FolderGit2, Database, Pencil, Trash2, Search } from "lucide-react"
@@ -13,6 +13,7 @@ import type { Project } from "@/lib/api-client"
 import { CardSkeleton } from "@/components/ui/skeletons"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pager } from "@/components/ui/pager"
+import { showConfirm } from "@/store/useConfirmStore"
 
 export default function ProjectsPage() {
   const { activeTenant } = useUIStore()
@@ -26,7 +27,7 @@ export default function ProjectsPage() {
   const handleDelete = async (e: React.MouseEvent, p: Project) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!confirm(`确定要删除项目 "${p.name}" 吗？项目下的所有接口也会被删除。`)) return
+    if (!await showConfirm(`确定要删除项目 "${p.name}" 吗？项目下的所有接口也会被删除。`)) return
     deleteMutation.mutate(p.id!)
   }
 

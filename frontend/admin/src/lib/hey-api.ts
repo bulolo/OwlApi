@@ -1,4 +1,5 @@
 import type { CreateClientConfig } from './sdk/client.gen'
+import { STORAGE_KEYS } from '@/lib/constants'
 
 export const createClientConfig: CreateClientConfig = (config) => ({
   ...config,
@@ -6,7 +7,7 @@ export const createClientConfig: CreateClientConfig = (config) => ({
   responseStyle: 'data',
   auth: () => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('owlapi_token')
+      const token = localStorage.getItem(STORAGE_KEYS.TOKEN)
       return token ? `Bearer ${token}` : ''
     }
     return ''

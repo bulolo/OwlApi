@@ -5,7 +5,7 @@ import "context"
 // ListParams holds common pagination and search parameters for list queries.
 type ListParams struct {
 	Page    int
-	Size    int    // 0 means no limit (is_pager=0)
+	Size    int // 0 means no limit (is_pager=0)
 	Keyword string
 }
 

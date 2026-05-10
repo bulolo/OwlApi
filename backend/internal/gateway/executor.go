@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dop251/goja"
 	"github.com/bulolo/owlapi/internal/pb"
+	"github.com/dop251/goja"
 	_ "github.com/jackc/pgx/v5/stdlib" // PostgreSQL driver
 	_ "modernc.org/sqlite"             // SQLite driver
 )

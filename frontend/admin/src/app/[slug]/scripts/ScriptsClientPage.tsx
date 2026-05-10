@@ -10,8 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, FileCode2, Trash2, Save, Search } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Editor from "@monaco-editor/react"
-import { toast } from "sonner"
 import { Pager } from "@/components/ui/pager"
+import { showConfirm } from "@/store/useConfirmStore"
 
 const TEMPLATE_PRE = `// 前置脚本 — 在 SQL 执行前处理参数
 //
@@ -74,8 +74,6 @@ export default function ScriptsClientPage() {
   const [formCode, setFormCode] = useState("")
   const [formDesc, setFormDesc] = useState("")
 
-  const selected = scripts.find(s => s.id === selectedId) || null
-
   const handleSelect = (s: Script) => {
     setSelectedId(s.id)
     setEditing(false)
@@ -108,8 +106,8 @@ export default function ScriptsClientPage() {
     }
   }
 
-  const handleDelete = (s: Script) => {
-    if (!confirm(`确定删除脚本「${s.name}」？`)) return
+  const handleDelete = async (s: Script) => {
+    if (!await showConfirm(`确定删除脚本「${s.name}」？`)) return
     deleteMutation.mutate(s.id, {
       onSuccess: () => { if (selectedId === s.id) { setSelectedId(null); setEditing(false) } },
     })

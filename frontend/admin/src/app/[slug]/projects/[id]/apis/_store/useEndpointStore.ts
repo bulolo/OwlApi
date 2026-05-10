@@ -27,6 +27,8 @@ import {
 } from "@/lib/api-client"
 import { format as formatSql } from "sql-formatter"
 import { getErrorMessage } from "@/lib/errors"
+import { PARAM_PLACEHOLDER_PREFIX } from "@/lib/constants"
+import { showConfirm } from "@/store/useConfirmStore"
 import type {
   HttpMethod,
   ActiveTab,
@@ -156,12 +158,6 @@ const initialGroupModal: GroupModalState = {
 }
 
 // ── 工具函数 ──
-
-function extractSQLParams(sql: string): string[] {
-  const matches = sql.match(/:([a-zA-Z_]\w*)/g)
-  if (!matches) return []
-  return Array.from(new Set(matches.map(m => m.slice(1))))
-}
 
 function buildParamJSON(paramDefs: ParamDef[]): string {
   if (paramDefs.length === 0) return "{}"
@@ -374,7 +370,7 @@ export const useEndpointStore = create<EndpointStore>((set, get) => ({
   },
 
   deleteEndpoint: async (tenant, projectId, ep) => {
-    if (!ep.id || !confirm(`确定删除接口 ${ep.path ?? ""}？`)) return
+    if (!ep.id || !await showConfirm(`确定删除接口 ${ep.path ?? ""}？`)) return
     try {
       await apiDeleteEndpoint(tenant, Number(projectId), ep.id)
       if (get().selectedId === ep.id) get().clearSelection()
@@ -496,10 +492,10 @@ export const useEndpointStore = create<EndpointStore>((set, get) => ({
       const paramsArr: string[] = []
       let sql = form.sql.replace(/:([a-zA-Z_]\w*)/g, (_, name: string) => {
         paramsArr.push(name)
-        return `__OWLPARAM${paramsArr.length - 1}__`
+        return `${PARAM_PLACEHOLDER_PREFIX}${paramsArr.length - 1}__`
       })
       sql = formatSql(sql, { language: "postgresql", keywordCase: "upper" })
-      sql = sql.replace(/__OWLPARAM(\d+)__/g, (_, i: string) => `:${paramsArr[Number(i)]}`)
+      sql = sql.replace(new RegExp(`${PARAM_PLACEHOLDER_PREFIX}(\\d+)__`, 'g'), (_, i: string) => `:${paramsArr[Number(i)]}`)
       set(s => ({ form: { ...s.form, sql } }))
     } catch {
       // sql-formatter 可能失败，静默忽略
@@ -556,7 +552,7 @@ export const useEndpointStore = create<EndpointStore>((set, get) => ({
   },
 
   deleteGroup: async (tenant, projectId, gid) => {
-    if (!confirm("确定删除分组？")) return
+    if (!await showConfirm("确定删除分组？")) return
     try {
       await apiDeleteGroup(tenant, Number(projectId), gid)
       get().fetchGroups(tenant, projectId)

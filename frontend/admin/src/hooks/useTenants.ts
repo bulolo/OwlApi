@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query"
 import { apiListTenants, apiCreateTenant, type ListQuery, type CreateTenantRequest } from "@/lib/api-client"
 import { useApiMutation } from "./useApiMutation"
+import { usePaginatedQuery } from "./usePaginatedQuery"
 
 export function useTenants(q: ListQuery = {}) {
-  const query = useQuery({ queryKey: ["tenants", q], queryFn: () => apiListTenants(q), enabled: true })
-  return { ...query, tenants: query.data?.list ?? [], pagination: query.data?.pagination }
+  const result = usePaginatedQuery(["tenants", q], () => apiListTenants(q))
+  return { ...result, tenants: result.list }
 }
 
 export function useCreateTenant() {

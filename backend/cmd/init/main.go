@@ -365,8 +365,8 @@ function main(data, params) {
 		// ---- 用户 ----
 		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["用户管理"], Path: "/api/users/list", Methods: []string{"POST"},
 			Summary: "获取用户列表", Description: "返回用户列表，支持分页",
-			SQL:         "SELECT id, name, email, role, created_at FROM users ORDER BY id LIMIT :limit OFFSET :offset",
-			Params:      []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs,
+			SQL:    "SELECT id, name, email, role, created_at FROM users ORDER BY id LIMIT :limit OFFSET :offset",
+			Params: []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs,
 			PreScriptID: pre, PostScriptID: postList},
 		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["用户管理"], Path: "/api/users/detail", Methods: []string{"POST"},
 			Summary: "获取用户详情", Description: "根据 ID 查询单个用户信息",
@@ -388,8 +388,8 @@ function main(data, params) {
 		// ---- 商品 ----
 		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products/list", Methods: []string{"POST"},
 			Summary: "获取商品列表", Description: "返回商品列表，支持分页",
-			SQL:         "SELECT id, name, price, stock, category FROM products ORDER BY id LIMIT :limit OFFSET :offset",
-			Params:      []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs,
+			SQL:    "SELECT id, name, price, stock, category FROM products ORDER BY id LIMIT :limit OFFSET :offset",
+			Params: []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs,
 			PreScriptID: pre, PostScriptID: postList},
 		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products/detail", Methods: []string{"POST"},
 			Summary: "获取商品详情", Description: "根据 ID 查询单个商品信息",
@@ -423,8 +423,8 @@ function main(data, params) {
 		// ---- 订单 ----
 		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders/list", Methods: []string{"POST"},
 			Summary: "获取订单列表", Description: "返回订单列表（含用户和商品信息），支持分页",
-			SQL:         "SELECT o.id, u.name AS customer, p.name AS product, o.quantity, o.total, o.status, o.created_at FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id ORDER BY o.id DESC LIMIT :limit OFFSET :offset",
-			Params:      []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs,
+			SQL:    "SELECT o.id, u.name AS customer, p.name AS product, o.quantity, o.total, o.status, o.created_at FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id ORDER BY o.id DESC LIMIT :limit OFFSET :offset",
+			Params: []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs,
 			PreScriptID: pre, PostScriptID: postList},
 		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders/detail", Methods: []string{"POST"},
 			Summary: "获取订单详情", Description: "根据 ID 查询单个订单（含关联信息）",

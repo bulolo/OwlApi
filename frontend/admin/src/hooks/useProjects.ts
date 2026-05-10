@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiListProjects, apiGetProject, apiCreateProject, apiUpdateProject, apiDeleteProject, type ListQuery, type CreateProjectRequest, type UpdateProjectRequest } from "@/lib/api-client"
 import { useApiMutation } from "./useApiMutation"
+import { usePaginatedQuery } from "./usePaginatedQuery"
 
 export function useProjects(slug: string, q: ListQuery = {}) {
-  const query = useQuery({ queryKey: ["projects", slug, q], queryFn: () => apiListProjects(slug, q), enabled: !!slug })
-  return { ...query, projects: query.data?.list ?? [], pagination: query.data?.pagination }
+  const result = usePaginatedQuery(["projects", slug, q], () => apiListProjects(slug, q), !!slug)
+  return { ...result, projects: result.list }
 }
 
 export function useProject(slug: string, projectId: number) {

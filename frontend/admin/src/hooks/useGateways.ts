@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiListGateways, apiDeleteGateway, apiGetGateway, apiCreateGateway, type ListQuery } from "@/lib/api-client"
 import { useApiMutation } from "./useApiMutation"
+import { usePaginatedQuery } from "./usePaginatedQuery"
 
 export function useGateways(slug: string, q: ListQuery = {}) {
-  const query = useQuery({ queryKey: ["gateways", slug, q], queryFn: () => apiListGateways(slug, q), enabled: !!slug })
-  return { ...query, gateways: query.data?.list ?? [], pagination: query.data?.pagination }
+  const result = usePaginatedQuery(["gateways", slug, q], () => apiListGateways(slug, q), !!slug)
+  return { ...result, gateways: result.list }
 }
 
 export function useGateway(slug: string, id: number) {

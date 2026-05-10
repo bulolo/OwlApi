@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+
+echo "[pre-commit] running make format"
+make format
+
+echo "[pre-commit] restaging formatted files (pre-check)"
+git add -A
+
+echo "[pre-commit] running make check-changed"
+make check-changed
+
+echo "[pre-commit] restaging formatted files (final)"
+git add -A

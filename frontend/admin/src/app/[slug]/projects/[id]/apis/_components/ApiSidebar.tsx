@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useEndpointStore } from "../_store/useEndpointStore"
 import { useTenantProject } from "../_hooks/useTenantProject"
-import type { ApiEndpoint, ApiGroup, HttpMethod } from "../_types"
+import type { ApiGroup, HttpMethod } from "../_types"
 
 export function ApiSidebar() {
   const { activeTenant, projectId } = useTenantProject()

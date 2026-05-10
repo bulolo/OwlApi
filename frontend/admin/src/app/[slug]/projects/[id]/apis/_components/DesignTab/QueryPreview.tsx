@@ -56,48 +56,63 @@ function extractArray(data: unknown): unknown[] | null {
   return null
 }
 
-function ResultRenderer({ data }: { data: unknown }) {
+type RenderResult =
+  | { type: 'table'; keys: string[]; arr: unknown[] }
+  | { type: 'json'; json: string }
+  | { type: 'error'; message: string }
+
+function parseResult(data: unknown): RenderResult {
   try {
     const arr = extractArray(data)
-
     if (arr && arr.length > 0) {
       const firstRow = arr[0] as Record<string, unknown>
-      const keys = Object.keys(firstRow || {})
+      return { type: 'table', keys: Object.keys(firstRow || {}), arr }
+    }
+    return { type: 'json', json: JSON.stringify(data, null, 2) }
+  } catch (e) {
+    return { type: 'error', message: String(e) }
+  }
+}
 
-      return (
-        <table className="w-full text-left border-collapse">
-          <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
-            <tr>
-              {keys.map(key => (
-                <th key={key} className="px-3 py-2 text-[10px] font-black text-zinc-400 uppercase bg-zinc-50/50">
-                  {key}
-                </th>
+function ResultRenderer({ data }: { data: unknown }) {
+  const result = parseResult(data)
+
+  if (result.type === 'error') {
+    return <div className="p-4 text-xs text-red-500 font-mono">渲染错误: {result.message}</div>
+  }
+
+  if (result.type === 'table') {
+    return (
+      <table className="w-full text-left border-collapse">
+        <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
+          <tr>
+            {result.keys.map(key => (
+              <th key={key} className="px-3 py-2 text-[10px] font-black text-zinc-400 uppercase bg-zinc-50/50">
+                {key}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-50">
+          {result.arr.map((row, i) => (
+            <tr key={i} className="hover:bg-zinc-50 transition-colors">
+              {Object.values(row as Record<string, unknown>).map((val, j) => (
+                <td key={j} className="px-3 py-2 text-xs text-zinc-600 font-mono whitespace-nowrap">
+                  {typeof val === "object" ? JSON.stringify(val) : String(val ?? "")}
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-50">
-            {arr.map((row, i) => (
-              <tr key={i} className="hover:bg-zinc-50 transition-colors">
-                {Object.values(row as Record<string, unknown>).map((val, j) => (
-                  <td key={j} className="px-3 py-2 text-xs text-zinc-600 font-mono whitespace-nowrap">
-                    {typeof val === "object" ? JSON.stringify(val) : String(val ?? "")}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )
-    }
-
-    return (
-      <div className="p-4 bg-zinc-50 h-full">
-        <pre className="text-xs text-zinc-600 font-mono whitespace-pre-wrap">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      </div>
+          ))}
+        </tbody>
+      </table>
     )
-  } catch (e) {
-    return <div className="p-4 text-xs text-red-500 font-mono">渲染错误: {String(e)}</div>
   }
+
+  return (
+    <div className="p-4 bg-zinc-50 h-full">
+      <pre className="text-xs text-zinc-600 font-mono whitespace-pre-wrap">
+        {result.json}
+      </pre>
+    </div>
+  )
 }

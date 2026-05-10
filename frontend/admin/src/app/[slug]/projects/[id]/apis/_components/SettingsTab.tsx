@@ -8,10 +8,8 @@ import { useEndpointStore } from "../_store/useEndpointStore"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function SettingsTab() {
-  const groupId = useEndpointStore(s => s.form.groupId)
   const preScriptId = useEndpointStore(s => s.form.preScriptId)
   const postScriptId = useEndpointStore(s => s.form.postScriptId)
-  const groups = useEndpointStore(s => s.groups)
   const scripts = useEndpointStore(s => s.scripts)
   const setFormField = useEndpointStore(s => s.setFormField)
 

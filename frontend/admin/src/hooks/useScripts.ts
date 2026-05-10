@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query"
 import { apiListScripts, apiCreateScript, apiUpdateScript, apiDeleteScript, type ListQuery, type CreateScriptRequest, type UpdateScriptRequest } from "@/lib/api-client"
 import { useApiMutation } from "./useApiMutation"
+import { usePaginatedQuery } from "./usePaginatedQuery"
 
 export function useScripts(slug: string, q: ListQuery = {}) {
-  const query = useQuery({ queryKey: ["scripts", slug, q], queryFn: () => apiListScripts(slug, q), enabled: !!slug })
-  return { ...query, scripts: query.data?.list ?? [], pagination: query.data?.pagination }
+  const result = usePaginatedQuery(["scripts", slug, q], () => apiListScripts(slug, q), !!slug)
+  return { ...result, scripts: result.list }
 }
 
 export function useCreateScript(slug: string) {

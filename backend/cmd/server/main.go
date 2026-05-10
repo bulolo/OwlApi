@@ -1,5 +1,5 @@
 // @title           OwlApi Control Plane
-// @version         0.1.0
+// @version         0.1.1
 // @description     企业级 SQL to API 智能网关平台管理接口
 // @host            localhost:3000
 // @BasePath        /
@@ -20,7 +20,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/bulolo/owlapi/internal/config"
 	"github.com/bulolo/owlapi/internal/pb"
 	"github.com/bulolo/owlapi/internal/pkg/auth"
@@ -29,6 +28,7 @@ import (
 	"github.com/bulolo/owlapi/internal/service"
 	transport_grpc "github.com/bulolo/owlapi/internal/transport/grpc"
 	transport_http "github.com/bulolo/owlapi/internal/transport/http"
+	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -50,27 +50,27 @@ func main() {
 	}
 
 	// Repos
-	tenantRepo     := &postgres.TenantRepo{DB: db}
-	userRepo       := &postgres.UserRepo{DB: db}
+	tenantRepo := &postgres.TenantRepo{DB: db}
+	userRepo := &postgres.UserRepo{DB: db}
 	tenantUserRepo := &postgres.TenantUserRepo{DB: db}
-	gatewayRepo    := &postgres.GatewayRepo{DB: db}
-	projectRepo    := &postgres.ProjectRepo{DB: db}
-	dsRepo         := &postgres.DataSourceRepo{DB: db}
-	endpointRepo   := &postgres.APIEndpointRepo{DB: db}
-	groupRepo      := &postgres.APIGroupRepo{DB: db}
-	scriptRepo     := &postgres.ScriptRepo{DB: db}
+	gatewayRepo := &postgres.GatewayRepo{DB: db}
+	projectRepo := &postgres.ProjectRepo{DB: db}
+	dsRepo := &postgres.DataSourceRepo{DB: db}
+	endpointRepo := &postgres.APIEndpointRepo{DB: db}
+	groupRepo := &postgres.APIGroupRepo{DB: db}
+	scriptRepo := &postgres.ScriptRepo{DB: db}
 
 	// Services
-	authSvc       := service.NewAuthService(userRepo, tenantRepo, tenantUserRepo)
-	tenantSvc     := service.NewTenantService(tenantRepo, tenantUserRepo)
+	authSvc := service.NewAuthService(userRepo, tenantRepo, tenantUserRepo)
+	tenantSvc := service.NewTenantService(tenantRepo, tenantUserRepo)
 	tenantUserSvc := service.NewTenantUserService(userRepo, tenantUserRepo)
-	gatewaySvc    := service.NewGatewayService(gatewayRepo)
-	dsSvc         := service.NewDataSourceService(dsRepo)
-	projectSvc    := service.NewProjectService(projectRepo)
-	endpointSvc   := service.NewAPIEndpointService(endpointRepo)
-	groupSvc      := service.NewAPIGroupService(groupRepo)
-	scriptSvc     := service.NewScriptService(scriptRepo)
-	querySvc      := service.NewQueryService(gatewaySvc, dsSvc, scriptSvc)
+	gatewaySvc := service.NewGatewayService(gatewayRepo)
+	dsSvc := service.NewDataSourceService(dsRepo)
+	projectSvc := service.NewProjectService(projectRepo)
+	endpointSvc := service.NewAPIEndpointService(endpointRepo)
+	groupSvc := service.NewAPIGroupService(groupRepo)
+	scriptSvc := service.NewScriptService(scriptRepo)
+	querySvc := service.NewQueryService(gatewaySvc, dsSvc, scriptSvc)
 
 	// HTTP Server
 	r := gin.Default()

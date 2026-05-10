@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/bulolo/owlapi/internal/pkg/auth"
+	"github.com/gin-gonic/gin"
 )
 
 const (

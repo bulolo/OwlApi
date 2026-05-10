@@ -210,7 +210,7 @@ export default function SettingsClientPage() {
   )
 }
 
-function SettingsTabLink({ icon: Icon, label, active, onClick }: { icon: any; label: string; active?: boolean; onClick: () => void }) {
+function SettingsTabLink({ icon: Icon, label, active, onClick }: { icon: React.ComponentType<{ className?: string }>; label: string; active?: boolean; onClick: () => void }) {
   return (
     <div 
       onClick={onClick}
@@ -227,7 +227,7 @@ function SettingsTabLink({ icon: Icon, label, active, onClick }: { icon: any; la
   )
 }
 
-function SettingsCard({ title, children, icon: Icon, iconColor }: { title: string; children: React.ReactNode; icon?: any; iconColor?: string }) {
+function SettingsCard({ title, children, icon: Icon, iconColor }: { title: string; children: React.ReactNode; icon?: React.ComponentType<{ className?: string }>; iconColor?: string }) {
   return (
     <section className="bg-white border border-zinc-100 rounded-lg p-6 shadow-sm space-y-5">
       {Icon && (

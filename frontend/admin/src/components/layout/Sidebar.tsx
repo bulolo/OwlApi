@@ -103,7 +103,7 @@ export function Sidebar({ slug }: { slug?: string }) {
   )
 }
 
-function NavItem({ href, icon: Icon, label, collapsed }: { href: string; icon: any; label: string; collapsed: boolean }) {
+function NavItem({ href, icon: Icon, label, collapsed }: { href: string; icon: React.ComponentType<{ className?: string }>; label: string; collapsed: boolean }) {
   const pathname = usePathname()
   const isActive = pathname === href || (href !== '/' && pathname.startsWith(`${href}/`))
 

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"github.com/bulolo/owlapi/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
 type QueryHandler struct {

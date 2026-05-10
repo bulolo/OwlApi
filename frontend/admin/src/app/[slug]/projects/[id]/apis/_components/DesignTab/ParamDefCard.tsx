@@ -6,7 +6,7 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
 import { Trash2, LayoutTemplate, RotateCcw } from "lucide-react"
 import { useEndpointStore } from "../../_store/useEndpointStore"
 import { useParamSync } from "../../_hooks/useParamSync"
-import type { ParamDef, DerivedParamDef, ParamType } from "../../_types"
+import type { ParamDef, ParamType } from "../../_types"
 
 export function ParamDefCard() {
   const paramDefs = useEndpointStore(s => s.form.paramDefs)

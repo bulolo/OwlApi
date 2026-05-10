@@ -1,23 +1,23 @@
 package http
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/bulolo/owlapi/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
 // App holds all wired dependencies for the HTTP layer.
 type App struct {
-	Auth        service.AuthService
-	Tenant      service.TenantService
-	TenantUser  service.TenantUserService
-	Gateway     service.GatewayService
-	DataSource  service.DataSourceService
-	Project     service.ProjectService
-	Endpoint    service.APIEndpointService
-	Group       service.APIGroupService
-	Script      service.ScriptService
-	Query       service.QueryService
+	Auth       service.AuthService
+	Tenant     service.TenantService
+	TenantUser service.TenantUserService
+	Gateway    service.GatewayService
+	DataSource service.DataSourceService
+	Project    service.ProjectService
+	Endpoint   service.APIEndpointService
+	Group      service.APIGroupService
+	Script     service.ScriptService
+	Query      service.QueryService
 	// repos needed only by middleware
 	TenantRepo     domain.TenantRepository
 	TenantUserRepo domain.TenantUserRepository
@@ -25,18 +25,18 @@ type App struct {
 
 // RegisterRoutes wires all HTTP handlers and middleware to the gin engine.
 func (a *App) RegisterRoutes(r *gin.Engine) {
-	authH      := &AuthHandler{auth: a.Auth}
-	tenantH    := &TenantHandler{tenants: a.Tenant}
-	tuH        := &TenantUserHandler{tenantUsers: a.TenantUser}
-	gatewayH   := &GatewayHandler{gateways: a.Gateway}
-	dsH        := &DataSourceHandler{dataSources: a.DataSource}
-	projectH   := &ProjectHandler{projects: a.Project}
-	endpointH  := &APIEndpointHandler{endpoints: a.Endpoint}
-	groupH     := &APIGroupHandler{groups: a.Group}
-	scriptH    := &ScriptHandler{scripts: a.Script}
-	queryH     := NewQueryHandler(a.Query, a.Endpoint, a.Tenant)
+	authH := &AuthHandler{auth: a.Auth}
+	tenantH := &TenantHandler{tenants: a.Tenant}
+	tuH := &TenantUserHandler{tenantUsers: a.TenantUser}
+	gatewayH := &GatewayHandler{gateways: a.Gateway}
+	dsH := &DataSourceHandler{dataSources: a.DataSource}
+	projectH := &ProjectHandler{projects: a.Project}
+	endpointH := &APIEndpointHandler{endpoints: a.Endpoint}
+	groupH := &APIGroupHandler{groups: a.Group}
+	scriptH := &ScriptHandler{scripts: a.Script}
+	queryH := NewQueryHandler(a.Query, a.Endpoint, a.Tenant)
 	queryTestH := &QueryTestHandler{tenants: a.Tenant, gateways: a.Gateway, queries: a.Query, endpoints: a.Endpoint, dataSources: a.DataSource}
-	openAPIH   := &OpenAPIHandler{projects: a.Project, endpoints: a.Endpoint, groups: a.Group}
+	openAPIH := &OpenAPIHandler{projects: a.Project, endpoints: a.Endpoint, groups: a.Group}
 
 	v1 := r.Group("/v1")
 	v1.POST("/auth/register", authH.HandleRegister)

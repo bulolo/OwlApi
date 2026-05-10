@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import TenantsClientPage from "@/app/[slug]/tenants/TenantsClientPage"

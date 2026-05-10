@@ -34,7 +34,7 @@ type DataSourceEnv struct {
 // ParamDef describes a single API parameter for OpenAPI spec generation.
 type ParamDef struct {
 	Name     string `json:"name"`
-	Type     string `json:"type"`               // string, integer, number, boolean
+	Type     string `json:"type"` // string, integer, number, boolean
 	Required bool   `json:"required"`
 	Default  string `json:"default,omitempty"`
 	Desc     string `json:"desc,omitempty"`

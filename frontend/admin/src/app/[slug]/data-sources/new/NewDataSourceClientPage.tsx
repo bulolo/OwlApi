@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { 
-  Database, 
-  ArrowLeft, 
-  Save, 
-  Server, 
-  Globe, 
+import {
+  ArrowLeft,
+  Save,
+  Server,
+  Globe,
   ShieldCheck,
   Info
 } from "lucide-react"
@@ -31,8 +30,8 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
   const { data: existingDs } = useDataSource(activeTenant, datasourceId ?? 0)
   const createMutation = useCreateDataSource(activeTenant)
   const updateMutation = useUpdateDataSource(activeTenant, datasourceId ?? 0)
-  const [saving, setSaving] = useState(false)
   const isEdit = !!datasourceId
+  const saving = createMutation.isPending || updateMutation.isPending
 
   const [formData, setFormData] = useState({
     name: "",
@@ -47,6 +46,7 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
     if (existingDs) {
       const prodEnv = existingDs.envs?.find(e => e.env === "prod")
       const devEnv = existingDs.envs?.find(e => e.env === "dev")
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData(prev => ({
         ...prev,
         name: existingDs.name ?? "",
@@ -61,13 +61,14 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
   // Set default gateway when loaded (only for new)
   useEffect(() => {
     if (!isEdit && gateways.length > 0 && !formData.dev.gatewayId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData(prev => ({
         ...prev,
         dev: { ...prev.dev, gatewayId: gateways[0].id },
         prod: { ...prev.prod, gatewayId: gateways[0].id }
       }))
     }
-  }, [gateways])
+  }, [gateways, isEdit, formData.dev.gatewayId])
 
   const handleSave = async () => {
     if (!formData.name) return toast.error("请输入数据源名称")
@@ -309,7 +310,7 @@ export default function NewDataSourceClientPage({ datasourceId }: { datasourceId
               <div>
                 <p className="text-sm font-bold text-zinc-400">单环境模式</p>
                 <p className="text-[10px] text-zinc-300 max-w-[240px] mt-1 leading-relaxed">
-                  如需分别配置测试和生产环境，请在左侧开启"多环境支持"。
+                  如需分别配置测试和生产环境，请在左侧开启&ldquo;多环境支持&rdquo;。
                 </p>
               </div>
             </div>

@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query"
 import { apiListUsers, apiAddUser, apiRemoveUser, apiUpdateUserRole, type ListQuery, type AddUserRequest } from "@/lib/api-client"
 import { useApiMutation } from "./useApiMutation"
+import { usePaginatedQuery } from "./usePaginatedQuery"
 
 export function useUsers(slug: string, q: ListQuery = {}) {
-  const query = useQuery({ queryKey: ["users", slug, q], queryFn: () => apiListUsers(slug, q), enabled: !!slug })
-  return { ...query, users: query.data?.list ?? [], pagination: query.data?.pagination }
+  const result = usePaginatedQuery(["users", slug, q], () => apiListUsers(slug, q), !!slug)
+  return { ...result, users: result.list }
 }
 
 export function useAddUser(slug: string) {

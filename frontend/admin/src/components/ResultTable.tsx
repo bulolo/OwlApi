@@ -11,7 +11,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface ResultTableProps {
-  data: any[]
+  data: Record<string, unknown>[]
 }
 
 export function ResultTable({ data }: ResultTableProps) {

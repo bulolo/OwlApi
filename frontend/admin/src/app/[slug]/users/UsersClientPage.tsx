@@ -7,23 +7,19 @@ import {
   Plus,
   Search,
   Mail,
-  Filter,
   Trash2,
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/store/useUIStore"
 import { useUsers, useAddUser, useRemoveUser, useUpdateUserRole } from "@/hooks"
-import type { TenantUser } from "@/lib/api-client"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Pager } from "@/components/ui/pager"
 import { ListSkeleton } from "@/components/ui/skeletons"
 import { EmptyState } from "@/components/ui/empty-state"
-import { toast } from "sonner"
-
+import { showConfirm } from "@/store/useConfirmStore"
 export default function UsersClientPage() {
   const { activeTenant } = useUIStore()
   const [keyword, setKeyword] = useState("")
@@ -51,8 +47,8 @@ export default function UsersClientPage() {
     )
   }
 
-  const handleRemove = (userId: number) => {
-    if (!confirm("确认移除该成员？")) return
+  const handleRemove = async (userId: number) => {
+    if (!await showConfirm("确认移除该成员？")) return
     removeMutation.mutate(userId)
   }
 
@@ -143,7 +139,7 @@ export default function UsersClientPage() {
         ) : users.length === 0 ? (
           <EmptyState icon={Users} title="暂无成员" description="添加第一个团队成员" />
         ) : (
-          users.map((m, i) => (
+          users.map((m) => (
             <div
               key={m.user_id}
               className="bg-white border border-zinc-100 rounded-lg p-4 shadow-sm hover:shadow-sm transition-all group"

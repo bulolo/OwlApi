@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/bulolo/owlapi/internal/service"
+	"github.com/gin-gonic/gin"
 )
 
 type OpenAPIHandler struct {

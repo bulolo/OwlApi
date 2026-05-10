@@ -26,9 +26,9 @@ type Tenant struct {
 }
 
 type TenantUser struct {
-	TenantID int64    `json:"tenant_id"`
-	UserID   int64    `json:"user_id"`
-	Role     UserRole `json:"role"`
+	TenantID int64     `json:"tenant_id"`
+	UserID   int64     `json:"user_id"`
+	Role     UserRole  `json:"role"`
 	JoinedAt time.Time `json:"joined_at"`
 
 	// Populated on query

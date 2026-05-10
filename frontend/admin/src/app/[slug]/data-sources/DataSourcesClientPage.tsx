@@ -11,23 +11,11 @@ import { useDataSources, useDeleteDataSource } from "@/hooks"
 import { useGateways } from "@/hooks"
 import type { DataSource } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
+import { DB_TYPES } from "@/lib/constants"
 import { CardSkeleton } from "@/components/ui/skeletons"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pager } from "@/components/ui/pager"
-
-const DB_TYPE_COLORS: Record<string, string> = {
-  mysql: "text-blue-600 border-blue-100 bg-blue-50/30",
-  postgres: "text-indigo-600 border-indigo-100 bg-indigo-50/30",
-  sqlserver: "text-red-600 border-red-100 bg-red-50/30",
-  starrocks: "text-amber-600 border-amber-100 bg-amber-50/30",
-  doris: "text-emerald-600 border-emerald-100 bg-emerald-50/30",
-  sqlite: "text-zinc-600 border-zinc-100 bg-zinc-50/30",
-}
-
-const DB_TYPE_LABELS: Record<string, string> = {
-  mysql: "MySQL", postgres: "PostgreSQL", sqlserver: "SQL Server",
-  starrocks: "StarRocks", doris: "Doris", sqlite: "SQLite",
-}
+import { showConfirm } from "@/store/useConfirmStore"
 
 export default function DataSourcesClientPage() {
   const { activeTenant } = useUIStore()
@@ -39,7 +27,7 @@ export default function DataSourcesClientPage() {
   const deleteMutation = useDeleteDataSource(activeTenant)
 
   const handleDelete = async (ds: DataSource) => {
-    if (!confirm(`确定要删除数据源 "${ds.name}" 吗？`)) return
+    if (!await showConfirm(`确定要删除数据源 "${ds.name}" 吗？`)) return
     deleteMutation.mutate(ds.id!)
   }
 
@@ -83,7 +71,7 @@ export default function DataSourcesClientPage() {
             <Card key={ds.id} className="bg-white border-zinc-100 rounded-lg shadow-sm hover:shadow-md hover:border-blue-600/30 transition-all duration-300 flex flex-col h-full overflow-hidden group">
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center border shadow-sm", DB_TYPE_COLORS[ds.type] || "text-zinc-600 border-zinc-100 bg-zinc-50/30")}>
+                  <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center border shadow-sm", DB_TYPES[ds.type]?.color || "text-zinc-600 border-zinc-100 bg-zinc-50/30")}>
                     <Database className="w-6 h-6" />
                   </div>
                   <div className="flex gap-1.5">
@@ -96,7 +84,7 @@ export default function DataSourcesClientPage() {
                       </div>
                     )}
                     <div className="px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-tight bg-zinc-50 text-zinc-500 border-zinc-100">
-                      {DB_TYPE_LABELS[ds.type] || ds.type}
+                      {DB_TYPES[ds.type]?.label || ds.type}
                     </div>
                   </div>
                 </div>

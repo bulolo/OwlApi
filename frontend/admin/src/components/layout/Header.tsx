@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useIsClient } from "@/hooks/useIsClient"
 import { Settings, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import PlatformSettingsModal from "./PlatformSettingsModal"
@@ -10,15 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { TenantSwitcher } from "./TenantSwitcher"
-import { useUIStore } from "@/store/useUIStore"
+import { useAuthStore } from "@/store/useAuthStore"
 
 export function Header({ slug }: { slug?: string }) {
   const router = useRouter()
-  const [mounted, setMounted] = useState(false)
+  const mounted = useIsClient()
   const [openSettings, setOpenSettings] = useState(false)
-  const { user, logout } = useUIStore()
-
-  useEffect(() => { setMounted(true) }, [])
+  const { user, logout } = useAuthStore()
 
   const name = user?.name || "User"
   const email = user?.email || ""

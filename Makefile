@@ -10,6 +10,7 @@
 	prod-init prod-up prod-up-build prod-down prod-rebuild prod-restart prod-logs prod-clean check-prod-env \
 	prod-static-up prod-static-up-build prod-static-down prod-static-logs \
 	gen-proto gen-sdk gen-swagger clean set-version \
+	format check-changed check-all setup-hooks \
  publish-ce-github
 
 # ------------------------------------------------------------------------------
@@ -63,11 +64,15 @@ help:
 	@echo "  make gen-proto           生成 gRPC 代码"
 	@echo "  make gen-swagger         生成 Swagger 文档"
 	@echo "  make gen-sdk             从 OpenAPI 生成前端 TypeScript SDK (含 gen-swagger)"
+	@echo "  make format              运行代码格式化 (后端 gofmt + 前端 eslint --fix)"
+	@echo "  make check-changed       仅检查已暂存改动 (增量, 用于 pre-commit)"
+	@echo "  make check-all           全量规范检查 (后端 gofmt+vet + 前端 lint+tsc)"
+	@echo "  make setup-hooks         配置 Git hooksPath 到 scripts/git-hooks"
 	@echo "  make clean               清理所有环境与缓存 (dev + prod + static)"
 	@echo "  make help                显示此帮助信息"
 	@echo ""
 	@echo " 📦 [发布同步] (Release & Sync)"
-	@echo "  make set-version v=0.1.0 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
+	@echo "  make set-version v=0.1.1 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
 	@echo "  make             从 ee 生成 Community Edition (CE) 分支"
 	@echo "  make   将 origin/ce 同步并推送到 GitHub 公开仓库"
 	@echo ""
@@ -234,5 +239,65 @@ clean:
 	@echo "✅ 清理完成"
 
 # ------------------------------------------------------------------------------
-# 7. [发布同步] Release & Sync Targets
+# 7. [代码质量] Format & Check Targets
+# ------------------------------------------------------------------------------
+# 格式化代码 (gofmt + eslint --fix)
+format:
+	@echo "🎨 [Backend] 正在格式化 Go 代码..."
+	cd backend && gofmt -w .
+	@echo "🎨 [Frontend] 正在格式化 TypeScript 代码 (Admin)..."
+	cd frontend/admin && pnpm run lint:fix
+	@echo "✅ 代码格式化完成"
+
+# 增量检查 (仅对 staged 文件, 供 pre-commit 调用)
+check-changed:
+	@echo "🔎 运行增量检查 (staged files)..."
+	@STAGED="$$(git diff --cached --name-only --diff-filter=ACMR)"; \
+	if [ -z "$$STAGED" ]; then \
+		echo "ℹ️  未检测到已暂存改动，跳过增量检查。"; \
+		exit 0; \
+	fi; \
+	if printf '%s\n' "$$STAGED" | grep -q '^backend/.*\.go$$'; then \
+		echo "  - backend gofmt"; \
+		UNFORMATTED=$$(cd backend && gofmt -l .); \
+		if [ -n "$$UNFORMATTED" ]; then \
+			echo "❌ Go 代码格式不符，请先运行 make format:"; \
+			echo "$$UNFORMATTED"; \
+			exit 1; \
+		fi; \
+		echo "  - backend go vet"; \
+		cd backend && go vet ./...; \
+		cd - >/dev/null; \
+	fi; \
+	if printf '%s\n' "$$STAGED" | grep -Eq '^frontend/admin/.*\.(ts|tsx)$$'; then \
+		echo "  - frontend/admin eslint + tsc"; \
+		cd frontend/admin && pnpm run lint && pnpm exec tsc --noEmit -p tsconfig.check.json; \
+		cd - >/dev/null; \
+	fi; \
+	echo "✅ 增量检查通过"
+
+# 全量检查 (CI / 手动执行)
+check-all:
+	@echo "🔎 运行全量检查..."
+	@echo "  - backend gofmt"
+	@UNFORMATTED=$$(cd backend && gofmt -l .); \
+	if [ -n "$$UNFORMATTED" ]; then \
+		echo "❌ Go 代码格式不符，请先运行 make format:"; \
+		echo "$$UNFORMATTED"; \
+		exit 1; \
+	fi
+	@echo "  - backend go vet"
+	cd backend && go vet ./...
+	@echo "  - frontend/admin eslint + tsc"
+	cd frontend/admin && pnpm run lint && pnpm exec tsc --noEmit -p tsconfig.check.json
+	@echo "✅ 全量检查通过"
+
+# 配置 Git hooks 路径
+setup-hooks:
+	@git config core.hooksPath scripts/git-hooks
+	@chmod +x scripts/git-hooks/pre-commit
+	@echo "✅ 已配置 hooksPath: scripts/git-hooks"
+
+# ------------------------------------------------------------------------------
+# 8. [发布同步] Release & Sync Targets
 # ------------------------------------------------------------------------------

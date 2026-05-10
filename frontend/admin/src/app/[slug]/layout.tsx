@@ -4,7 +4,9 @@ import { Sidebar } from "@/components/layout/Sidebar"
 import { Header } from "@/components/layout/Header"
 import { useEffect, use } from "react"
 import { useUIStore } from "@/store/useUIStore"
+import { useAuthStore } from "@/store/useAuthStore"
 import { cn } from "@/lib/utils"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 export default function DashboardLayout({
   children,
@@ -13,12 +15,13 @@ export default function DashboardLayout({
   children: React.ReactNode
   params: Promise<{ slug: string }>
 }) {
-  const { viewContext, setViewContext, setActiveTenant, activeTenant, restoreSession, sidebarCollapsed } = useUIStore()
+  const { setViewContext, setActiveTenant, activeTenant, sidebarCollapsed } = useUIStore()
+  const { restoreSession } = useAuthStore()
   const { slug } = use(params)
-  
+
   useEffect(() => {
     restoreSession()
-  }, [])
+  }, [restoreSession])
 
   useEffect(() => {
     if (slug) {
@@ -49,6 +52,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+      <ConfirmDialog />
     </div>
   )
 }

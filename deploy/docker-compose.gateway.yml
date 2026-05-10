@@ -13,7 +13,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile.gateway
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.1.0}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.1.1}
     container_name: owlapi_gateway
     restart: unless-stopped
     environment:

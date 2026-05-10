@@ -2,15 +2,14 @@ FROM golang:1.25-alpine
 
 WORKDIR /app
 
-# Install basic tools
-RUN apk add --no-cache git make curl
+RUN apk add --no-cache git
 
-# Install Air via binary script to avoid go version dependency issues
-# (air-verse/air is the new home for cosmtrek/air)
-RUN curl -sSfL https://raw.githubusercontent.com/air-verse/air/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    GOPROXY=https://goproxy.cn,direct go install github.com/air-verse/air@latest
 
-# Pre-copy go.mod to cache downloads
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    GOPROXY=https://goproxy.cn,direct go mod download
 
 CMD ["air"]

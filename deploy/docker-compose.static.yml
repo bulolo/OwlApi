@@ -13,8 +13,6 @@ services:
     restart: always
     ports:
       - "127.0.0.1:${DOCS_PORT:-8003}:80"
-    networks:
-      - owlapi-network
     deploy:
       resources:
         limits:
@@ -40,9 +38,7 @@ services:
       - TZ=Asia/Shanghai
     restart: always
     ports:
-      - "127.0.0.1:${WEBSITE_PORT:-8004}:80"
-    networks:
-      - owlapi-network
+      - "127.0.0.1:${WEBSITE_PORT:-8004}:8004"
     deploy:
       resources:
         limits:
@@ -56,8 +52,3 @@ services:
       options:
         max-size: "20m"
         max-file: "3"
-
-networks:
-  owlapi-network:
-    external: true
-    name: owlapi-network

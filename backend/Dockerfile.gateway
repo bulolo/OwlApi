@@ -3,25 +3,24 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod files
-COPY go.mod go.sum* ./
-RUN go mod download
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    GOPROXY=https://goproxy.cn,direct go mod download
 
-# Copy source code
 COPY . .
 
-# Build the gateway binary
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /gateway ./cmd/gateway
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /gateway ./cmd/gateway
 
 # Runtime stage
-FROM alpine:3.19
+FROM alpine:3.21
 
 RUN apk --no-cache add ca-certificates tzdata \
     && addgroup -S owlapi && adduser -S owlapi -G owlapi
 
 WORKDIR /app
 
-# Create logs directory with correct permissions
 RUN mkdir -p /app/logs && chown owlapi:owlapi /app/logs
 
 COPY --from=builder /gateway .
@@ -29,7 +28,6 @@ RUN chown owlapi:owlapi /app/gateway
 
 USER owlapi
 
-# Environment variables (defaults)
 ENV OWLAPI_SERVER_URL=dns:///localhost:9090
 ENV OWLAPI_GATEWAY_ID=""
 ENV OWLAPI_GATEWAY_TOKEN=""

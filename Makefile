@@ -8,16 +8,18 @@
 .PHONY: help \
 	check-dev-env dev-init dev-up dev-down dev-build dev-rebuild dev-restart dev-restart-backend dev-logs dev-logs-backend dev-clean dev-db-psql \
 	prod-init prod-up prod-up-build prod-down prod-rebuild prod-restart prod-logs prod-clean check-prod-env \
+	prod-static-up prod-static-up-build prod-static-down prod-static-logs \
 	gen-proto gen-sdk gen-swagger clean \
  publish-ce-github
 
 # ------------------------------------------------------------------------------
-# 1. 跨平台配置 (Cross-Platform Config)
+# 1. 基础配置
 # ------------------------------------------------------------------------------
 UNAME_S := $(shell uname -s)
 
-DEV_COMPOSE  := docker compose -f docker-compose.dev.yml
-PROD_COMPOSE := docker compose -f deploy/docker-compose.yml
+DEV_COMPOSE    := docker compose -f docker-compose.dev.yml
+PROD_COMPOSE   := docker compose -f deploy/docker-compose.yml
+STATIC_COMPOSE := docker compose -f deploy/docker-compose.static.yml
 
 # ------------------------------------------------------------------------------
 # 2. 帮助信息 (Help)
@@ -51,10 +53,17 @@ help:
 	@echo "  make prod-logs           查看生产环境日志"
 	@echo "  make prod-clean          停止容器并删除数据卷 (❗危险：清空生产数据)"
 	@echo ""
+	@echo " 🌐 [静态站点] (Static Sites: Docs + Website)"
+	@echo "  make prod-static-up      启动文档站 + 官网 (拉取远端镜像)"
+	@echo "  make prod-static-up-build 本地构建并启动文档站 + 官网"
+	@echo "  make prod-static-down    停止文档站 + 官网"
+	@echo "  make prod-static-logs    查看文档站 + 官网日志"
+	@echo ""
 	@echo " 🧩 [通用命令] (Common Commands)"
-	@echo "  make gen-proto           生成 gRPC 代码 (buf generate)"
-	@echo "  make gen-sdk             从 OpenAPI 生成前端 TypeScript SDK"
-	@echo "  make clean               清理所有环境与缓存"
+	@echo "  make gen-proto           生成 gRPC 代码"
+	@echo "  make gen-swagger         生成 Swagger 文档"
+	@echo "  make gen-sdk             从 OpenAPI 生成前端 TypeScript SDK (含 gen-swagger)"
+	@echo "  make clean               清理所有环境与缓存 (dev + prod + static)"
 	@echo "  make help                显示此帮助信息"
 	@echo ""
 	@echo " 📦 [发布同步] (Release & Sync)"
@@ -150,6 +159,7 @@ prod-up: check-prod-env
 prod-up-build: check-prod-env
 	@echo "🚀 [PROD] 本地构建并启动生产集群..."
 	$(PROD_COMPOSE) up -d --build
+	@echo "✅ 生产集群已启动 (后台运行)"
 
 prod-rebuild: check-prod-env
 	@echo "🔧 [PROD] 无缓存重新构建生产环境..."
@@ -174,7 +184,28 @@ prod-clean: check-prod-env
 	@echo "✅ 生产环境深度清理完成"
 
 # ------------------------------------------------------------------------------
-# 5. [通用命令] Common Targets
+# 5. [静态站点] Static Sites Targets (Docs + Website)
+# ------------------------------------------------------------------------------
+prod-static-up:
+	@echo "🌐 [STATIC] 正在启动文档站 + 官网..."
+	$(STATIC_COMPOSE) pull
+	$(STATIC_COMPOSE) up -d
+	@echo "✅ 文档站 + 官网已启动"
+
+prod-static-up-build:
+	@echo "🌐 [STATIC] 本地构建并启动文档站 + 官网..."
+	$(STATIC_COMPOSE) up -d --build
+	@echo "✅ 文档站 + 官网已启动"
+
+prod-static-down:
+	@echo "🛑 [STATIC] 正在停止文档站 + 官网..."
+	$(STATIC_COMPOSE) down
+
+prod-static-logs:
+	$(STATIC_COMPOSE) logs -f
+
+# ------------------------------------------------------------------------------
+# 6. [通用命令] Common Targets
 # ------------------------------------------------------------------------------
 gen-swagger:
 	@echo "🔄 生成 Swagger 文档..."
@@ -197,9 +228,10 @@ clean:
 	@echo "🧹 清理所有环境..."
 	$(DEV_COMPOSE) down -v 2>/dev/null || true
 	$(PROD_COMPOSE) down -v 2>/dev/null || true
+	$(STATIC_COMPOSE) down 2>/dev/null || true
 	rm -rf backend/server backend/init backend/tmp/
 	@echo "✅ 清理完成"
 
 # ------------------------------------------------------------------------------
-# 6. [发布同步] Release & Sync Targets
+# 7. [发布同步] Release & Sync Targets
 # ------------------------------------------------------------------------------

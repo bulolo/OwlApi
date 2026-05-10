@@ -85,8 +85,42 @@ docker compose -f docker-compose.gateway.yml pull
 docker compose -f docker-compose.gateway.yml up -d
 ```
 
-## 三、生产建议
+## 三、Nginx 反向代理配置
+
+配置文件位于 `deploy/nginx/owlapi.conf`，将各子域名流量路由至对应容器端口。
+
+### 端口映射
+
+| 域名 | 目标端口 | 服务 |
+|------|----------|------|
+| `admin.owlapi.cn` | 8001 | Admin Dashboard |
+| `owlapi.cn` / `www.owlapi.cn` | 8004 | 官网 |
+| `docs.owlapi.cn` | 8003 | 文档站点 |
+| `api.owlapi.cn` | 3000 | Backend REST API |
+
+### 部署步骤
+
+```bash
+# 1. 将证书上传至服务器
+mkdir -p /etc/nginx/ssl
+scp your_cert.pem root@your-server:/etc/nginx/ssl/owlapi_cn.pem
+scp your_cert.key root@your-server:/etc/nginx/ssl/owlapi_cn.key
+
+# 2. 复制 Nginx 配置
+cp deploy/nginx/owlapi.conf /etc/nginx/conf.d/owlapi.conf
+
+# 3. 验证配置语法
+nginx -t
+
+# 4. 重载 Nginx
+nginx -s reload
+```
+
+> **注意**：证书路径默认为 `/etc/nginx/ssl/owlapi_cn.pem` / `owlapi_cn.key`，
+> 如使用 Let's Encrypt 等其他路径，修改 `owlapi.conf` 中的 `ssl_certificate` 行即可。
+
+## 四、生产建议
 
 1. 修改密码：PostgreSQL 默认密码需要修改
-2. 配置 HTTPS：使用 Nginx/Caddy 反向代理
+2. 配置 HTTPS：使用上方 Nginx 配置或 Caddy 反向代理
 3. 外置数据库：大规模部署建议使用 RDS

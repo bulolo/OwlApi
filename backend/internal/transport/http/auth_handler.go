@@ -8,7 +8,8 @@ import (
 )
 
 type AuthHandler struct {
-	auth service.AuthService
+	auth             service.AuthService
+	platformSettings service.PlatformSettingsService
 }
 
 // HandleRegister godoc
@@ -30,6 +31,10 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if ps, err := h.platformSettings.Get(c.Request.Context()); err == nil && !ps.AllowSelfRegister {
+		Fail(c, http.StatusForbidden, "self-registration is disabled")
 		return
 	}
 	resp, err := h.auth.Register(c.Request.Context(), service.RegisterRequest{

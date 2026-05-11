@@ -7,7 +7,10 @@
  * paramDefs 自动补全等逻辑统一收拢。
  */
 import { useMemo, useEffect } from "react"
-import { useEndpointStore } from "../_store/useEndpointStore"
+import { useEndpointFormStore } from "../_store/useEndpointFormStore"
+import { useApiEditorStore } from "../_store/useApiEditorStore"
+import { useTenantProject } from "./useTenantProject"
+import { useReferenceData } from "./useReferenceData"
 import type { ParamDef, DerivedParamDef } from "../_types"
 
 /** 从 SQL 中提取 :paramName 形式的参数 */
@@ -33,10 +36,11 @@ function extractScriptParams(code: string): string[] {
  * - 自动同步 store 中的 paramDefs
  */
 export function useParamSync() {
-  const form = useEndpointStore(s => s.form)
-  const scripts = useEndpointStore(s => s.scripts)
-  const isNew = useEndpointStore(s => s.isNew)
-  const setParamDefs = useEndpointStore(s => s.setParamDefs)
+  const { activeTenant } = useTenantProject()
+  const form = useEndpointFormStore(s => s.form)
+  const { scripts } = useReferenceData(activeTenant)
+  const isNew = useApiEditorStore(s => s.isNew)
+  const syncParamDefs = useEndpointFormStore(s => s.syncParamDefs)
 
   // 从 SQL 提取
   const extractedParams = useMemo(() => extractSQLParams(form.sql), [form.sql])
@@ -47,7 +51,7 @@ export function useParamSync() {
     if (preScript?.code) {
       const userParams = extractScriptParams(preScript.code)
       if (userParams.length > 0) {
-        setParamDefs(prev => {
+        syncParamDefs(prev => {
           const existing = new Set(prev.map(d => d.name))
           const added: ParamDef[] = userParams
             .filter(p => !existing.has(p))
@@ -59,9 +63,9 @@ export function useParamSync() {
     }
     // 新建接口 + SQL 有参数 + 当前无定义 → 自动初始化
     if (isNew && extractedParams.length > 0 && form.paramDefs.length === 0) {
-      setParamDefs(extractedParams.map(p => ({ name: p, type: "string", required: false, desc: "" })))
+      syncParamDefs(extractedParams.map(p => ({ name: p, type: "string", required: false, desc: "" })))
     }
-  }, [form.preScriptId, scripts, extractedParams, isNew, form.paramDefs.length, setParamDefs])
+  }, [form.preScriptId, scripts, extractedParams, isNew, form.paramDefs.length, syncParamDefs])
 
   // 合并视图 (SQL 提取 + 手动定义 + 脚本)
   const derivedParamDefs = useMemo((): DerivedParamDef[] => {

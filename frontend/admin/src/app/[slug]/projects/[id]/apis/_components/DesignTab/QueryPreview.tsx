@@ -1,7 +1,7 @@
 "use client"
 
 import { Trash2, ScrollText } from "lucide-react"
-import { useEndpointStore } from "../../_store/useEndpointStore"
+import { useEndpointFormStore } from "../../_store/useEndpointFormStore"
 
 /**
  * QueryPreview — 查询执行结果预览面板
@@ -9,8 +9,8 @@ import { useEndpointStore } from "../../_store/useEndpointStore"
  * 嵌入在 SQL 编辑器下方，展示 design 模式的执行结果
  */
 export function QueryPreview() {
-  const designExecResult = useEndpointStore(s => s.designExecResult)
-  const setDesignExecResult = useEndpointStore(s => s.setDesignExecResult)
+  const designExecResult = useEndpointFormStore(s => s.designExecResult)
+  const setDesignExecResult = useEndpointFormStore(s => s.setDesignExecResult)
 
   return (
     <div className="h-48 bg-white border-t border-zinc-100 flex flex-col animate-in slide-in-from-bottom-2 duration-300">

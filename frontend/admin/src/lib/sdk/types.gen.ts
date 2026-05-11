@@ -4,6 +4,41 @@ export type ClientOptions = {
     baseUrl: 'localhost:3000/' | (string & {});
 };
 
+export type ApiEndpoint = {
+    created_at?: string;
+    datasource_id?: number;
+    description?: string;
+    group_id?: number;
+    has_draft?: boolean;
+    id?: number;
+    methods?: Array<string>;
+    param_defs?: Array<ParamDef>;
+    params?: Array<string>;
+    path?: string;
+    post_script_id?: number;
+    pre_script_id?: number;
+    project_id?: number;
+    published_release_id?: number;
+    sql?: string;
+    /**
+     * "draft" | "published"
+     */
+    status?: string;
+    summary?: string;
+    tenant_id?: number;
+};
+
+export type ParamDef = {
+    default?: string;
+    desc?: string;
+    name?: string;
+    required?: boolean;
+    /**
+     * string, integer, number, boolean
+     */
+    type?: string;
+};
+
 export type ApiEndpointListResp = {
     list?: Array<ApiEndpointResp>;
     pagination?: PaginationInfo;
@@ -14,6 +49,7 @@ export type ApiEndpointResp = {
     datasource_id?: number;
     description?: string;
     group_id?: number;
+    has_draft?: boolean;
     id?: number;
     methods?: Array<string>;
     param_defs?: Array<ParamDefResp>;
@@ -22,7 +58,9 @@ export type ApiEndpointResp = {
     post_script_id?: number;
     pre_script_id?: number;
     project_id?: number;
+    published_release_id?: number;
     sql?: string;
+    status?: string;
     summary?: string;
     tenant_id?: number;
 };
@@ -71,6 +109,24 @@ export type DataSourceResp = {
     type?: string;
 };
 
+export type EndpointReleaseListResp = {
+    list?: Array<EndpointReleaseResp>;
+    pagination?: PaginationInfo;
+};
+
+export type EndpointReleaseResp = {
+    endpoint_id?: number;
+    id?: number;
+    is_active?: boolean;
+    is_draft?: boolean;
+    note?: string;
+    published_at?: string;
+    published_by?: number;
+    snapshot?: ApiEndpoint;
+    tenant_id?: number;
+    version?: number;
+};
+
 export type GatewayListResp = {
     list?: Array<GatewayResp>;
     pagination?: PaginationInfo;
@@ -100,6 +156,10 @@ export type ParamDefResp = {
     name?: string;
     required?: boolean;
     type?: string;
+};
+
+export type PlatformSettingsResp = {
+    allow_self_register?: boolean;
 };
 
 export type ProjectListResp = {
@@ -163,6 +223,18 @@ export type RDataSourceList = {
     msg?: string;
 };
 
+export type REndpointRelease = {
+    code?: number;
+    data?: EndpointReleaseResp;
+    msg?: string;
+};
+
+export type REndpointReleaseList = {
+    code?: number;
+    data?: EndpointReleaseListResp;
+    msg?: string;
+};
+
 export type RGateway = {
     code?: number;
     data?: GatewayResp;
@@ -172,6 +244,12 @@ export type RGateway = {
 export type RGatewayList = {
     code?: number;
     data?: GatewayListResp;
+    msg?: string;
+};
+
+export type RPlatformSettings = {
+    code?: number;
+    data?: PlatformSettingsResp;
     msg?: string;
 };
 
@@ -240,6 +318,7 @@ export type TenantListResp = {
 export type TenantResp = {
     created_at?: string;
     id?: number;
+    max_release_versions?: number;
     name?: string;
     plan?: string;
     slug?: string;
@@ -380,6 +459,43 @@ export type MyTenantsResponses = {
 };
 
 export type MyTenantsResponse = MyTenantsResponses[keyof MyTenantsResponses];
+
+export type GetPlatformSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/platform/settings';
+};
+
+export type GetPlatformSettingsResponses = {
+    /**
+     * OK
+     */
+    200: RPlatformSettings;
+};
+
+export type GetPlatformSettingsResponse = GetPlatformSettingsResponses[keyof GetPlatformSettingsResponses];
+
+export type UpdatePlatformSettingsData = {
+    /**
+     * 平台设置
+     */
+    body: {
+        allow_self_register?: boolean;
+    };
+    path?: never;
+    query?: never;
+    url: '/v1/platform/settings';
+};
+
+export type UpdatePlatformSettingsResponses = {
+    /**
+     * OK
+     */
+    200: RPlatformSettings;
+};
+
+export type UpdatePlatformSettingsResponse = UpdatePlatformSettingsResponses[keyof UpdatePlatformSettingsResponses];
 
 export type ListAllTenantsData = {
     body?: never;
@@ -656,6 +772,36 @@ export type UpdateDataSourceResponses = {
 };
 
 export type UpdateDataSourceResponse = UpdateDataSourceResponses[keyof UpdateDataSourceResponses];
+
+export type GetDatasourceSchemaData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 数据源ID
+         */
+        datasourceId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/datasources/{datasourceId}/schema';
+};
+
+export type GetDatasourceSchemaResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data?: Array<{
+            columns?: Array<unknown>;
+            name?: string;
+        }>;
+    };
+};
+
+export type GetDatasourceSchemaResponse = GetDatasourceSchemaResponses[keyof GetDatasourceSchemaResponses];
 
 export type ListGatewaysData = {
     body?: never;
@@ -1070,6 +1216,140 @@ export type UpdateEndpointResponses = {
 
 export type UpdateEndpointResponse = UpdateEndpointResponses[keyof UpdateEndpointResponses];
 
+export type ListReleasesData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 端点ID
+         */
+        endpointId: number;
+    };
+    query?: {
+        /**
+         * 页码
+         */
+        page?: number;
+        /**
+         * 每页数量
+         */
+        size?: number;
+    };
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases';
+};
+
+export type ListReleasesResponses = {
+    /**
+     * OK
+     */
+    200: REndpointReleaseList;
+};
+
+export type ListReleasesResponse = ListReleasesResponses[keyof ListReleasesResponses];
+
+export type PublishEndpointData = {
+    /**
+     * 发版说明
+     */
+    body?: {
+        note?: string;
+    };
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 端点ID
+         */
+        endpointId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases';
+};
+
+export type PublishEndpointResponses = {
+    /**
+     * OK
+     */
+    200: REndpointRelease;
+};
+
+export type PublishEndpointResponse = PublishEndpointResponses[keyof PublishEndpointResponses];
+
+export type ActivateReleaseData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 端点ID
+         */
+        endpointId: number;
+        /**
+         * 版本ID
+         */
+        releaseId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases/{releaseId}/activate';
+};
+
+export type ActivateReleaseResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type ActivateReleaseResponse = ActivateReleaseResponses[keyof ActivateReleaseResponses];
+
+export type UnpublishEndpointData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 端点ID
+         */
+        endpointId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/unpublish';
+};
+
+export type UnpublishEndpointResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type UnpublishEndpointResponse = UnpublishEndpointResponses[keyof UnpublishEndpointResponses];
+
 export type ListGroupsData = {
     body?: never;
     path: {
@@ -1390,6 +1670,32 @@ export type UpdateScriptResponses = {
 };
 
 export type UpdateScriptResponse = UpdateScriptResponses[keyof UpdateScriptResponses];
+
+export type UpdateTenantSettingsData = {
+    /**
+     * 配置项
+     */
+    body: {
+        max_release_versions?: number;
+    };
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/settings';
+};
+
+export type UpdateTenantSettingsResponses = {
+    /**
+     * OK
+     */
+    200: RTenant;
+};
+
+export type UpdateTenantSettingsResponse = UpdateTenantSettingsResponses[keyof UpdateTenantSettingsResponses];
 
 export type ListUsersData = {
     body?: never;

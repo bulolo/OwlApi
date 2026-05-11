@@ -1,35 +1,70 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, ChevronRight, Search, Trash2, PanelLeftClose, PanelLeftOpen, FileCode, Folder, FolderPlus, MoreVertical, Edit3 } from "lucide-react"
+import { Plus, ChevronRight, Search, Trash2, PanelLeftClose, PanelLeftOpen, FileCode, Folder, FolderPlus, MoreVertical, Edit3, Rocket, WifiOff } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useEndpointStore } from "../_store/useEndpointStore"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useTenantProject } from "../_hooks/useTenantProject"
-import type { ApiGroup, HttpMethod } from "../_types"
+import { useEndpointsQuery, useDeleteEndpoint, usePublishEndpointMutation, useUnpublishEndpointMutation, useUpdateEndpointGroup } from "../_hooks/useEndpointsQuery"
+import { useGroupsQuery, useDeleteGroup } from "../_hooks/useGroupsQuery"
+import { showConfirm } from "@/store/useConfirmStore"
+import type { ApiEndpoint, ApiGroup, HttpMethod } from "../_types"
 
-export function ApiSidebar() {
+interface ApiSidebarProps {
+  onSelectEndpoint: (ep: ApiEndpoint) => void
+  onCreateNew: () => void
+}
+
+export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
   const { activeTenant, projectId } = useTenantProject()
-  const sidebarOpen = useEndpointStore(s => s.sidebarOpen)
-  const setSidebarOpen = useEndpointStore(s => s.setSidebarOpen)
-  const searchTerm = useEndpointStore(s => s.searchTerm)
-  const setSearchTerm = useEndpointStore(s => s.setSearchTerm)
-  const loading = useEndpointStore(s => s.loading)
-  const groups = useEndpointStore(s => s.groups)
-  const endpoints = useEndpointStore(s => s.endpoints)
-  const selectedId = useEndpointStore(s => s.selectedId)
-  const expandedGroups = useEndpointStore(s => s.expandedGroups)
-  const toggleGroup = useEndpointStore(s => s.toggleGroup)
-  const selectEndpoint = useEndpointStore(s => s.selectEndpoint)
-  const deleteEndpoint = useEndpointStore(s => s.deleteEndpoint)
-  const createNew = useEndpointStore(s => s.createNew)
-  const openGroupModal = useEndpointStore(s => s.openGroupModal)
-  const deleteGroup = useEndpointStore(s => s.deleteGroup)
+
+  const sidebarOpen = useApiEditorStore(s => s.sidebarOpen)
+  const setSidebarOpen = useApiEditorStore(s => s.setSidebarOpen)
+  const searchTerm = useApiEditorStore(s => s.searchTerm)
+  const setSearchTerm = useApiEditorStore(s => s.setSearchTerm)
+  const selectedId = useApiEditorStore(s => s.selectedId)
+  const expandedGroups = useApiEditorStore(s => s.expandedGroups)
+  const toggleGroup = useApiEditorStore(s => s.toggleGroup)
+  const openGroupModal = useApiEditorStore(s => s.openGroupModal)
+
+  const { list: endpoints, isLoading } = useEndpointsQuery(activeTenant, projectId)
+  const { list: groups } = useGroupsQuery(activeTenant, projectId)
+
+  const deleteEndpoint = useDeleteEndpoint(activeTenant, projectId)
+  const deleteGroup = useDeleteGroup(activeTenant, projectId)
+  const updateGroup = useUpdateEndpointGroup(activeTenant, projectId)
+
+  const [dragOverGroupId, setDragOverGroupId] = useState<number | null>(null)
 
   const filteredEndpoints = endpoints.filter(ep =>
     (ep.path ?? "").toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  async function handleDelete(ep: ApiEndpoint) {
+    if (!ep.id) return
+    const ok = await showConfirm(`确定删除接口 ${ep.path ?? ""}？`)
+    if (!ok) return
+    deleteEndpoint.mutate(ep.id)
+  }
+
+  async function handleDeleteGroup(gid: number) {
+    const ok = await showConfirm("确定删除分组？分组内接口将移至未分类。")
+    if (!ok) return
+    deleteGroup.mutate(gid)
+  }
+
+  function handleDrop(e: React.DragEvent, groupId: number) {
+    e.preventDefault()
+    setDragOverGroupId(null)
+    const endpointId = Number(e.dataTransfer.getData("endpoint-id"))
+    if (!endpointId) return
+    const ep = endpoints.find(ep => ep.id === endpointId)
+    if (!ep) return
+    updateGroup.mutate({ ep, groupId })
+  }
 
   if (!sidebarOpen) {
     return (
@@ -43,14 +78,15 @@ export function ApiSidebar() {
     )
   }
 
+  const allGroups: ApiGroup[] = [...(groups as ApiGroup[]), { id: -1, name: "未分类接口" } as ApiGroup]
+
   return (
     <div className="w-[272px] shrink-0 flex flex-col bg-[#fafbfc] border-r border-zinc-200/80 animate-in fade-in slide-in-from-left-4 duration-300">
-      {/* Header */}
       <div className="p-4 border-b border-zinc-200/80 bg-white flex flex-col space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] px-0.5">接口导航</span>
           <div className="flex items-center gap-0.5">
-            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-400 transition-all" title="新建接口" onClick={createNew}>
+            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-400 transition-all" title="新建接口" onClick={onCreateNew}>
               <Plus className="w-3.5 h-3.5" />
             </Button>
             <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-400 transition-all" title="新建分组" onClick={() => openGroupModal("create")}>
@@ -72,31 +108,48 @@ export function ApiSidebar() {
         </div>
       </div>
 
-      {/* Endpoint List */}
       <div className="flex-1 overflow-auto custom-scrollbar">
-        {loading ? (
+        {isLoading ? (
           <div className="p-8 text-center text-zinc-400 text-xs">加载中...</div>
         ) : (
           <div className="flex flex-col py-1">
-            {(groups as ApiGroup[]).concat([{ id: -1, name: "未分类接口" } as ApiGroup]).map(group => {
+            {allGroups.map(group => {
               const isUngrouped = group.id === -1
-              const items = filteredEndpoints.filter(ep => isUngrouped ? !ep.group_id : ep.group_id === group.id)
+              const items = filteredEndpoints.filter(ep =>
+                isUngrouped ? !ep.group_id : ep.group_id === group.id
+              )
               if (isUngrouped && items.length === 0) return null
 
+              const isDragTarget = dragOverGroupId === group.id
+
+              const dropGroupId = group.id === -1 ? 0 : (group.id ?? 0)
+
               return (
-                <div key={group.id}>
-                  {/* Group Header */}
+                <div
+                  key={group.id}
+                  onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverGroupId(group.id ?? -1) }}
+                  onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverGroupId(null) }}
+                  onDrop={e => handleDrop(e, dropGroupId)}
+                >
+                  {/* Group header */}
                   <div
                     onClick={() => toggleGroup(group.id ?? 0)}
-                    className="px-4 py-2.5 flex items-center justify-between group/g hover:bg-zinc-100/40 cursor-pointer transition-all"
+                    className={cn(
+                      "px-4 py-2.5 flex items-center justify-between group/g cursor-pointer transition-all",
+                      isDragTarget
+                        ? "bg-blue-50 border-l-2 border-blue-400"
+                        : "hover:bg-zinc-100/40"
+                    )}
                   >
                     <div className="flex items-center gap-2">
                       <ChevronRight className={cn(
                         "w-3 h-3 text-zinc-400 transition-transform duration-200",
                         expandedGroups.includes(group.id ?? 0) && "rotate-90"
                       )} />
-                      <Folder className="w-3.5 h-3.5 text-zinc-400" />
-                      <span className="text-xs font-semibold text-zinc-500 tracking-wide">{group.name}</span>
+                      <Folder className={cn("w-3.5 h-3.5 transition-colors", isDragTarget ? "text-blue-500" : "text-zinc-400")} />
+                      <span className={cn("text-xs font-semibold tracking-wide transition-colors", isDragTarget ? "text-blue-600" : "text-zinc-500")}>
+                        {group.name}
+                      </span>
                       <span className="text-[10px] text-zinc-400 font-medium bg-zinc-100/80 px-1.5 py-0 rounded-md">{items.length}</span>
                     </div>
                     {!isUngrouped && group.id !== undefined && (
@@ -111,7 +164,7 @@ export function ApiSidebar() {
                             <DropdownMenuItem onClick={() => openGroupModal("edit", group)} className="text-xs font-medium py-2 rounded-md">
                               <Edit3 className="w-3.5 h-3.5 mr-2.5 text-zinc-400" /> 重命名
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => deleteGroup(activeTenant, projectId, group.id!)} className="text-xs font-medium py-2 rounded-md text-red-600 focus:text-red-900 focus:bg-red-50">
+                            <DropdownMenuItem onClick={() => handleDeleteGroup(group.id!)} className="text-xs font-medium py-2 rounded-md text-red-600 focus:text-red-900 focus:bg-red-50">
                               <Trash2 className="w-3.5 h-3.5 mr-2.5" /> 删除
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -120,41 +173,21 @@ export function ApiSidebar() {
                     )}
                   </div>
 
-                  {/* Endpoints */}
                   {expandedGroups.includes(group.id ?? 0) && (
                     <div className="space-y-0.5 pb-1 animate-in fade-in slide-in-from-top-1 duration-200">
                       {items.length === 0 ? (
                         <div className="mx-4 pl-7 py-2 text-xs text-zinc-400 italic">空分组</div>
                       ) : (
                         items.map((ep, idx) => (
-                          <div
+                          <EndpointItem
                             key={ep.id || `new-${idx}`}
-                            onClick={() => selectEndpoint(ep)}
-                            className={cn(
-                              "mx-2 px-3 py-2 cursor-pointer transition-all duration-200 group flex items-center justify-between rounded-xl font-medium",
-                              selectedId === ep.id
-                                ? "bg-blue-50 text-blue-600"
-                                : "hover:bg-white hover:shadow-sm text-zinc-600"
-                            )}
-                          >
-                            <div className="flex-1 min-w-0 flex items-center gap-2.5">
-                              <MethodBadge method={ep.methods?.[0] as HttpMethod | undefined} isSelected={selectedId === ep.id} />
-                              <span className={cn(
-                                "text-xs font-medium truncate",
-                                selectedId === ep.id ? "text-blue-600 font-bold" : "text-zinc-600 group-hover:text-zinc-900"
-                              )}>
-                                {ep.path ?? ""}
-                              </span>
-                            </div>
-                            <div className="flex items-center">
-                              <Button variant="ghost" size="icon" className={cn(
-                                "w-6 h-6 rounded-lg opacity-0 group-hover:opacity-100 transition-all",
-                                selectedId === ep.id ? "hover:bg-blue-100 text-blue-400 hover:text-blue-600" : "hover:bg-red-50 hover:text-red-500 text-zinc-300"
-                              )} onClick={(e) => { e.stopPropagation(); deleteEndpoint(activeTenant, projectId, ep) }}>
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </div>
+                            ep={ep}
+                            isSelected={selectedId === ep.id}
+                            slug={activeTenant}
+                            projectId={projectId}
+                            onSelect={() => onSelectEndpoint(ep)}
+                            onDelete={() => handleDelete(ep)}
+                          />
                         ))
                       )}
                     </div>
@@ -178,6 +211,100 @@ export function ApiSidebar() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function StatusDot({ status }: { status?: string }) {
+  return (
+    <span className={cn(
+      "shrink-0 w-1.5 h-1.5 rounded-full",
+      status === "published" ? "bg-emerald-400" : status === "offline" ? "bg-zinc-400" : "bg-amber-400"
+    )} />
+  )
+}
+
+function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
+  ep: ApiEndpoint
+  isSelected: boolean
+  slug: string
+  projectId: string
+  onSelect: () => void
+  onDelete: () => void
+}) {
+  const publish = usePublishEndpointMutation(slug, projectId, ep.id ?? 0)
+  const unpublish = useUnpublishEndpointMutation(slug, projectId, ep.id ?? 0)
+
+  const canPublish = ep.status !== "published" || ep.has_draft
+  const canUnpublish = ep.status === "published"
+
+  async function handlePublish(e: React.MouseEvent) {
+    e.stopPropagation()
+    const ok = await showConfirm(`确认将「${ep.path ?? ""}」上线？`, "上线")
+    if (ok) publish.mutate(undefined as never)
+  }
+
+  async function handleUnpublish(e: React.MouseEvent) {
+    e.stopPropagation()
+    const ok = await showConfirm(`确认将「${ep.path ?? ""}」下线？下线后外部调用将返回 404。`, "下线")
+    if (ok) unpublish.mutate()
+  }
+
+  return (
+    <div
+      draggable
+      onDragStart={e => {
+        e.dataTransfer.setData("endpoint-id", String(ep.id ?? ""))
+        e.dataTransfer.effectAllowed = "move"
+      }}
+      onClick={onSelect}
+      className={cn(
+        "mx-2 px-3 py-2 cursor-pointer transition-all duration-200 group flex items-center gap-2 rounded-xl font-medium",
+        isSelected ? "bg-blue-50" : "hover:bg-white hover:shadow-sm"
+      )}
+    >
+      <StatusDot status={ep.status} />
+      <MethodBadge method={ep.methods?.[0] as HttpMethod | undefined} isSelected={isSelected} />
+      <span className={cn(
+        "flex-1 text-xs font-medium truncate min-w-0",
+        isSelected ? "text-blue-600 font-bold" : "text-zinc-600 group-hover:text-zinc-900"
+      )}>
+        {ep.path ?? ""}
+      </span>
+      {ep.has_draft && ep.status === "published" && (
+        <span className="shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-50 text-amber-500 border border-amber-200 leading-tight">
+          NEW
+        </span>
+      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-all outline-none"
+            onClick={e => e.stopPropagation()}
+          >
+            <MoreVertical className="w-3.5 h-3.5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36 rounded-lg shadow-md border-zinc-200 p-1">
+          {canPublish && (
+            <DropdownMenuItem onClick={handlePublish} className="text-xs font-medium py-2 rounded-md text-emerald-700 focus:text-emerald-900 focus:bg-emerald-50">
+              <Rocket className="w-3.5 h-3.5 mr-2 text-emerald-500" /> 上线
+            </DropdownMenuItem>
+          )}
+          {canUnpublish && (
+            <DropdownMenuItem onClick={handleUnpublish} className="text-xs font-medium py-2 rounded-md text-zinc-600">
+              <WifiOff className="w-3.5 h-3.5 mr-2 text-zinc-400" /> 下线
+            </DropdownMenuItem>
+          )}
+          {(canPublish || canUnpublish) && <DropdownMenuSeparator />}
+          <DropdownMenuItem
+            onClick={e => { e.stopPropagation(); onDelete() }}
+            className="text-xs font-medium py-2 rounded-md text-red-600 focus:text-red-900 focus:bg-red-50"
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-2" /> 删除
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

@@ -4,17 +4,20 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
 import { Play, AlignLeft, Code2 } from "lucide-react"
 import Editor from "@monaco-editor/react"
-import { useEndpointStore } from "../../_store/useEndpointStore"
+import { useEndpointFormStore } from "../../_store/useEndpointFormStore"
+import { useApiEditorStore } from "../../_store/useApiEditorStore"
 import { useTenantProject } from "../../_hooks/useTenantProject"
 import { QueryPreview } from "./QueryPreview"
 
 export function SqlEditorCard() {
   const { activeTenant, projectId } = useTenantProject()
-  const sql = useEndpointStore(s => s.form.sql)
-  const setFormField = useEndpointStore(s => s.setFormField)
-  const designExecuting = useEndpointStore(s => s.designExecuting)
-  const runDesign = useEndpointStore(s => s.runDesign)
-  const formatSQL = useEndpointStore(s => s.formatSQL)
+  const sql = useEndpointFormStore(s => s.form.sql)
+  const setFormField = useEndpointFormStore(s => s.setFormField)
+  const designExecuting = useEndpointFormStore(s => s.designExecuting)
+  const runDesign = useEndpointFormStore(s => s.runDesign)
+  const formatSQL = useEndpointFormStore(s => s.formatSQL)
+  const selectedId = useApiEditorStore(s => s.selectedId)
+  const isNew = useApiEditorStore(s => s.isNew)
 
   return (
     <Card className="lg:col-span-2 border-zinc-200/60 shadow-sm overflow-hidden flex flex-col h-[500px] rounded-lg">
@@ -25,7 +28,7 @@ export function SqlEditorCard() {
           </CardTitle>
           <div className="flex items-center gap-1.5">
             <Button
-              onClick={() => runDesign(activeTenant, projectId)}
+              onClick={() => runDesign(activeTenant, projectId, selectedId, isNew)}
               disabled={designExecuting}
               size="sm"
               className="h-7 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 text-xs rounded-lg shadow-sm active:scale-95 transition-all"

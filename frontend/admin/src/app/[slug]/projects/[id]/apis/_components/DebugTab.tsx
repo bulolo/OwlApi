@@ -8,18 +8,20 @@ import { Play, Trash2, Terminal, ScrollText, Key, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import Editor from "@monaco-editor/react"
-import { useEndpointStore } from "../_store/useEndpointStore"
+import { useEndpointFormStore } from "../_store/useEndpointFormStore"
+import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useTenantProject } from "../_hooks/useTenantProject"
 
 export function DebugTab() {
   const { activeTenant } = useTenantProject()
-  const authToken = useEndpointStore(s => s.authToken)
-  const setAuthToken = useEndpointStore(s => s.setAuthToken)
-  const paramJSON = useEndpointStore(s => s.paramJSON)
-  const setParamJSON = useEndpointStore(s => s.setParamJSON)
-  const executing = useEndpointStore(s => s.executing)
-  const execResult = useEndpointStore(s => s.execResult)
-  const runDebug = useEndpointStore(s => s.runDebug)
+  const authToken = useEndpointFormStore(s => s.authToken)
+  const setAuthToken = useEndpointFormStore(s => s.setAuthToken)
+  const paramJSON = useEndpointFormStore(s => s.paramJSON)
+  const setParamJSON = useEndpointFormStore(s => s.setParamJSON)
+  const executing = useEndpointFormStore(s => s.executing)
+  const execResult = useEndpointFormStore(s => s.execResult)
+  const runDebug = useEndpointFormStore(s => s.runDebug)
+  const selectedId = useApiEditorStore(s => s.selectedId)
 
   return (
     <div className="p-6 animate-in fade-in duration-300">
@@ -70,7 +72,7 @@ export function DebugTab() {
           </CardContent>
           <div className="p-4 border-t border-zinc-100 bg-white">
             <Button
-              onClick={() => runDebug(activeTenant)}
+              onClick={() => selectedId && runDebug(activeTenant, selectedId)}
               disabled={executing}
               className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95 rounded-lg group"
             >

@@ -123,6 +123,22 @@ func (db *DB) initSchema(ctx context.Context) error {
 			PRIMARY KEY (tenant_id, id),
 			UNIQUE (tenant_id, path)
 		)`,
+		`ALTER TABLE tenants ADD COLUMN IF NOT EXISTS max_release_versions INT NOT NULL DEFAULT 10`,
+		// Release columns added after initial schema — safe to re-run via IF NOT EXISTS / idempotent ALTER
+		`ALTER TABLE api_endpoints ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'draft'`,
+		`ALTER TABLE api_endpoints ADD COLUMN IF NOT EXISTS published_release_id BIGINT NOT NULL DEFAULT 0`,
+		`CREATE TABLE IF NOT EXISTS endpoint_releases (
+			id BIGSERIAL NOT NULL,
+			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+			endpoint_id BIGINT NOT NULL,
+			version INT NOT NULL DEFAULT 1,
+			note TEXT NOT NULL DEFAULT '',
+			snapshot JSONB NOT NULL DEFAULT '{}',
+			published_by BIGINT NOT NULL DEFAULT 0,
+			published_at TIMESTAMPTZ DEFAULT NOW(),
+			is_active BOOLEAN NOT NULL DEFAULT FALSE,
+			PRIMARY KEY (tenant_id, id)
+		)`,
 		`CREATE TABLE IF NOT EXISTS scripts (
 			id BIGSERIAL NOT NULL,
 			tenant_id BIGINT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -133,6 +149,13 @@ func (db *DB) initSchema(ctx context.Context) error {
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			PRIMARY KEY (tenant_id, id)
 		)`,
+		`CREATE TABLE IF NOT EXISTS platform_settings (
+			id INT PRIMARY KEY DEFAULT 1,
+			allow_self_register BOOLEAN NOT NULL DEFAULT TRUE,
+			CHECK (id = 1)
+		)`,
+		`INSERT INTO platform_settings (id, allow_self_register) VALUES (1, true) ON CONFLICT DO NOTHING`,
+		`ALTER TABLE endpoint_releases ADD COLUMN IF NOT EXISTS is_draft BOOLEAN NOT NULL DEFAULT FALSE`,
 	}
 	for _, q := range queries {
 		if _, err := db.Pool.Exec(ctx, q); err != nil {

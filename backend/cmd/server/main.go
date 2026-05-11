@@ -1,5 +1,5 @@
 // @title           OwlApi Control Plane
-// @version         0.1.1
+// @version         0.1.2
 // @description     企业级 SQL to API 智能网关平台管理接口
 // @host            localhost:3000
 // @BasePath        /
@@ -50,6 +50,7 @@ func main() {
 	}
 
 	// Repos
+	platformSettingsRepo := &postgres.PlatformSettingsRepo{DB: db}
 	tenantRepo := &postgres.TenantRepo{DB: db}
 	userRepo := &postgres.UserRepo{DB: db}
 	tenantUserRepo := &postgres.TenantUserRepo{DB: db}
@@ -57,10 +58,12 @@ func main() {
 	projectRepo := &postgres.ProjectRepo{DB: db}
 	dsRepo := &postgres.DataSourceRepo{DB: db}
 	endpointRepo := &postgres.APIEndpointRepo{DB: db}
+	releaseRepo := &postgres.EndpointReleaseRepo{DB: db}
 	groupRepo := &postgres.APIGroupRepo{DB: db}
 	scriptRepo := &postgres.ScriptRepo{DB: db}
 
 	// Services
+	platformSettingsSvc := service.NewPlatformSettingsService(platformSettingsRepo)
 	authSvc := service.NewAuthService(userRepo, tenantRepo, tenantUserRepo)
 	tenantSvc := service.NewTenantService(tenantRepo, tenantUserRepo)
 	tenantUserSvc := service.NewTenantUserService(userRepo, tenantUserRepo)
@@ -68,6 +71,7 @@ func main() {
 	dsSvc := service.NewDataSourceService(dsRepo)
 	projectSvc := service.NewProjectService(projectRepo)
 	endpointSvc := service.NewAPIEndpointService(endpointRepo)
+	releaseSvc := service.NewEndpointReleaseService(releaseRepo, endpointRepo)
 	groupSvc := service.NewAPIGroupService(groupRepo)
 	scriptSvc := service.NewScriptService(scriptRepo)
 	querySvc := service.NewQueryService(gatewaySvc, dsSvc, scriptSvc)
@@ -96,8 +100,9 @@ func main() {
 	app := &transport_http.App{
 		Auth: authSvc, Tenant: tenantSvc, TenantUser: tenantUserSvc,
 		Gateway: gatewaySvc, DataSource: dsSvc, Project: projectSvc,
-		Endpoint: endpointSvc, Group: groupSvc, Script: scriptSvc, Query: querySvc,
-		TenantRepo: tenantRepo, TenantUserRepo: tenantUserRepo,
+		Endpoint: endpointSvc, Release: releaseSvc, Group: groupSvc, Script: scriptSvc, Query: querySvc,
+		PlatformSettings: platformSettingsSvc,
+		TenantRepo:       tenantRepo, TenantUserRepo: tenantUserRepo,
 	}
 	app.RegisterRoutes(r)
 

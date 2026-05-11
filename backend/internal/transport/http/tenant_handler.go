@@ -137,6 +137,33 @@ func (h *TenantHandler) HandleUpdateTenant(c *gin.Context) {
 	OK(c, tenant)
 }
 
+// HandleUpdateTenantSettings godoc
+// @Summary 更新租户配置（租户管理员）
+// @ID updateTenantSettings
+// @Tags tenant
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param slug path string true "租户slug"
+// @Param body body object{max_release_versions=int} true "配置项"
+// @Success 200 {object} RTenant
+// @Router /v1/tenants/{slug}/settings [put]
+func (h *TenantHandler) HandleUpdateTenantSettings(c *gin.Context) {
+	var req struct {
+		MaxReleaseVersions int `json:"max_release_versions"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	tenant, err := h.tenants.UpdateSettings(c.Request.Context(), c.Param("slug"), req.MaxReleaseVersions)
+	if err != nil {
+		FailErr(c, err)
+		return
+	}
+	OK(c, tenant)
+}
+
 // HandleDeleteTenant godoc
 // @Summary 删除租户 (SuperAdmin)
 // @ID deleteTenant

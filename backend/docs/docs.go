@@ -206,6 +206,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/platform/settings": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platform"
+                ],
+                "summary": "获取平台设置",
+                "operationId": "getPlatformSettings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RPlatformSettings"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platform"
+                ],
+                "summary": "更新平台设置",
+                "operationId": "updatePlatformSettings",
+                "parameters": [
+                    {
+                        "description": "平台设置",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "allow_self_register": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RPlatformSettings"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/tenants": {
             "get": {
                 "security": [
@@ -681,6 +738,63 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/datasources/{datasourceId}/schema": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "query"
+                ],
+                "summary": "获取数据源表结构",
+                "operationId": "getDatasourceSchema",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "数据源ID",
+                        "name": "datasourceId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "columns": {
+                                                "type": "array"
+                                            },
+                                            "name": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1407,6 +1521,231 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "release"
+                ],
+                "summary": "查询发版记录列表",
+                "operationId": "listReleases",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "端点ID",
+                        "name": "endpointId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.REndpointReleaseList"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "release"
+                ],
+                "summary": "发布接口版本",
+                "operationId": "publishEndpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "端点ID",
+                        "name": "endpointId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "发版说明",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "note": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.REndpointRelease"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases/{releaseId}/activate": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "release"
+                ],
+                "summary": "回滚到指定版本",
+                "operationId": "activateRelease",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "端点ID",
+                        "name": "endpointId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "版本ID",
+                        "name": "releaseId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/unpublish": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "release"
+                ],
+                "summary": "下线接口（停止对外提供服务）",
+                "operationId": "unpublishEndpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "端点ID",
+                        "name": "endpointId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/tenants/{slug}/projects/{projectId}/groups": {
             "get": {
                 "security": [
@@ -1964,6 +2303,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/tenants/{slug}/settings": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tenant"
+                ],
+                "summary": "更新租户配置（租户管理员）",
+                "operationId": "updateTenantSettings",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "配置项",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "max_release_versions": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RTenant"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/tenants/{slug}/users": {
             "get": {
                 "security": [
@@ -2181,6 +2571,96 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "domain.APIEndpoint": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "datasource_id": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "group_id": {
+                    "type": "integer"
+                },
+                "has_draft": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "methods": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "param_defs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ParamDef"
+                    }
+                },
+                "params": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "path": {
+                    "type": "string"
+                },
+                "post_script_id": {
+                    "type": "integer"
+                },
+                "pre_script_id": {
+                    "type": "integer"
+                },
+                "project_id": {
+                    "type": "integer"
+                },
+                "published_release_id": {
+                    "type": "integer"
+                },
+                "sql": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "\"draft\" | \"published\"",
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.ParamDef": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "string"
+                },
+                "desc": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "required": {
+                    "type": "boolean"
+                },
+                "type": {
+                    "description": "string, integer, number, boolean",
+                    "type": "string"
+                }
+            }
+        },
         "http.APIEndpointListResp": {
             "type": "object",
             "properties": {
@@ -2209,6 +2689,9 @@ const docTemplate = `{
                 },
                 "group_id": {
                     "type": "integer"
+                },
+                "has_draft": {
+                    "type": "boolean"
                 },
                 "id": {
                     "type": "integer"
@@ -2243,7 +2726,13 @@ const docTemplate = `{
                 "project_id": {
                     "type": "integer"
                 },
+                "published_release_id": {
+                    "type": "integer"
+                },
                 "sql": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "summary": {
@@ -2374,6 +2863,55 @@ const docTemplate = `{
                 }
             }
         },
+        "http.EndpointReleaseListResp": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.EndpointReleaseResp"
+                    }
+                },
+                "pagination": {
+                    "$ref": "#/definitions/http.PaginationInfo"
+                }
+            }
+        },
+        "http.EndpointReleaseResp": {
+            "type": "object",
+            "properties": {
+                "endpoint_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_draft": {
+                    "type": "boolean"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "published_by": {
+                    "type": "integer"
+                },
+                "snapshot": {
+                    "$ref": "#/definitions/domain.APIEndpoint"
+                },
+                "tenant_id": {
+                    "type": "integer"
+                },
+                "version": {
+                    "type": "integer"
+                }
+            }
+        },
         "http.GatewayListResp": {
             "type": "object",
             "properties": {
@@ -2451,6 +2989,14 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "http.PlatformSettingsResp": {
+            "type": "object",
+            "properties": {
+                "allow_self_register": {
+                    "type": "boolean"
                 }
             }
         },
@@ -2598,6 +3144,34 @@ const docTemplate = `{
                 }
             }
         },
+        "http.REndpointRelease": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/http.EndpointReleaseResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.REndpointReleaseList": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/http.EndpointReleaseListResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
         "http.RGateway": {
             "type": "object",
             "properties": {
@@ -2620,6 +3194,20 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/http.GatewayListResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.RPlatformSettings": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/http.PlatformSettingsResp"
                 },
                 "msg": {
                     "type": "string"
@@ -2787,6 +3375,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "max_release_versions": {
+                    "type": "integer"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -2874,7 +3465,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.1.1",
+	Version:          "0.1.2",
 	Host:             "localhost:3000",
 	BasePath:         "/",
 	Schemes:          []string{},

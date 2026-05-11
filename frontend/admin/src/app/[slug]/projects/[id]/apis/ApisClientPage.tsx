@@ -1,88 +1,95 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Play, BookOpen, Code2, ScrollText, Settings2 } from "lucide-react"
+import { Play, BookOpen, Code2, ScrollText, History } from "lucide-react"
 
-import { useEndpointStore } from "./_store/useEndpointStore"
+import { useApiEditorStore } from "./_store/useApiEditorStore"
+import { useEndpointFormStore } from "./_store/useEndpointFormStore"
+import { useEndpointsQuery } from "./_hooks/useEndpointsQuery"
+import { useReferenceData } from "./_hooks/useReferenceData"
 import { useTenantProject } from "./_hooks/useTenantProject"
+import { showConfirm } from "@/store/useConfirmStore"
 
 import { ApiSidebar } from "./_components/ApiSidebar"
 import { DesignTab } from "./_components/DesignTab"
 import { DebugTab } from "./_components/DebugTab"
 import { DocTab } from "./_components/DocTab"
-import { SettingsTab } from "./_components/SettingsTab"
+import { ReleasesTab } from "./_components/ReleasesTab"
 import { GroupModal } from "./_components/GroupModal"
-import { EndpointHeader } from "./_components/EndpointHeader"
 import { ApiEmptyState, LogsPlaceholder } from "./_components/ApiEmptyState"
-import type { ActiveTab } from "./_types"
+import { BasicInfoModal } from "./_components/BasicInfoModal"
+import type { ActiveTab, ApiEndpoint } from "./_types"
 
 const TABS = [
+  { value: "doc" as const, icon: BookOpen, label: "文档" },
   { value: "design" as const, icon: Code2, label: "设计" },
   { value: "run" as const, icon: Play, label: "调试" },
-  { value: "doc" as const, icon: BookOpen, label: "文档" },
-  { value: "settings" as const, icon: Settings2, label: "设置" },
   { value: "logs" as const, icon: ScrollText, label: "日志" },
+  { value: "releases" as const, icon: History, label: "版本历史" },
 ]
 
 export default function ApisPage() {
   const { activeTenant, projectId } = useTenantProject()
 
-  const fetchAll = useEndpointStore(s => s.fetchAll)
-  const isNew = useEndpointStore(s => s.isNew)
-  const selectedId = useEndpointStore(s => s.selectedId)
-  const activeTab = useEndpointStore(s => s.activeTab)
-  const setActiveTab = useEndpointStore(s => s.setActiveTab)
-  const saving = useEndpointStore(s => s.saving)
-  const save = useEndpointStore(s => s.save)
-  const createNew = useEndpointStore(s => s.createNew)
-  const endpoints = useEndpointStore(s => s.endpoints)
-  const selectEndpoint = useEndpointStore(s => s.selectEndpoint)
+  // UI store
+  const selectedId = useApiEditorStore(s => s.selectedId)
+  const isNew = useApiEditorStore(s => s.isNew)
+  const activeTab = useApiEditorStore(s => s.activeTab)
+  const setSelectedId = useApiEditorStore(s => s.setSelectedId)
+  const setIsNew = useApiEditorStore(s => s.setIsNew)
+  const setActiveTab = useApiEditorStore(s => s.setActiveTab)
 
-  const formMethod = useEndpointStore(s => s.form.method)
-  const formPath = useEndpointStore(s => s.form.path)
-  const groupId = useEndpointStore(s => s.form.groupId)
-  const datasourceId = useEndpointStore(s => s.form.datasourceId)
-  const setFormField = useEndpointStore(s => s.setFormField)
-  const groups = useEndpointStore(s => s.groups)
-  const dataSources = useEndpointStore(s => s.dataSources)
+  // Form store
+  const isDirty = useEndpointFormStore(s => s.isDirty)
+  const initForm = useEndpointFormStore(s => s.initForm)
+  const setFormField = useEndpointFormStore(s => s.setFormField)
 
-  const isEditing = isNew || selectedId !== null
+  // Server data
+  const { list: endpoints } = useEndpointsQuery(activeTenant, projectId)
+  const { dataSources } = useReferenceData(activeTenant)
 
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+
+  // Sync form when endpoint data refreshes (e.g. after publish updates has_draft)
   useEffect(() => {
-    if (activeTenant && projectId) {
-      fetchAll(activeTenant, projectId)
+    if (selectedId && endpoints.length > 0) {
+      const ep = endpoints.find(e => e.id === selectedId)
+      // Only re-init if form is clean (don't overwrite user's edits)
+      if (ep && !isDirty) initForm(ep, dataSources[0]?.id)
     }
-  }, [activeTenant, projectId, fetchAll])
+  }, [endpoints]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function guardDirty(): Promise<boolean> {
+    if (!isDirty) return true
+    return showConfirm("当前有未保存的更改，确认离开？修改将丢失。", "确认离开")
+  }
+
+  async function handleSelectEndpoint(ep: ApiEndpoint) {
+    if (selectedId === ep.id && !isNew) return
+    if (!await guardDirty()) return
+    setSelectedId(ep.id ?? null)
+    setIsNew(false)
+    initForm(ep, dataSources[0]?.id)
+  }
+
+  async function handleCreateNew() {
+    if (!await guardDirty()) return
+    setCreateModalOpen(true)
+  }
+
+  const showEditor = isNew || selectedId !== null
 
   return (
     <div className="flex gap-0 h-[calc(100vh-200px)] min-h-[600px] bg-white border border-zinc-100 rounded-lg shadow-sm overflow-hidden">
-      <ApiSidebar />
+      <ApiSidebar onSelectEndpoint={handleSelectEndpoint} onCreateNew={handleCreateNew} />
 
       <div className="flex-1 min-w-0 bg-white">
-        {isEditing ? (
+        {showEditor ? (
           <div className="h-full flex flex-col">
-            <EndpointHeader
-              formMethod={formMethod}
-              formPath={formPath}
-              groupId={groupId}
-              datasourceId={datasourceId}
-              groups={groups}
-              dataSources={dataSources}
-              saving={saving}
-              isNew={isNew}
-              onMethodChange={(m) => setFormField("method", m)}
-              onPathChange={(p) => setFormField("path", p)}
-              onGroupChange={(id) => setFormField("groupId", id)}
-              onDatasourceChange={(id) => setFormField("datasourceId", id)}
-              onReset={() => selectedId ? selectEndpoint(endpoints.find(e => e.id === selectedId)!) : createNew()}
-              onSave={() => save(activeTenant, projectId)}
-            />
-
             <Tabs
-              defaultValue="design"
               value={activeTab}
-              onValueChange={(v) => setActiveTab(v as ActiveTab)}
+              onValueChange={v => setActiveTab(v as ActiveTab)}
               className="flex-1 flex flex-col min-h-0"
             >
               <div className="px-6 border-b border-zinc-100 bg-white shrink-0">
@@ -103,17 +110,34 @@ export default function ApisPage() {
                 <TabsContent value="design" className="m-0"><DesignTab /></TabsContent>
                 <TabsContent value="run" className="m-0"><DebugTab /></TabsContent>
                 <TabsContent value="doc" className="m-0"><DocTab /></TabsContent>
-                <TabsContent value="settings" className="m-0"><SettingsTab /></TabsContent>
                 <TabsContent value="logs" className="m-0 animate-in fade-in duration-300"><LogsPlaceholder /></TabsContent>
+                <TabsContent value="releases" className="m-0"><ReleasesTab /></TabsContent>
               </div>
             </Tabs>
           </div>
         ) : (
-          <ApiEmptyState onCreateNew={createNew} />
+          <ApiEmptyState onCreateNew={handleCreateNew} />
         )}
       </div>
 
       <GroupModal />
+
+      <BasicInfoModal
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        mode="create"
+        onConfirm={values => {
+          setCreateModalOpen(false)
+          setSelectedId(null)
+          setIsNew(true)
+          initForm(null, dataSources[0]?.id)
+          setFormField("method", values.method)
+          setFormField("path", values.path)
+          setFormField("summary", values.summary)
+          setFormField("groupId", values.groupId)
+          setActiveTab("design")
+        }}
+      />
     </div>
   )
 }

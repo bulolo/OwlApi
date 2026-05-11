@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import TenantsClientPage from "@/app/[slug]/tenants/TenantsClientPage"
-import SettingsClientPage from "@/app/[slug]/settings/SettingsClientPage"
+import PlatformSettingsClientPage from "@/app/[slug]/platform-settings/PlatformSettingsClientPage"
 
 interface PlatformSettingsModalProps {
   open: boolean
@@ -32,7 +32,7 @@ export default function PlatformSettingsModal({ open, onOpenChange }: PlatformSe
               <h2 className="text-sm font-bold text-zinc-900 tracking-tight">平台管理</h2>
               <p className="text-[10px] text-zinc-500 font-medium mt-1">Platform Administration</p>
             </div>
-            
+
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
               <div className="px-3 py-2 text-[10px] font-black text-zinc-400 uppercase tracking-widest">资源</div>
               <button
@@ -66,10 +66,10 @@ export default function PlatformSettingsModal({ open, onOpenChange }: PlatformSe
 
           {/* Right Content */}
           <div className="flex-1 bg-white flex flex-col min-w-0">
-             <div className="flex-1 overflow-y-auto p-8">
-               {activeTab === "tenants" && <TenantsClientPage />}
-               {activeTab === "settings" && <SettingsClientPage />}
-             </div>
+            <div className="flex-1 overflow-y-auto p-8">
+              {activeTab === "tenants" && <TenantsClientPage />}
+              {activeTab === "settings" && <PlatformSettingsClientPage />}
+            </div>
           </div>
         </div>
       </DialogContent>

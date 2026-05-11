@@ -329,22 +329,28 @@ func (e *Executor) Execute(req *pb.ExecuteQueryRequest) *pb.QueryResult {
 
 	driver := resolveDriver(req.DatasourceId)
 
-	// If SQL contains :limit/:offset but params don't provide them, strip the LIMIT clause
-	if strings.Contains(sqlText, ":limit") {
-		if _, hasLimit := params["limit"]; !hasLimit {
-			sqlText = reLimitOffset.ReplaceAllString(sqlText, "")
-		}
+	_, hasLimit := params["limit"]
+	_, hasOffset := params["offset"]
+
+	// Auto-append LIMIT/OFFSET when the pre-script provides them but the SQL omits the clause.
+	// Users can write plain SELECT queries; pagination is fully handled by scripts.
+	if hasLimit && hasOffset && !reHasLimit.MatchString(sqlText) {
+		sqlText = strings.TrimRight(strings.TrimSpace(sqlText), ";") + "\nLIMIT :limit OFFSET :offset"
+	}
+
+	// Backward-compat: if SQL manually wrote :limit/:offset but params don't supply them, strip.
+	if !hasLimit && strings.Contains(sqlText, ":limit") {
+		sqlText = reLimitOffset.ReplaceAllString(sqlText, "")
 	}
 
 	fullSQL := stripUnresolvedConditions(sqlText, params)
 
-	// Auto-generate COUNT query only for paginated SELECT
-	if req.PostScript != "" && strings.HasPrefix(strings.TrimSpace(strings.ToUpper(req.Sql)), "SELECT") &&
-		reLimitOffset.MatchString(req.Sql) {
-		countSQL := stripOrderBy(stripLimitOffset(req.Sql))
+	// Auto COUNT query: triggered by limit param being present, not by SQL containing LIMIT.
+	isSelect := strings.HasPrefix(strings.TrimSpace(strings.ToUpper(sqlText)), "SELECT")
+	if req.PostScript != "" && isSelect && hasLimit {
+		countSQL := stripOrderBy(stripLimitOffset(sqlText))
 		countSQL = "SELECT COUNT(*) FROM (" + countSQL + ") AS _t"
 		resolvedCountSQL := stripUnresolvedConditions(countSQL, params)
-
 		countQuery, countArgs := buildQueryArgs(resolvedCountSQL, params, driver)
 		var total int64
 		if err := db.QueryRow(countQuery, countArgs...).Scan(&total); err == nil {
@@ -565,6 +571,7 @@ func hasKey(keys []string, target string) bool {
 }
 
 var reLimitOffset = regexp.MustCompile(`(?i)\s+LIMIT\s+\S+\s+OFFSET\s+\S+`)
+var reHasLimit = regexp.MustCompile(`(?i)\bLIMIT\b`)
 
 func stripLimitOffset(sql string) string {
 	return reLimitOffset.ReplaceAllString(sql, "")

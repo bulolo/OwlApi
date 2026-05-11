@@ -7,7 +7,6 @@ import {
   Box,
   Server,
   Database,
-  Users,
   Hexagon,
   PanelLeftClose,
   PanelLeftOpen,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/store/useUIStore"
+import pkg from "../../../package.json"
 
 export function Sidebar({ slug }: { slug?: string }) {
   const { activeTenant: storeTenant, sidebarCollapsed, setSidebarCollapsed } = useUIStore()
@@ -43,12 +43,6 @@ export function Sidebar({ slug }: { slug?: string }) {
         { href: `/${activeTenant}/projects`, label: "项目", icon: Box },
       ]
     },
-    {
-      group: "成员管理",
-      items: [
-        { href: `/${activeTenant}/users`, label: "成员", icon: Users },
-      ]
-    }
   ]
 
   return (
@@ -91,7 +85,7 @@ export function Sidebar({ slug }: { slug?: string }) {
 
       {/* Footer with collapse toggle */}
       <div className={cn("py-3 border-t border-zinc-100 flex items-center", collapsed ? "px-3 justify-center" : "px-5 justify-between")}>
-        {!collapsed && <span className="text-[10px] font-bold text-zinc-300 tracking-widest">v0.1.0</span>}
+        {!collapsed && <span className="text-[10px] font-bold text-zinc-300 tracking-widest">v{pkg.version}</span>}
         <button
           onClick={() => setSidebarCollapsed(!collapsed)}
           className="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"

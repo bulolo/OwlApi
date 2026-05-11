@@ -8,7 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type APIEndpointHandler struct{ endpoints service.APIEndpointService }
+type APIEndpointHandler struct {
+	endpoints service.APIEndpointService
+	releases  service.EndpointReleaseService
+}
 
 // HandleList godoc
 // @Summary 获取 API 端点列表
@@ -150,6 +153,8 @@ func (h *APIEndpointHandler) HandleUpdate(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
+	claims := GetClaims(c)
+	_ = h.releases.UpsertDraft(c.Request.Context(), tenant.ID, epID, claims.UserID)
 	OK(c, ep)
 }
 

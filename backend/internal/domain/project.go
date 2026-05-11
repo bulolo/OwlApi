@@ -50,21 +50,38 @@ type APIGroup struct {
 }
 
 type APIEndpoint struct {
-	ID           int64      `json:"id"`
-	TenantID     int64      `json:"tenant_id"`
-	ProjectID    int64      `json:"project_id"`
-	GroupID      int64      `json:"group_id"`
-	DataSourceID int64      `json:"datasource_id"`
-	Path         string     `json:"path"`
-	Methods      []string   `json:"methods"`
-	Summary      string     `json:"summary"`
-	Description  string     `json:"description,omitempty"`
-	SQL          string     `json:"sql"`
-	Params       []string   `json:"params"`
-	ParamDefs    []ParamDef `json:"param_defs,omitempty"`
-	PreScriptID  int64      `json:"pre_script_id,omitempty"`
-	PostScriptID int64      `json:"post_script_id,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
+	ID                 int64      `json:"id"`
+	TenantID           int64      `json:"tenant_id"`
+	ProjectID          int64      `json:"project_id"`
+	GroupID            int64      `json:"group_id"`
+	DataSourceID       int64      `json:"datasource_id"`
+	Path               string     `json:"path"`
+	Methods            []string   `json:"methods"`
+	Summary            string     `json:"summary"`
+	Description        string     `json:"description,omitempty"`
+	SQL                string     `json:"sql"`
+	Params             []string   `json:"params"`
+	ParamDefs          []ParamDef `json:"param_defs,omitempty"`
+	PreScriptID        int64      `json:"pre_script_id,omitempty"`
+	PostScriptID       int64      `json:"post_script_id,omitempty"`
+	Status             string     `json:"status"` // "draft" | "published"
+	PublishedReleaseID int64      `json:"published_release_id,omitempty"`
+	HasDraft           bool       `json:"has_draft,omitempty"`
+	CreatedAt          time.Time  `json:"created_at"`
+}
+
+// EndpointRelease is an immutable published snapshot of an endpoint.
+type EndpointRelease struct {
+	ID          int64        `json:"id"`
+	TenantID    int64        `json:"tenant_id"`
+	EndpointID  int64        `json:"endpoint_id"`
+	Version     int          `json:"version"`
+	Note        string       `json:"note"`
+	Snapshot    *APIEndpoint `json:"snapshot"`
+	PublishedBy int64        `json:"published_by"`
+	PublishedAt time.Time    `json:"published_at"`
+	IsActive    bool         `json:"is_active"`
+	IsDraft     bool         `json:"is_draft"`
 }
 
 // Script is a reusable JavaScript snippet that can be attached to endpoints.

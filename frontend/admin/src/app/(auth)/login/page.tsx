@@ -3,11 +3,14 @@
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Hexagon, ArrowRight, ShieldCheck, Mail, Lock } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuthStore } from "@/store/useAuthStore"
 import { STORAGE_KEYS } from "@/lib/constants"
 import { useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
+import { apiGetPlatformSettings } from "@/lib/api-client"
 
 export default function LoginPage() {
   return (
@@ -22,6 +25,11 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const { login } = useAuthStore()
   const qc = useQueryClient()
+  const { data: platformSettings } = useQuery({
+    queryKey: ["platform-settings"],
+    queryFn: apiGetPlatformSettings,
+    staleTime: 5 * 60 * 1000,
+  })
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -144,12 +152,20 @@ function LoginForm() {
             </Button>
           </form>
 
-          <div className="pt-6 border-t border-zinc-100 flex items-center justify-between">
-            <div className="flex items-center space-x-1.5 text-[10px] text-zinc-400 font-bold uppercase tracking-tight">
-              <ShieldCheck className="w-3 h-3 text-emerald-500" />
-              <span>SSL 256 位加密保护</span>
+          <div className="pt-6 border-t border-zinc-100 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1.5 text-[10px] text-zinc-400 font-bold uppercase tracking-tight">
+                <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                <span>SSL 256 位加密保护</span>
+              </div>
+              <span className="text-[10px] text-zinc-300 font-bold uppercase cursor-pointer hover:text-zinc-600">忘记密码?</span>
             </div>
-            <span className="text-[10px] text-zinc-300 font-bold uppercase cursor-pointer hover:text-zinc-600">忘记密码?</span>
+            {platformSettings?.allow_self_register && (
+              <p className="text-center text-xs text-zinc-400">
+                没有账号？
+                <Link href="/register" className="font-bold text-blue-600 hover:text-blue-700 ml-1">申请注册</Link>
+              </p>
+            )}
           </div>
         </div>
 

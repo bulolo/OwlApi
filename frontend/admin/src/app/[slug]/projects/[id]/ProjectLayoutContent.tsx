@@ -1,7 +1,7 @@
 "use client"
 
 import { useUIStore } from "@/store/useUIStore"
-import { Box, ArrowLeft, Settings, Download, ChevronRight, Layers } from "lucide-react"
+import { Box, ArrowLeft, Download, ChevronRight, Layers } from "lucide-react"
 import { useProject } from "@/hooks"
 import { apiExportOpenAPI } from "@/lib/api-client"
 import { listEndpoints } from "@/lib/sdk"
@@ -94,11 +94,6 @@ export default function ProjectLayoutContent({
             >
               <Download className="w-3.5 h-3.5 mr-2" /> 导出 OpenAPI
             </Button>
-            <Link href={`/${activeTenant}/projects/edit/${projectId}`}>
-              <Button variant="outline" className="h-9 px-4 rounded-lg border-zinc-200 text-xs font-bold shadow-sm hover:bg-zinc-50 hover:border-zinc-300 transition-all">
-                <Settings className="w-3.5 h-3.5 mr-2" /> 项目设置
-              </Button>
-            </Link>
           </div>
         </div>
       </div>

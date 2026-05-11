@@ -12,12 +12,28 @@ type APIEndpointRepo struct{ DB *DB }
 
 var _ domain.APIEndpointRepository = (*APIEndpointRepo)(nil)
 
-const epCols = `id, tenant_id, project_id, group_id, datasource_id, path, methods, summary, description, sql_query, params, param_defs, pre_script_id, post_script_id`
+const epCols = `id, tenant_id, project_id, group_id, datasource_id, path, methods, summary, description, sql_query, params, param_defs, pre_script_id, post_script_id, status, published_release_id, created_at`
+
+// epColsWithDraft appends a has_draft computed column via EXISTS subquery.
+const epColsWithDraft = epCols + `, EXISTS(SELECT 1 FROM endpoint_releases r WHERE r.tenant_id=ae.tenant_id AND r.endpoint_id=ae.id AND r.is_draft=TRUE) AS has_draft`
 
 func scanEP(scan func(dest ...any) error) (*domain.APIEndpoint, error) {
 	var ep domain.APIEndpoint
 	var paramDefsJSON []byte
-	err := scan(&ep.ID, &ep.TenantID, &ep.ProjectID, &ep.GroupID, &ep.DataSourceID, &ep.Path, &ep.Methods, &ep.Summary, &ep.Description, &ep.SQL, &ep.Params, &paramDefsJSON, &ep.PreScriptID, &ep.PostScriptID)
+	err := scan(&ep.ID, &ep.TenantID, &ep.ProjectID, &ep.GroupID, &ep.DataSourceID, &ep.Path, &ep.Methods, &ep.Summary, &ep.Description, &ep.SQL, &ep.Params, &paramDefsJSON, &ep.PreScriptID, &ep.PostScriptID, &ep.Status, &ep.PublishedReleaseID, &ep.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	if len(paramDefsJSON) > 0 {
+		_ = json.Unmarshal(paramDefsJSON, &ep.ParamDefs)
+	}
+	return &ep, nil
+}
+
+func scanEPWithDraft(scan func(dest ...any) error) (*domain.APIEndpoint, error) {
+	var ep domain.APIEndpoint
+	var paramDefsJSON []byte
+	err := scan(&ep.ID, &ep.TenantID, &ep.ProjectID, &ep.GroupID, &ep.DataSourceID, &ep.Path, &ep.Methods, &ep.Summary, &ep.Description, &ep.SQL, &ep.Params, &paramDefsJSON, &ep.PreScriptID, &ep.PostScriptID, &ep.Status, &ep.PublishedReleaseID, &ep.CreatedAt, &ep.HasDraft)
 	if err != nil {
 		return nil, err
 	}
@@ -66,22 +82,22 @@ func (r *APIEndpointRepo) UpdateAPIEndpoint(ctx context.Context, ep *domain.APIE
 }
 
 func (r *APIEndpointRepo) ListAPIEndpoints(ctx context.Context, tenantID, projectID int64, p domain.ListParams) ([]*domain.APIEndpoint, int, error) {
-	where := "WHERE tenant_id=$1 AND project_id=$2"
+	where := "WHERE ae.tenant_id=$1 AND ae.project_id=$2"
 	args := []interface{}{tenantID, projectID}
 	argN := 3
 	if p.Keyword != "" {
-		where += fmt.Sprintf(" AND (path ILIKE $%d OR summary ILIKE $%d)", argN, argN)
+		where += fmt.Sprintf(" AND (ae.path ILIKE $%d OR ae.summary ILIKE $%d)", argN, argN)
 		args = append(args, "%"+p.Keyword+"%")
 		argN++
 	}
 
 	var total int
-	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM api_endpoints `+where, args...).Scan(&total); err != nil {
+	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM api_endpoints ae `+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	pgSuffix, pgArgs := appendPagination(p, argN, args)
 	rows, err := r.DB.Pool.Query(ctx,
-		fmt.Sprintf(`SELECT %s FROM api_endpoints %s ORDER BY id%s`, epCols, where, pgSuffix),
+		fmt.Sprintf(`SELECT %s FROM api_endpoints ae %s ORDER BY ae.id%s`, epColsWithDraft, where, pgSuffix),
 		pgArgs...)
 	if err != nil {
 		return nil, 0, err
@@ -89,7 +105,7 @@ func (r *APIEndpointRepo) ListAPIEndpoints(ctx context.Context, tenantID, projec
 	defer rows.Close()
 	var list []*domain.APIEndpoint
 	for rows.Next() {
-		ep, err := scanEP(rows.Scan)
+		ep, err := scanEPWithDraft(rows.Scan)
 		if err != nil {
 			return nil, 0, err
 		}

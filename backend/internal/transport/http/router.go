@@ -8,16 +8,18 @@ import (
 
 // App holds all wired dependencies for the HTTP layer.
 type App struct {
-	Auth       service.AuthService
-	Tenant     service.TenantService
-	TenantUser service.TenantUserService
-	Gateway    service.GatewayService
-	DataSource service.DataSourceService
-	Project    service.ProjectService
-	Endpoint   service.APIEndpointService
-	Group      service.APIGroupService
-	Script     service.ScriptService
-	Query      service.QueryService
+	Auth             service.AuthService
+	Tenant           service.TenantService
+	TenantUser       service.TenantUserService
+	Gateway          service.GatewayService
+	DataSource       service.DataSourceService
+	Project          service.ProjectService
+	Endpoint         service.APIEndpointService
+	Release          service.EndpointReleaseService
+	Group            service.APIGroupService
+	Script           service.ScriptService
+	Query            service.QueryService
+	PlatformSettings service.PlatformSettingsService
 	// repos needed only by middleware
 	TenantRepo     domain.TenantRepository
 	TenantUserRepo domain.TenantUserRepository
@@ -25,26 +27,31 @@ type App struct {
 
 // RegisterRoutes wires all HTTP handlers and middleware to the gin engine.
 func (a *App) RegisterRoutes(r *gin.Engine) {
-	authH := &AuthHandler{auth: a.Auth}
+	authH := &AuthHandler{auth: a.Auth, platformSettings: a.PlatformSettings}
+	platformSettingsH := &PlatformSettingsHandler{settings: a.PlatformSettings}
 	tenantH := &TenantHandler{tenants: a.Tenant}
 	tuH := &TenantUserHandler{tenantUsers: a.TenantUser}
 	gatewayH := &GatewayHandler{gateways: a.Gateway}
 	dsH := &DataSourceHandler{dataSources: a.DataSource}
 	projectH := &ProjectHandler{projects: a.Project}
-	endpointH := &APIEndpointHandler{endpoints: a.Endpoint}
+	endpointH := &APIEndpointHandler{endpoints: a.Endpoint, releases: a.Release}
+	releaseH := &EndpointReleaseHandler{releases: a.Release}
 	groupH := &APIGroupHandler{groups: a.Group}
 	scriptH := &ScriptHandler{scripts: a.Script}
-	queryH := NewQueryHandler(a.Query, a.Endpoint, a.Tenant)
+	queryH := NewQueryHandler(a.Query, a.Endpoint, a.Release, a.Tenant)
 	queryTestH := &QueryTestHandler{tenants: a.Tenant, gateways: a.Gateway, queries: a.Query, endpoints: a.Endpoint, dataSources: a.DataSource}
 	openAPIH := &OpenAPIHandler{projects: a.Project, endpoints: a.Endpoint, groups: a.Group}
 
 	v1 := r.Group("/v1")
 	v1.POST("/auth/register", authH.HandleRegister)
 	v1.POST("/auth/login", authH.HandleLogin)
+	v1.GET("/platform/settings", platformSettingsH.HandleGet)
 	v1.GET("/my/tenants", JWTAuth(), tenantH.HandleMyTenants)
 	v1.POST("/tenants/:slug/query/test", JWTAuth(), RequireTenantRole(a.TenantRepo, a.TenantUserRepo, domain.RoleViewer), queryTestH.HandleTestQuery)
+	v1.GET("/tenants/:slug/datasources/:datasourceId/schema", JWTAuth(), RequireTenantRole(a.TenantRepo, a.TenantUserRepo, domain.RoleViewer), queryTestH.HandleGetSchema)
 
 	sa := v1.Group("", JWTAuth(), RequireSuperAdmin())
+	sa.PUT("/platform/settings", platformSettingsH.HandleUpdate)
 	sa.GET("/tenants", tenantH.HandleListTenants)
 	sa.POST("/tenants", tenantH.HandleCreateTenant)
 	sa.PUT("/tenants/:slug", tenantH.HandleUpdateTenant)
@@ -60,11 +67,13 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	viewer.GET("/tenants/:slug/projects", projectH.HandleList)
 	viewer.GET("/tenants/:slug/projects/:projectId", projectH.HandleGet)
 	viewer.GET("/tenants/:slug/projects/:projectId/endpoints", endpointH.HandleList)
+	viewer.GET("/tenants/:slug/projects/:projectId/endpoints/:endpointId/releases", releaseH.HandleList)
 	viewer.GET("/tenants/:slug/projects/:projectId/groups", groupH.HandleList)
 	viewer.GET("/tenants/:slug/projects/:projectId/openapi.json", openAPIH.HandleExportOpenAPI)
 	viewer.GET("/tenants/:slug/scripts", scriptH.HandleList)
 
 	admin := v1.Group("", JWTAuth(), RequireTenantRole(a.TenantRepo, a.TenantUserRepo, domain.RoleAdmin))
+	admin.PUT("/tenants/:slug/settings", tenantH.HandleUpdateTenantSettings)
 	admin.POST("/tenants/:slug/users", tuH.HandleCreate)
 	admin.PUT("/tenants/:slug/users/:userId/role", tuH.HandleUpdateRole)
 	admin.DELETE("/tenants/:slug/users/:userId", tuH.HandleDelete)
@@ -79,6 +88,9 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	admin.POST("/tenants/:slug/projects/:projectId/endpoints", endpointH.HandleCreate)
 	admin.PUT("/tenants/:slug/projects/:projectId/endpoints/:endpointId", endpointH.HandleUpdate)
 	admin.DELETE("/tenants/:slug/projects/:projectId/endpoints/:endpointId", endpointH.HandleDelete)
+	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/releases", releaseH.HandlePublish)
+	admin.PUT("/tenants/:slug/projects/:projectId/endpoints/:endpointId/releases/:releaseId/activate", releaseH.HandleActivate)
+	admin.PUT("/tenants/:slug/projects/:projectId/endpoints/:endpointId/unpublish", releaseH.HandleUnpublish)
 	admin.POST("/tenants/:slug/projects/:projectId/groups", groupH.HandleCreate)
 	admin.PUT("/tenants/:slug/projects/:projectId/groups/:groupId", groupH.HandleUpdate)
 	admin.DELETE("/tenants/:slug/projects/:projectId/groups/:groupId", groupH.HandleDelete)

@@ -9,7 +9,7 @@ export function useApiMutation<TData, TVariables>(
   options?: {
     successMessage?: string
     errorMessage?: string
-    invalidateKeys?: string[][]
+    invalidateKeys?: unknown[][]
   },
 ) {
   const qc = useQueryClient()

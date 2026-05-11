@@ -89,6 +89,30 @@ type APIEndpointRepository interface {
 	DeleteAPIEndpoint(ctx context.Context, tenantID, id int64) error
 }
 
+type EndpointReleaseRepository interface {
+	Create(ctx context.Context, rel *EndpointRelease) error
+	GetByID(ctx context.Context, tenantID, id int64) (*EndpointRelease, error)
+	ListByEndpoint(ctx context.Context, tenantID, endpointID int64, p ListParams) ([]*EndpointRelease, int, error)
+	// Activate marks the given release as active and updates the endpoint's published_release_id.
+	Activate(ctx context.Context, tenantID, endpointID, releaseID int64) error
+	// Deactivate clears all active releases and resets endpoint status to 'draft'.
+	Deactivate(ctx context.Context, tenantID, endpointID int64) error
+	// TrimOldReleases deletes old non-active, non-draft releases keeping only the newest keepCount total.
+	// keepCount <= 0 means no limit.
+	TrimOldReleases(ctx context.Context, tenantID, endpointID int64, keepCount int) error
+	// NextVersion returns COUNT(releases for endpointID) + 1.
+	NextVersion(ctx context.Context, tenantID, endpointID int64) (int, error)
+	// GetDraftByEndpoint returns the single draft release for an endpoint, if one exists.
+	GetDraftByEndpoint(ctx context.Context, tenantID, endpointID int64) (*EndpointRelease, error)
+	// UpdateDraftSnapshot updates the snapshot content of an existing draft release.
+	UpdateDraftSnapshot(ctx context.Context, tenantID, releaseID int64, snapshot *APIEndpoint) error
+}
+
+type PlatformSettingsRepository interface {
+	Get(ctx context.Context) (*PlatformSettings, error)
+	Update(ctx context.Context, s *PlatformSettings) error
+}
+
 type ScriptRepository interface {
 	CreateScript(ctx context.Context, s *Script) error
 	UpdateScript(ctx context.Context, s *Script) error

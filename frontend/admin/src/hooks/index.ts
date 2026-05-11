@@ -6,3 +6,4 @@ export { useScripts, useCreateScript, useUpdateScript, useDeleteScript } from '.
 export { useTenants, useCreateTenant } from './useTenants'
 export { useApiMutation } from './useApiMutation'
 export { usePaginatedQuery } from './usePaginatedQuery'
+export { useReleases, usePublishEndpoint, useUnpublishEndpoint, useActivateRelease } from './useReleases'

@@ -1,9 +1,10 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useIsClient } from "@/hooks/useIsClient"
-import { Settings, LogOut } from "lucide-react"
+import { Settings, LogOut, Settings2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import PlatformSettingsModal from "./PlatformSettingsModal"
+import TenantSettingsModal from "./TenantSettingsModal"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,7 @@ export function Header({ slug }: { slug?: string }) {
   const router = useRouter()
   const mounted = useIsClient()
   const [openSettings, setOpenSettings] = useState(false)
+  const [openTenantSettings, setOpenTenantSettings] = useState(false)
   const { user, logout } = useAuthStore()
 
   const name = user?.name || "User"
@@ -32,7 +34,17 @@ export function Header({ slug }: { slug?: string }) {
       <div className="flex items-center gap-3">
         {mounted ? (
           <>
-            {/* 1. Platform Settings (SuperAdmin only) */}
+            {/* 1. Tenant Settings (all users) */}
+            <Button
+              variant="ghost"
+              className="h-9 px-3 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-lg transition-all text-xs font-bold gap-1.5"
+              onClick={() => setOpenTenantSettings(true)}
+            >
+              <Settings2 className="w-4 h-4" />
+              系统设置
+            </Button>
+
+            {/* 2. Platform Settings (SuperAdmin only) */}
             {user?.is_superadmin && (
               <Button
                 variant="ghost"
@@ -79,6 +91,7 @@ export function Header({ slug }: { slug?: string }) {
         )}
       </div>
 
+      <TenantSettingsModal open={openTenantSettings} onOpenChange={setOpenTenantSettings} />
       <PlatformSettingsModal open={openSettings} onOpenChange={setOpenSettings} />
     </header>
   )

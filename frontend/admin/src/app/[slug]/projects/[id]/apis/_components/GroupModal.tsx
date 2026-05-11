@@ -3,15 +3,32 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { useEndpointStore } from "../_store/useEndpointStore"
+import { useApiEditorStore } from "../_store/useApiEditorStore"
+import { useCreateGroup, useUpdateGroup } from "../_hooks/useGroupsQuery"
 import { useTenantProject } from "../_hooks/useTenantProject"
 
 export function GroupModal() {
   const { activeTenant, projectId } = useTenantProject()
-  const groupModal = useEndpointStore(s => s.groupModal)
-  const closeGroupModal = useEndpointStore(s => s.closeGroupModal)
-  const setGroupModalName = useEndpointStore(s => s.setGroupModalName)
-  const submitGroupModal = useEndpointStore(s => s.submitGroupModal)
+  const groupModal = useApiEditorStore(s => s.groupModal)
+  const closeGroupModal = useApiEditorStore(s => s.closeGroupModal)
+  const setGroupModalName = useApiEditorStore(s => s.setGroupModalName)
+
+  const createGroup = useCreateGroup(activeTenant, projectId)
+  const updateGroup = useUpdateGroup(activeTenant, projectId)
+
+  const isPending = createGroup.isPending || updateGroup.isPending
+
+  function handleSubmit() {
+    if (!groupModal.name.trim()) return
+    if (groupModal.mode === "create") {
+      createGroup.mutate(groupModal.name, { onSuccess: closeGroupModal })
+    } else if (groupModal.editingGroupId) {
+      updateGroup.mutate(
+        { id: groupModal.editingGroupId, name: groupModal.name },
+        { onSuccess: closeGroupModal },
+      )
+    }
+  }
 
   return (
     <Dialog open={groupModal.open} onOpenChange={(open) => { if (!open) closeGroupModal() }}>
@@ -32,14 +49,15 @@ export function GroupModal() {
               className="h-9 text-sm rounded-lg"
               value={groupModal.name}
               onChange={(e) => setGroupModalName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && submitGroupModal(activeTenant, projectId)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             />
           </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={closeGroupModal} className="h-9 text-xs font-bold rounded-lg">取消</Button>
           <Button
-            onClick={() => submitGroupModal(activeTenant, projectId)}
+            onClick={handleSubmit}
+            disabled={isPending}
             className="h-9 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-sm"
           >
             {groupModal.mode === "create" ? "创建" : "保存"}

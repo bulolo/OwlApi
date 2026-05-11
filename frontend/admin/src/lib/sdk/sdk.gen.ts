@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddUserData, AddUserResponses, CreateDataSourceData, CreateDataSourceResponses, CreateEndpointData, CreateEndpointResponses, CreateGatewayData, CreateGatewayResponses, CreateGroupData, CreateGroupResponses, CreateProjectData, CreateProjectResponses, CreateScriptData, CreateScriptResponses, CreateTenantData, CreateTenantResponses, DeleteDataSourceData, DeleteDataSourceResponses, DeleteEndpointData, DeleteEndpointResponses, DeleteGatewayData, DeleteGatewayResponses, DeleteGroupData, DeleteGroupResponses, DeleteProjectData, DeleteProjectResponses, DeleteScriptData, DeleteScriptResponses, DeleteTenantData, DeleteTenantResponses, ExecuteQueryData, ExecuteQueryResponses, ExportOpenApiData, ExportOpenApiResponses, GetDataSourceData, GetDataSourceResponses, GetGatewayData, GetGatewayResponses, GetProjectData, GetProjectResponses, GetTenantData, GetTenantResponses, ListAllTenantsData, ListAllTenantsResponses, ListDataSourcesData, ListDataSourcesResponses, ListEndpointsData, ListEndpointsResponses, ListGatewaysData, ListGatewaysResponses, ListGroupsData, ListGroupsResponses, ListProjectsData, ListProjectsResponses, ListScriptsData, ListScriptsResponses, ListUsersData, ListUsersResponses, LoginData, LoginResponses, MyTenantsData, MyTenantsResponses, RegisterData, RegisterResponses, RemoveUserData, RemoveUserResponses, TestQueryData, TestQueryResponses, UpdateDataSourceData, UpdateDataSourceResponses, UpdateEndpointData, UpdateEndpointResponses, UpdateGroupData, UpdateGroupResponses, UpdateProjectData, UpdateProjectResponses, UpdateScriptData, UpdateScriptResponses, UpdateTenantData, UpdateTenantResponses, UpdateUserRoleData, UpdateUserRoleResponses } from './types.gen';
+import type { ActivateReleaseData, ActivateReleaseResponses, AddUserData, AddUserResponses, CreateDataSourceData, CreateDataSourceResponses, CreateEndpointData, CreateEndpointResponses, CreateGatewayData, CreateGatewayResponses, CreateGroupData, CreateGroupResponses, CreateProjectData, CreateProjectResponses, CreateScriptData, CreateScriptResponses, CreateTenantData, CreateTenantResponses, DeleteDataSourceData, DeleteDataSourceResponses, DeleteEndpointData, DeleteEndpointResponses, DeleteGatewayData, DeleteGatewayResponses, DeleteGroupData, DeleteGroupResponses, DeleteProjectData, DeleteProjectResponses, DeleteScriptData, DeleteScriptResponses, DeleteTenantData, DeleteTenantResponses, ExecuteQueryData, ExecuteQueryResponses, ExportOpenApiData, ExportOpenApiResponses, GetDataSourceData, GetDataSourceResponses, GetDatasourceSchemaData, GetDatasourceSchemaResponses, GetGatewayData, GetGatewayResponses, GetPlatformSettingsData, GetPlatformSettingsResponses, GetProjectData, GetProjectResponses, GetTenantData, GetTenantResponses, ListAllTenantsData, ListAllTenantsResponses, ListDataSourcesData, ListDataSourcesResponses, ListEndpointsData, ListEndpointsResponses, ListGatewaysData, ListGatewaysResponses, ListGroupsData, ListGroupsResponses, ListProjectsData, ListProjectsResponses, ListReleasesData, ListReleasesResponses, ListScriptsData, ListScriptsResponses, ListUsersData, ListUsersResponses, LoginData, LoginResponses, MyTenantsData, MyTenantsResponses, PublishEndpointData, PublishEndpointResponses, RegisterData, RegisterResponses, RemoveUserData, RemoveUserResponses, TestQueryData, TestQueryResponses, UnpublishEndpointData, UnpublishEndpointResponses, UpdateDataSourceData, UpdateDataSourceResponses, UpdateEndpointData, UpdateEndpointResponses, UpdateGroupData, UpdateGroupResponses, UpdatePlatformSettingsData, UpdatePlatformSettingsResponses, UpdateProjectData, UpdateProjectResponses, UpdateScriptData, UpdateScriptResponses, UpdateTenantData, UpdateTenantResponses, UpdateTenantSettingsData, UpdateTenantSettingsResponses, UpdateUserRoleData, UpdateUserRoleResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -65,6 +65,28 @@ export const myTenants = <ThrowOnError extends boolean = false>(options?: Option
     security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/v1/my/tenants',
     ...options
+});
+
+/**
+ * 获取平台设置
+ */
+export const getPlatformSettings = <ThrowOnError extends boolean = false>(options?: Options<GetPlatformSettingsData, ThrowOnError>) => (options?.client ?? client).get<GetPlatformSettingsResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/v1/platform/settings',
+    ...options
+});
+
+/**
+ * 更新平台设置
+ */
+export const updatePlatformSettings = <ThrowOnError extends boolean = false>(options: Options<UpdatePlatformSettingsData, ThrowOnError>) => (options.client ?? client).put<UpdatePlatformSettingsResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/v1/platform/settings',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
 });
 
 /**
@@ -181,6 +203,16 @@ export const updateDataSource = <ThrowOnError extends boolean = false>(options: 
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+/**
+ * 获取数据源表结构
+ */
+export const getDatasourceSchema = <ThrowOnError extends boolean = false>(options: Options<GetDatasourceSchemaData, ThrowOnError>) => (options.client ?? client).get<GetDatasourceSchemaResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/datasources/{datasourceId}/schema',
+    ...options
 });
 
 /**
@@ -334,6 +366,50 @@ export const updateEndpoint = <ThrowOnError extends boolean = false>(options: Op
 });
 
 /**
+ * 查询发版记录列表
+ */
+export const listReleases = <ThrowOnError extends boolean = false>(options: Options<ListReleasesData, ThrowOnError>) => (options.client ?? client).get<ListReleasesResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases',
+    ...options
+});
+
+/**
+ * 发布接口版本
+ */
+export const publishEndpoint = <ThrowOnError extends boolean = false>(options: Options<PublishEndpointData, ThrowOnError>) => (options.client ?? client).post<PublishEndpointResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 回滚到指定版本
+ */
+export const activateRelease = <ThrowOnError extends boolean = false>(options: Options<ActivateReleaseData, ThrowOnError>) => (options.client ?? client).put<ActivateReleaseResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases/{releaseId}/activate',
+    ...options
+});
+
+/**
+ * 下线接口（停止对外提供服务）
+ */
+export const unpublishEndpoint = <ThrowOnError extends boolean = false>(options: Options<UnpublishEndpointData, ThrowOnError>) => (options.client ?? client).put<UnpublishEndpointResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/unpublish',
+    ...options
+});
+
+/**
  * 获取 API 分组列表
  */
 export const listGroups = <ThrowOnError extends boolean = false>(options: Options<ListGroupsData, ThrowOnError>) => (options.client ?? client).get<ListGroupsResponses, unknown, ThrowOnError, 'data'>({
@@ -446,6 +522,20 @@ export const updateScript = <ThrowOnError extends boolean = false>(options: Opti
     responseStyle: 'data',
     security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/v1/tenants/{slug}/scripts/{scriptId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 更新租户配置（租户管理员）
+ */
+export const updateTenantSettings = <ThrowOnError extends boolean = false>(options: Options<UpdateTenantSettingsData, ThrowOnError>) => (options.client ?? client).put<UpdateTenantSettingsResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/settings',
     ...options,
     headers: {
         'Content-Type': 'application/json',

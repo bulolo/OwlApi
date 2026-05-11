@@ -1,5 +1,65 @@
 basePath: /
 definitions:
+  domain.APIEndpoint:
+    properties:
+      created_at:
+        type: string
+      datasource_id:
+        type: integer
+      description:
+        type: string
+      group_id:
+        type: integer
+      has_draft:
+        type: boolean
+      id:
+        type: integer
+      methods:
+        items:
+          type: string
+        type: array
+      param_defs:
+        items:
+          $ref: '#/definitions/domain.ParamDef'
+        type: array
+      params:
+        items:
+          type: string
+        type: array
+      path:
+        type: string
+      post_script_id:
+        type: integer
+      pre_script_id:
+        type: integer
+      project_id:
+        type: integer
+      published_release_id:
+        type: integer
+      sql:
+        type: string
+      status:
+        description: '"draft" | "published"'
+        type: string
+      summary:
+        type: string
+      tenant_id:
+        type: integer
+    type: object
+  domain.ParamDef:
+    properties:
+      default:
+        type: string
+      desc:
+        type: string
+      name:
+        type: string
+      required:
+        type: boolean
+      type:
+        description: string, integer, number, boolean
+        type: string
+    type: object
   http.APIEndpointListResp:
     properties:
       list:
@@ -19,6 +79,8 @@ definitions:
         type: string
       group_id:
         type: integer
+      has_draft:
+        type: boolean
       id:
         type: integer
       methods:
@@ -41,7 +103,11 @@ definitions:
         type: integer
       project_id:
         type: integer
+      published_release_id:
+        type: integer
       sql:
+        type: string
+      status:
         type: string
       summary:
         type: string
@@ -126,6 +192,38 @@ definitions:
       type:
         type: string
     type: object
+  http.EndpointReleaseListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.EndpointReleaseResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    type: object
+  http.EndpointReleaseResp:
+    properties:
+      endpoint_id:
+        type: integer
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      is_draft:
+        type: boolean
+      note:
+        type: string
+      published_at:
+        type: string
+      published_by:
+        type: integer
+      snapshot:
+        $ref: '#/definitions/domain.APIEndpoint'
+      tenant_id:
+        type: integer
+      version:
+        type: integer
+    type: object
   http.GatewayListResp:
     properties:
       list:
@@ -177,6 +275,11 @@ definitions:
         type: boolean
       type:
         type: string
+    type: object
+  http.PlatformSettingsResp:
+    properties:
+      allow_self_register:
+        type: boolean
     type: object
   http.ProjectListResp:
     properties:
@@ -271,6 +374,24 @@ definitions:
       msg:
         type: string
     type: object
+  http.REndpointRelease:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.EndpointReleaseResp'
+      msg:
+        type: string
+    type: object
+  http.REndpointReleaseList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.EndpointReleaseListResp'
+      msg:
+        type: string
+    type: object
   http.RGateway:
     properties:
       code:
@@ -286,6 +407,15 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/http.GatewayListResp'
+      msg:
+        type: string
+    type: object
+  http.RPlatformSettings:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.PlatformSettingsResp'
       msg:
         type: string
     type: object
@@ -393,6 +523,8 @@ definitions:
         type: string
       id:
         type: integer
+      max_release_versions:
+        type: integer
       name:
         type: string
       plan:
@@ -446,7 +578,7 @@ info:
   contact: {}
   description: 企业级 SQL to API 智能网关平台管理接口
   title: OwlApi Control Plane
-  version: 0.1.1
+  version: 0.1.2
 paths:
   /api/v1/tenants/{slug}/query/{path}:
     post:
@@ -571,6 +703,43 @@ paths:
       summary: 获取当前用户的租户列表
       tags:
       - tenant
+  /v1/platform/settings:
+    get:
+      operationId: getPlatformSettings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RPlatformSettings'
+      summary: 获取平台设置
+      tags:
+      - platform
+    put:
+      consumes:
+      - application/json
+      operationId: updatePlatformSettings
+      parameters:
+      - description: 平台设置
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            allow_self_register:
+              type: boolean
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RPlatformSettings'
+      summary: 更新平台设置
+      tags:
+      - platform
   /v1/tenants:
     get:
       operationId: listAllTenants
@@ -875,6 +1044,42 @@ paths:
       summary: 更新数据源
       tags:
       - datasource
+  /v1/tenants/{slug}/datasources/{datasourceId}/schema:
+    get:
+      operationId: getDatasourceSchema
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 数据源ID
+        in: path
+        name: datasourceId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                items:
+                  properties:
+                    columns:
+                      type: array
+                    name:
+                      type: string
+                  type: object
+                type: array
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 获取数据源表结构
+      tags:
+      - query
   /v1/tenants/{slug}/gateways:
     get:
       operationId: listGateways
@@ -1338,6 +1543,152 @@ paths:
       summary: 更新 API 端点
       tags:
       - endpoint
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases:
+    get:
+      operationId: listReleases
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.REndpointReleaseList'
+      security:
+      - BearerAuth: []
+      summary: 查询发版记录列表
+      tags:
+      - release
+    post:
+      consumes:
+      - application/json
+      operationId: publishEndpoint
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: 发版说明
+        in: body
+        name: body
+        schema:
+          properties:
+            note:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.REndpointRelease'
+      security:
+      - BearerAuth: []
+      summary: 发布接口版本
+      tags:
+      - release
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases/{releaseId}/activate:
+    put:
+      operationId: activateRelease
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: 版本ID
+        in: path
+        name: releaseId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 回滚到指定版本
+      tags:
+      - release
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/unpublish:
+    put:
+      operationId: unpublishEndpoint
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 下线接口（停止对外提供服务）
+      tags:
+      - release
   /v1/tenants/{slug}/projects/{projectId}/groups:
     get:
       operationId: listGroups
@@ -1695,6 +2046,38 @@ paths:
       summary: 更新脚本
       tags:
       - script
+  /v1/tenants/{slug}/settings:
+    put:
+      consumes:
+      - application/json
+      operationId: updateTenantSettings
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 配置项
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            max_release_versions:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RTenant'
+      security:
+      - BearerAuth: []
+      summary: 更新租户配置（租户管理员）
+      tags:
+      - tenant
   /v1/tenants/{slug}/users:
     get:
       operationId: listUsers

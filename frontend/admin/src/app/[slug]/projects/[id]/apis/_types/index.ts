@@ -10,7 +10,7 @@ export type { ApiEndpoint, DataSource, Script, ApiGroup }
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE"
 
 // ── Tab 导航 ──
-export type ActiveTab = "design" | "run" | "doc" | "settings" | "logs"
+export type ActiveTab = "design" | "run" | "doc" | "logs" | "releases"
 
 // ── 参数 ──
 export type ParamType = "string" | "integer" | "number" | "boolean"
@@ -60,6 +60,7 @@ export function isExecutionSuccess(r: ExecutionResult): r is ExecutionSuccessMes
 export interface EndpointFormState {
   path: string
   method: HttpMethod
+  summary: string
   sql: string
   datasourceId: number
   groupId: number

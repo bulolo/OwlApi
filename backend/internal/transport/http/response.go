@@ -40,13 +40,14 @@ type UserResp struct {
 }
 
 type TenantResp struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	Slug      string `json:"slug"`
-	Plan      string `json:"plan"`
-	Status    string `json:"status"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
+	ID                 int64  `json:"id"`
+	Name               string `json:"name"`
+	Slug               string `json:"slug"`
+	Plan               string `json:"plan"`
+	Status             string `json:"status"`
+	MaxReleaseVersions int    `json:"max_release_versions"`
+	CreatedAt          string `json:"created_at"`
+	UpdatedAt          string `json:"updated_at"`
 }
 
 type TenantUserResp struct {
@@ -103,21 +104,24 @@ type ParamDefResp struct {
 }
 
 type APIEndpointResp struct {
-	ID           int64          `json:"id"`
-	TenantID     int64          `json:"tenant_id"`
-	ProjectID    int64          `json:"project_id"`
-	GroupID      int64          `json:"group_id"`
-	DataSourceID int64          `json:"datasource_id"`
-	Path         string         `json:"path"`
-	Methods      []string       `json:"methods"`
-	Summary      string         `json:"summary"`
-	Description  string         `json:"description,omitempty"`
-	SQL          string         `json:"sql"`
-	Params       []string       `json:"params"`
-	ParamDefs    []ParamDefResp `json:"param_defs,omitempty"`
-	PreScriptID  int64          `json:"pre_script_id,omitempty"`
-	PostScriptID int64          `json:"post_script_id,omitempty"`
-	CreatedAt    string         `json:"created_at"`
+	ID                 int64          `json:"id"`
+	TenantID           int64          `json:"tenant_id"`
+	ProjectID          int64          `json:"project_id"`
+	GroupID            int64          `json:"group_id"`
+	DataSourceID       int64          `json:"datasource_id"`
+	Path               string         `json:"path"`
+	Methods            []string       `json:"methods"`
+	Summary            string         `json:"summary"`
+	Description        string         `json:"description,omitempty"`
+	SQL                string         `json:"sql"`
+	Params             []string       `json:"params"`
+	ParamDefs          []ParamDefResp `json:"param_defs,omitempty"`
+	PreScriptID        int64          `json:"pre_script_id,omitempty"`
+	PostScriptID       int64          `json:"post_script_id,omitempty"`
+	Status             string         `json:"status"`
+	PublishedReleaseID int64          `json:"published_release_id,omitempty"`
+	HasDraft           bool           `json:"has_draft,omitempty"`
+	CreatedAt          string         `json:"created_at"`
 }
 
 type APIGroupResp struct {
@@ -137,6 +141,10 @@ type ScriptResp struct {
 	Code        string `json:"code"`
 	Description string `json:"description,omitempty"`
 	CreatedAt   string `json:"created_at"`
+}
+
+type PlatformSettingsResp struct {
+	AllowSelfRegister bool `json:"allow_self_register"`
 }
 
 type AuthResp struct {
@@ -260,6 +268,11 @@ type RScriptList struct {
 	Code int            `json:"code"`
 	Msg  string         `json:"msg"`
 	Data ScriptListResp `json:"data"`
+}
+type RPlatformSettings struct {
+	Code int                  `json:"code"`
+	Msg  string               `json:"msg"`
+	Data PlatformSettingsResp `json:"data"`
 }
 
 func OK(c *gin.Context, data any) {

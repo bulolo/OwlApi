@@ -1,5 +1,5 @@
 // @title           OwlApi Control Plane
-// @version         0.1.3
+// @version         0.1.4
 // @description     企业级 SQL to API 智能网关平台管理接口
 // @host            localhost:3000
 // @BasePath        /

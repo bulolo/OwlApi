@@ -86,7 +86,7 @@ export function DocTab() {
   const formMethod   = useEndpointFormStore(s => s.form.method)
   const paramDefs    = useEndpointFormStore(s => s.form.paramDefs)
   const preScriptId  = useEndpointFormStore(s => s.form.preScriptId)
-  const { extractedParams } = useParamSync()
+  useParamSync()
   const { scripts } = useReferenceData(activeTenant)
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "")

@@ -72,7 +72,7 @@ help:
 	@echo "  make help                显示此帮助信息"
 	@echo ""
 	@echo " 📦 [发布同步] (Release & Sync)"
-	@echo "  make set-version v=0.1.3 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
+	@echo "  make set-version v=0.1.4 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
 	@echo "  make             从 ee 生成 Community Edition (CE) 分支"
 	@echo "  make   将 origin/ce 同步并推送到 GitHub 公开仓库"
 	@echo ""
@@ -244,9 +244,9 @@ clean:
 # 格式化代码 (gofmt + eslint --fix)
 format:
 	@echo "🎨 [Backend] 正在格式化 Go 代码..."
-	cd backend && gofmt -w .
+	@if command -v gofmt >/dev/null 2>&1; then cd backend && gofmt -w .; else echo "  ⚠️  gofmt 未安装，跳过后端格式化"; fi
 	@echo "🎨 [Frontend] 正在格式化 TypeScript 代码 (Admin)..."
-	cd frontend/admin && pnpm run lint:fix
+	@if [ -f "frontend/admin/node_modules/.bin/eslint" ]; then cd frontend/admin && pnpm run lint:fix; else echo "  ⚠️  node_modules 未安装，跳过前端格式化"; fi
 	@echo "✅ 代码格式化完成"
 
 # 增量检查 (仅对 staged 文件, 供 pre-commit 调用)

@@ -105,7 +105,7 @@ export function useParamSync() {
     })
 
     return list
-  }, [form.paramDefs, extractedParams])
+  }, [form.paramDefs, extractedParams, scriptParamNames])
 
   return { extractedParams, derivedParamDefs }
 }

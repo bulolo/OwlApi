@@ -7,7 +7,7 @@
 企业级混合云智能网关，打破内网物理边界，编写 SQL 即可一键生成高可用 RESTful API，全面释放孤岛数据价值。
 
 [![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go)](https://go.dev/)
-[![FastAPI/Gin](https://img.shields.io/badge/Gin-1.9+-009688?logo=gin)](https://gin-gonic.com/)
+[![Gin](https://img.shields.io/badge/Gin-1.9+-009688?logo=gin)](https://gin-gonic.com/)
 [![Next.js](https://img.shields.io/badge/Next.js-16+-000000?logo=next.js)](https://nextjs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18+-336791?logo=postgresql)](https://www.postgresql.org/)
 
@@ -32,7 +32,7 @@
 ### 2026-04-01 🌐 网关执行器演进
 - 🛡️ **混合云架构**: 发布全新的架构大版本。Gateway 现在可以无缝潜伏于深层内网，建立 gRPC 反向隧道通信，彻底告别公网 IP 和复杂的白名单配置。
 - ⚙️ **多租户隔离**: 上线 RBAC 体系（SuperAdmin / Admin / Viewer）。实现了多数据源、多项目的严格底层权限阻断。
-- 📦 **参数推断重构**: 支持在 SQL 编写时动态识别 `@变量`，一键映射并暴露为标准的 HTTP 查询参数或 Body，极大提升了 API 生成的敏捷度。
+- 📦 **参数推断重构**: 支持在 SQL 编写时动态识别 `:变量`，一键映射并暴露为标准的 HTTP 查询参数或 Body，极大提升了 API 生成的敏捷度。
 - 📚 **官网全线升级**: [owlapi.cn](https://owlapi.cn) 官网焕新，全面适配企业级 UI 体验。
 
 ---
@@ -156,8 +156,8 @@ make dev-up
 服务将自动暴露于本地：
 - 🎯 **Admin 控制台**: http://localhost:8001 `(租户管理员: admin@owlapi.cn / admin123)` 
 - 📚 **文档中心**: http://localhost:8003
-- � **RESTful API 服务**: http://localhost:3000
-- �️ **PostgreSQL**: localhost:5433l
+- 🚀 **RESTful API 服务**: http://localhost:3000
+- 🐘 **PostgreSQL**: localhost:5433
 
 ---
 

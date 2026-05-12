@@ -57,15 +57,28 @@ export function ParamDefCard({ compact }: { compact?: boolean } = {}) {
             } space-y-2.5 animate-in fade-in slide-in-from-right-2 relative`}
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-mono font-bold text-blue-600">{def.name || "未命名"}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-sm ${
-                    def._isAuto ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"
-                  }`}
-                >
-                  {def._source === "sql" ? "SQL 提取" : def._source === "script" ? "脚本" : "自定义"}
+                {/* 来源 */}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-sm ${
+                  def._source === "sql"    ? "bg-blue-100 text-blue-600"
+                  : def._source === "script" ? "bg-violet-100 text-violet-600"
+                  : "bg-emerald-100 text-emerald-600"
+                }`}>
+                  {def._source === "sql" ? "SQL" : def._source === "script" ? "脚本" : "手动"}
                 </span>
+                {/* 必填 / 选填 */}
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-bold ${
+                  def.required ? "bg-red-50 text-red-500" : "bg-zinc-100 text-zinc-400"
+                }`}>
+                  {def.required ? "必填" : "选填"}
+                </span>
+                {/* 默认值 */}
+                {def.default && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-zinc-100 text-zinc-500 font-mono">
+                    默认: {def.default}
+                  </span>
+                )}
               </div>
               {isInStore && (
                 <button

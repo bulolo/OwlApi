@@ -363,19 +363,22 @@ function main(data, params) {
 
 	demoEndpoints := []*domain.APIEndpoint{
 		// ---- 用户 ----
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["用户管理"], Path: "/api/users/list", Methods: []string{"POST"},
+		// GET /api/users          → 列表
+		// GET /api/users/:id      → 详情
+		// POST /api/users         → 创建
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["用户管理"], Path: "/api/users", Methods: []string{"GET"},
 			Summary: "获取用户列表", Description: "返回用户列表，支持分页",
 			SQL:    "SELECT id, name, email, role, created_at FROM users ORDER BY id LIMIT :limit OFFSET :offset",
 			Params: []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs,
 			PreScriptID: pre, PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["用户管理"], Path: "/api/users/detail", Methods: []string{"POST"},
-			Summary: "获取用户详情", Description: "根据 ID 查询单个用户信息",
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["用户管理"], Path: "/api/users/:id", Methods: []string{"GET"},
+			Summary: "获取用户详情", Description: "根据路径参数 :id 查询单个用户",
 			SQL:    "SELECT id, name, email, role, created_at FROM users WHERE id = :id",
 			Params: []string{"id"}, PostScriptID: postDetail,
 			ParamDefs: []domain.ParamDef{
-				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "用户 ID"},
+				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "用户 ID（路径参数）"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["用户管理"], Path: "/api/users/create", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["用户管理"], Path: "/api/users", Methods: []string{"POST"},
 			Summary: "创建用户", Description: "新增一个用户",
 			SQL:    "INSERT INTO users (name, email, role) VALUES (:name, :email, :role)",
 			Params: []string{"name", "email", "role"}, PostScriptID: postWrite,
@@ -384,22 +387,38 @@ function main(data, params) {
 				{Name: "email", Type: "string", Required: true, Desc: "邮箱地址"},
 				{Name: "role", Type: "string", Required: false, Default: "user", Desc: "角色：admin / user / viewer"},
 			}},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["用户管理"], Path: "/api/users/:id", Methods: []string{"PUT"},
+			Summary: "更新用户信息", Description: "根据路径参数 :id 更新用户姓名、邮箱或角色",
+			SQL:    "UPDATE users SET name = :name, email = :email, role = :role WHERE id = :id",
+			Params: []string{"id", "name", "email", "role"}, PostScriptID: postWrite,
+			ParamDefs: []domain.ParamDef{
+				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "用户 ID（路径参数）"},
+				{Name: "name", Type: "string", Required: true, Desc: "用户姓名"},
+				{Name: "email", Type: "string", Required: true, Desc: "邮箱地址"},
+				{Name: "role", Type: "string", Required: false, Default: "user", Desc: "角色：admin / user / viewer"},
+			}},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["用户管理"], Path: "/api/users/:id", Methods: []string{"DELETE"},
+			Summary: "删除用户", Description: "根据路径参数 :id 删除用户",
+			SQL:    "DELETE FROM users WHERE id = :id",
+			Params: []string{"id"}, PostScriptID: postWrite,
+			ParamDefs: []domain.ParamDef{
+				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "用户 ID（路径参数）"},
+			}},
 
 		// ---- 商品 ----
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products/list", Methods: []string{"POST"},
+		// GET    /api/products            → 列表
+		// GET    /api/products/search     → 搜索（静态段优先于 :id，不会冲突）
+		// GET    /api/products/:id        → 详情
+		// POST   /api/products            → 创建
+		// PUT    /api/products/:id/stock  → 更新库存
+		// DELETE /api/products/:id        → 删除
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products", Methods: []string{"GET"},
 			Summary: "获取商品列表", Description: "返回商品列表，支持分页",
 			SQL:    "SELECT id, name, price, stock, category FROM products ORDER BY id LIMIT :limit OFFSET :offset",
 			Params: []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs,
 			PreScriptID: pre, PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products/detail", Methods: []string{"POST"},
-			Summary: "获取商品详情", Description: "根据 ID 查询单个商品信息",
-			SQL:    "SELECT id, name, price, stock, category FROM products WHERE id = :id",
-			Params: []string{"id"}, PostScriptID: postDetail,
-			ParamDefs: []domain.ParamDef{
-				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "商品 ID"},
-			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products/search", Methods: []string{"POST"},
-			Summary: "搜索商品", Description: "按分类和价格区间筛选商品，支持分页",
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products/search", Methods: []string{"GET"},
+			Summary: "搜索商品", Description: "按分类和价格区间筛选，支持分页",
 			SQL:         "SELECT id, name, price, stock, category FROM products WHERE category = :category AND price >= :min_price AND price <= :max_price ORDER BY id LIMIT :limit OFFSET :offset",
 			Params:      []string{"category", "min_price", "max_price", "page", "size", "is_pager"},
 			PreScriptID: pre, PostScriptID: postList,
@@ -407,33 +426,55 @@ function main(data, params) {
 				{Name: "category", Type: "string", Required: true, Default: "electronics", Desc: "分类：electronics / peripherals / books"},
 				{Name: "min_price", Type: "number", Required: false, Default: "0", Desc: "最低价格"},
 				{Name: "max_price", Type: "number", Required: false, Default: "99999", Desc: "最高价格"},
-				{Name: "page", Type: "integer", Required: false, Default: "1", Desc: "页码，默认 1"},
-				{Name: "size", Type: "integer", Required: false, Default: "10", Desc: "每页条数，默认 10"},
-				{Name: "is_pager", Type: "integer", Required: false, Default: "1", Desc: "是否分页：1 分页(默认) / 0 不分页"},
+				{Name: "page", Type: "integer", Required: false, Default: "1", Desc: "页码"},
+				{Name: "size", Type: "integer", Required: false, Default: "10", Desc: "每页条数"},
+				{Name: "is_pager", Type: "integer", Required: false, Default: "1", Desc: "是否分页"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products/update-stock", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products/:id", Methods: []string{"GET"},
+			Summary: "获取商品详情", Description: "根据路径参数 :id 查询单个商品",
+			SQL:    "SELECT id, name, price, stock, category FROM products WHERE id = :id",
+			Params: []string{"id"}, PostScriptID: postDetail,
+			ParamDefs: []domain.ParamDef{
+				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "商品 ID（路径参数）"},
+			}},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products", Methods: []string{"POST"},
+			Summary: "创建商品", Description: "新增一个商品",
+			SQL:    "INSERT INTO products (name, price, stock, category) VALUES (:name, :price, :stock, :category)",
+			Params: []string{"name", "price", "stock", "category"}, PostScriptID: postWrite,
+			ParamDefs: []domain.ParamDef{
+				{Name: "name", Type: "string", Required: true, Desc: "商品名称"},
+				{Name: "price", Type: "number", Required: true, Desc: "商品价格"},
+				{Name: "stock", Type: "integer", Required: true, Default: "0", Desc: "初始库存"},
+				{Name: "category", Type: "string", Required: true, Default: "electronics", Desc: "分类：electronics / peripherals / books"},
+			}},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products/:id/stock", Methods: []string{"PUT"},
 			Summary: "更新库存", Description: "修改指定商品的库存数量",
 			SQL:    "UPDATE products SET stock = :stock WHERE id = :id",
 			Params: []string{"id", "stock"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
-				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "商品 ID"},
+				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "商品 ID（路径参数）"},
 				{Name: "stock", Type: "integer", Required: true, Default: "100", Desc: "新库存数量"},
+			}},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["商品中心"], Path: "/api/products/:id", Methods: []string{"DELETE"},
+			Summary: "删除商品", Description: "根据路径参数 :id 删除商品",
+			SQL:    "DELETE FROM products WHERE id = :id",
+			Params: []string{"id"}, PostScriptID: postWrite,
+			ParamDefs: []domain.ParamDef{
+				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "商品 ID（路径参数）"},
 			}},
 
 		// ---- 订单 ----
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders/list", Methods: []string{"POST"},
+		// GET    /api/orders      → 列表
+		// POST   /api/orders      → 创建
+		// GET    /api/orders/:id  → 详情
+		// PUT    /api/orders/:id  → 更新状态
+		// DELETE /api/orders/:id  → 删除
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders", Methods: []string{"GET"},
 			Summary: "获取订单列表", Description: "返回订单列表（含用户和商品信息），支持分页",
 			SQL:    "SELECT o.id, u.name AS customer, p.name AS product, o.quantity, o.total, o.status, o.created_at FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id ORDER BY o.id DESC LIMIT :limit OFFSET :offset",
 			Params: []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs,
 			PreScriptID: pre, PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders/detail", Methods: []string{"POST"},
-			Summary: "获取订单详情", Description: "根据 ID 查询单个订单（含关联信息）",
-			SQL:    "SELECT o.id, u.name AS customer, p.name AS product, o.quantity, o.total, o.status, o.created_at FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id WHERE o.id = :id",
-			Params: []string{"id"}, PostScriptID: postDetail,
-			ParamDefs: []domain.ParamDef{
-				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "订单 ID"},
-			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders/create", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders", Methods: []string{"POST"},
 			Summary: "创建订单", Description: "新增订单，状态默认 pending",
 			SQL:    "INSERT INTO orders (user_id, product_id, quantity, total, status) VALUES (:user_id, :product_id, :quantity, :total, 'pending')",
 			Params: []string{"user_id", "product_id", "quantity", "total"}, PostScriptID: postWrite,
@@ -443,36 +484,57 @@ function main(data, params) {
 				{Name: "quantity", Type: "integer", Required: true, Default: "1", Desc: "购买数量"},
 				{Name: "total", Type: "number", Required: true, Desc: "订单总金额"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders/delete", Methods: []string{"POST"},
-			Summary: "删除订单", Description: "根据 ID 删除订单",
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders/:id", Methods: []string{"GET"},
+			Summary: "获取订单详情", Description: "根据路径参数 :id 查询单个订单（含关联信息）",
+			SQL:    "SELECT o.id, u.name AS customer, p.name AS product, o.quantity, o.total, o.status, o.created_at FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id WHERE o.id = :id",
+			Params: []string{"id"}, PostScriptID: postDetail,
+			ParamDefs: []domain.ParamDef{
+				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "订单 ID（路径参数）"},
+			}},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders/:id", Methods: []string{"PUT"},
+			Summary: "更新订单状态", Description: "根据路径参数 :id 更新订单状态",
+			SQL:    "UPDATE orders SET status = :status WHERE id = :id",
+			Params: []string{"id", "status"}, PostScriptID: postWrite,
+			ParamDefs: []domain.ParamDef{
+				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "订单 ID（路径参数）"},
+				{Name: "status", Type: "string", Required: true, Default: "shipped", Desc: "状态：pending / paid / shipped / completed / cancelled"},
+			}},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["订单中心"], Path: "/api/orders/:id", Methods: []string{"DELETE"},
+			Summary: "删除订单", Description: "根据路径参数 :id 删除订单",
 			SQL:    "DELETE FROM orders WHERE id = :id",
 			Params: []string{"id"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
-				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "订单 ID"},
+				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "订单 ID（路径参数）"},
 			}},
 
 		// ---- 统计 ----
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["数据统计"], Path: "/api/stats/revenue", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["数据统计"], Path: "/api/stats/revenue", Methods: []string{"GET"},
 			Summary: "分类销售统计", Description: "按商品分类统计订单数和销售额",
 			SQL:    "SELECT p.category, COUNT(o.id) AS order_count, SUM(o.total) AS revenue FROM orders o JOIN products p ON o.product_id = p.id GROUP BY p.category ORDER BY revenue DESC",
 			Params: []string{}, PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["数据统计"], Path: "/api/stats/top-customers", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupsByID["数据统计"], Path: "/api/stats/top-customers", Methods: []string{"GET"},
 			Summary: "用户消费排行", Description: "按消费总额降序排列",
 			SQL:    "SELECT u.name, u.email, COUNT(o.id) AS orders, SUM(o.total) AS total_spent FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.name, u.email ORDER BY total_spent DESC",
 			Params: []string{}, PostScriptID: postList},
 	}
 
+	created := 0
 	for _, ep := range demoEndpoints {
-		if existing, err := endpoints.GetAPIEndpointByPath(ctx, t, ep.Path); err == nil && existing != nil {
-			slog.Info("Demo endpoint already exists", "path", ep.Path, "id", existing.ID)
+		method := ""
+		if len(ep.Methods) > 0 {
+			method = ep.Methods[0]
+		}
+		if existing, err := endpoints.GetAPIEndpointByPathAndMethod(ctx, t, ep.Path, method); err == nil && existing != nil {
+			slog.Info("Demo endpoint already exists", "path", ep.Path, "method", method, "id", existing.ID)
 			continue
 		}
 		if err := endpoints.CreateAPIEndpoint(ctx, ep); err != nil {
-			slog.Error("Failed to create demo endpoint", "path", ep.Path, "error", err)
+			slog.Error("Failed to create demo endpoint", "path", ep.Path, "method", method, "error", err)
 			os.Exit(1)
 		}
+		created++
 	}
-	slog.Info("Created demo API endpoints", "count", len(demoEndpoints))
+	slog.Info("Demo API endpoints checked/created", "created", created, "total", len(demoEndpoints))
 
 	slog.Info("🦉 Seed completed!")
 }

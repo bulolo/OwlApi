@@ -96,7 +96,7 @@ func (a *App) connectAndServe() error {
 			Register: &pb.RegisterRequest{
 				GatewayId:    a.config.GatewayID,
 				GatewayToken: a.config.GatewayToken,
-				Version:      "v0.1.2",
+				Version:      "v0.1.3",
 				TenantId:     a.config.TenantID,
 			},
 		},

@@ -6,13 +6,21 @@ import { format as formatSql } from "sql-formatter"
 import {
   apiCreateEndpoint,
   apiUpdateEndpoint,
-  apiTestQuery,
+  apiRun,
   type ApiEndpoint,
 } from "@/lib/api-client"
 import { queryClient } from "@/lib/queryClient"
 import { getErrorMessage } from "@/lib/errors"
 import { PARAM_PLACEHOLDER_PREFIX } from "@/lib/constants"
 import type { HttpMethod, ParamDef, ExecutionResult, EndpointFormState } from "../_types"
+
+// ── SQL 初始模板（按 HTTP 方法对应 REST 语义）──
+export const SQL_TEMPLATES: Record<HttpMethod, string> = {
+  GET:    "SELECT *\nFROM table_name\nWHERE id = :id",
+  POST:   "INSERT INTO table_name (column1, column2)\nVALUES (:value1, :value2)",
+  PUT:    "UPDATE table_name\nSET column1 = :value1\nWHERE id = :id",
+  DELETE: "DELETE FROM table_name\nWHERE id = :id",
+}
 
 // ── Helpers ──
 
@@ -67,7 +75,7 @@ interface FormState {
 }
 
 interface FormActions {
-  initForm: (ep: ApiEndpoint | null, defaultDatasourceId?: number) => void
+  initForm: (ep: ApiEndpoint | null, defaultDatasourceId?: number, initialMethod?: HttpMethod) => void
   setFormField: <K extends keyof EndpointFormState>(key: K, value: EndpointFormState[K]) => void
   setParamDefs: (updater: ParamDef[] | ((prev: ParamDef[]) => ParamDef[])) => void
   /** 仅用于 useParamSync 自动同步，不触发 isDirty */
@@ -75,6 +83,7 @@ interface FormActions {
 
   // returns saved endpoint or null on failure
   save: (tenant: string, projectId: string, isNew: boolean, selectedId: number | null) => Promise<ApiEndpoint | null>
+
   runDebug: (tenant: string, selectedId: number) => Promise<void>
   runDesign: (tenant: string, projectId: string, selectedId: number | null, isNew: boolean) => Promise<void>
 
@@ -101,8 +110,14 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
   designExecuting: false,
   designExecResult: null,
 
-  initForm: (ep, defaultDatasourceId = 0) => {
-    const form = ep ? epToForm(ep, defaultDatasourceId) : { ...initialForm, datasourceId: defaultDatasourceId }
+  initForm: (ep, defaultDatasourceId = 0, initialMethod?) => {
+    const form = ep
+      ? epToForm(ep, defaultDatasourceId)
+      : {
+          ...initialForm,
+          datasourceId: defaultDatasourceId,
+          ...(initialMethod && { method: initialMethod, sql: SQL_TEMPLATES[initialMethod] }),
+        }
     set({
       form,
       _savedForm: { ...form },
@@ -197,7 +212,7 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
       for (const def of form.paramDefs) {
         if (def.name && !(def.name in params) && def.default) params[def.name] = def.default
       }
-      const data = await apiTestQuery(tenant, selectedId, params)
+      const data = await apiRun(tenant, selectedId, params)
       set({ execResult: data as ExecutionResult })
     } catch (err) {
       set({ execResult: { error: getErrorMessage(err) } })
@@ -245,7 +260,7 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
       for (const def of form.paramDefs) {
         if (def.name && !(def.name in params) && def.default) params[def.name] = def.default
       }
-      const data = await apiTestQuery(tenant, selectedId, params, true)
+      const data = await apiRun(tenant, selectedId, params, true)
       set({ designExecResult: data as ExecutionResult })
     } catch (err) {
       set({ designExecResult: { error: getErrorMessage(err) } })

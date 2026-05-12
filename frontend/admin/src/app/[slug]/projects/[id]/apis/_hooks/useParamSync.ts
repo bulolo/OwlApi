@@ -13,11 +13,14 @@ import { useTenantProject } from "./useTenantProject"
 import { useReferenceData } from "./useReferenceData"
 import type { ParamDef, DerivedParamDef } from "../_types"
 
+// 由分页前置脚本计算注入，不作为用户可见参数
+const SCRIPT_INJECTED_PARAMS = new Set(["limit", "offset"])
+
 /** 从 SQL 中提取 :paramName 形式的参数 */
 export function extractSQLParams(sql: string): string[] {
   const matches = sql.match(/:([a-zA-Z_]\w*)/g)
   if (!matches) return []
-  return Array.from(new Set(matches.map(m => m.slice(1))))
+  return Array.from(new Set(matches.map(m => m.slice(1)).filter(p => !SCRIPT_INJECTED_PARAMS.has(p))))
 }
 
 /** 从脚本代码中提取 params.xxx / params["xxx"] 形式的参数 */
@@ -67,12 +70,23 @@ export function useParamSync() {
     }
   }, [form.preScriptId, scripts, extractedParams, isNew, form.paramDefs.length, syncParamDefs])
 
+  // 脚本参数列表（用于来源标记）
+  const scriptParamNames = useMemo(() => {
+    const preScript = scripts.find(s => s.id === form.preScriptId)
+    if (!preScript?.code) return new Set<string>()
+    return new Set(extractScriptParams(preScript.code))
+  }, [form.preScriptId, scripts])
+
   // 合并视图 (SQL 提取 + 手动定义 + 脚本)
   const derivedParamDefs = useMemo((): DerivedParamDef[] => {
     const list: DerivedParamDef[] = (form.paramDefs || []).map(d => ({
       ...d,
       _isAuto: extractedParams.includes(d.name),
-      _source: extractedParams.includes(d.name) ? "sql" as const : "manual" as const,
+      _source: extractedParams.includes(d.name)
+        ? "sql" as const
+        : scriptParamNames.has(d.name)
+          ? "script" as const
+          : "manual" as const,
     }))
 
     const existing = new Set(list.map(d => d.name))

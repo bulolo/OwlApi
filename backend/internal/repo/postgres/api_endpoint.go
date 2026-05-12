@@ -55,6 +55,32 @@ func (r *APIEndpointRepo) GetAPIEndpointByPath(ctx context.Context, tenantID int
 	return scanEP(row.Scan)
 }
 
+func (r *APIEndpointRepo) GetAPIEndpointByPathAndMethod(ctx context.Context, tenantID int64, path, method string) (*domain.APIEndpoint, error) {
+	row := r.DB.Pool.QueryRow(ctx,
+		`SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND path=$2 AND $3 = ANY(methods)`,
+		tenantID, path, method)
+	return scanEP(row.Scan)
+}
+
+func (r *APIEndpointRepo) ListPublishedByTenant(ctx context.Context, tenantID int64) ([]*domain.APIEndpoint, error) {
+	rows, err := r.DB.Pool.Query(ctx,
+		`SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND status='published'`,
+		tenantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var list []*domain.APIEndpoint
+	for rows.Next() {
+		ep, err := scanEP(rows.Scan)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, ep)
+	}
+	return list, rows.Err()
+}
+
 func (r *APIEndpointRepo) GetAPIEndpointByID(ctx context.Context, tenantID, id int64) (*domain.APIEndpoint, error) {
 	row := r.DB.Pool.QueryRow(ctx, `SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND id=$2`, tenantID, id)
 	return scanEP(row.Scan)

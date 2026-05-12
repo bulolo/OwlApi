@@ -24,7 +24,7 @@ import type { ActiveTab, ApiEndpoint } from "./_types"
 const TABS = [
   { value: "doc" as const, icon: BookOpen, label: "文档" },
   { value: "design" as const, icon: Code2, label: "设计" },
-  { value: "run" as const, icon: Play, label: "调试" },
+  { value: "run" as const, icon: Play, label: "运行" },
   { value: "logs" as const, icon: ScrollText, label: "日志" },
   { value: "releases" as const, icon: History, label: "版本历史" },
 ]
@@ -130,8 +130,7 @@ export default function ApisPage() {
           setCreateModalOpen(false)
           setSelectedId(null)
           setIsNew(true)
-          initForm(null, dataSources[0]?.id)
-          setFormField("method", values.method)
+          initForm(null, dataSources[0]?.id, values.method)
           setFormField("path", values.path)
           setFormField("summary", values.summary)
           setFormField("groupId", values.groupId)

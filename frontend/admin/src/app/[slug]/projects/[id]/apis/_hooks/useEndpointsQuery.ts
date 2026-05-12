@@ -12,7 +12,7 @@ import type { ApiEndpoint } from "@/lib/api-client"
 export function useEndpointsQuery(slug: string, projectId: string) {
   return usePaginatedQuery(
     ["endpoints", slug, projectId],
-    () => apiListEndpoints(slug, Number(projectId)),
+    () => apiListEndpoints(slug, Number(projectId), { is_pager: 0 }),
     !!slug && !!projectId,
   )
 }

@@ -78,7 +78,7 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
   function toggleTable(name: string) {
     setExpandedTables(prev => {
       const next = new Set(prev)
-      next.has(name) ? next.delete(name) : next.add(name)
+      if (next.has(name)) { next.delete(name) } else { next.add(name) }
       return next
     })
   }
@@ -529,36 +529,36 @@ function ResultPreview({ result }: { result: unknown }) {
     )
   }
 
-  try {
-    const arr = extractArray(result)
-    if (arr && arr.length > 0) {
-      const keys = Object.keys(arr[0] as object)
-      return (
-        <table className="w-full text-left border-collapse text-xs">
-          <thead className="sticky top-0 bg-zinc-50/90 backdrop-blur-sm">
-            <tr>
-              {keys.map(k => (
-                <th key={k} className="px-3 py-2 font-bold text-zinc-400 border-b border-zinc-100 whitespace-nowrap">
-                  {k}
-                </th>
+  let arr: unknown[] | null = null
+  try { arr = extractArray(result) } catch { /* ignore */ }
+
+  if (arr && arr.length > 0) {
+    const keys = Object.keys(arr[0] as object)
+    return (
+      <table className="w-full text-left border-collapse text-xs">
+        <thead className="sticky top-0 bg-zinc-50/90 backdrop-blur-sm">
+          <tr>
+            {keys.map(k => (
+              <th key={k} className="px-3 py-2 font-bold text-zinc-400 border-b border-zinc-100 whitespace-nowrap">
+                {k}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {arr.map((row, i) => (
+            <tr key={i} className="hover:bg-zinc-50/80 transition-colors">
+              {Object.values(row as object).map((v, j) => (
+                <td key={j} className="px-3 py-1.5 text-zinc-600 font-mono whitespace-nowrap border-b border-zinc-50">
+                  {typeof v === "object" ? JSON.stringify(v) : String(v ?? "")}
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {arr.map((row, i) => (
-              <tr key={i} className="hover:bg-zinc-50/80 transition-colors">
-                {Object.values(row as object).map((v, j) => (
-                  <td key={j} className="px-3 py-1.5 text-zinc-600 font-mono whitespace-nowrap border-b border-zinc-50">
-                    {typeof v === "object" ? JSON.stringify(v) : String(v ?? "")}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )
-    }
-  } catch { /* ignore */ }
+          ))}
+        </tbody>
+      </table>
+    )
+  }
 
   return <pre className="p-4 text-xs text-zinc-600 font-mono leading-relaxed">{JSON.stringify(result, null, 2)}</pre>
 }

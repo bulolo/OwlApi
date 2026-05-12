@@ -2,7 +2,7 @@ import { testQuery, exportOpenApi } from '@/lib/sdk'
 
 const cast = <T>(p: unknown): Promise<T> => p as Promise<T>
 
-export const apiTestQuery = (slug: string, endpointId: number, params: Record<string, string>, ignoreScripts = false) =>
+export const apiRun = (slug: string, endpointId: number, params: Record<string, string>, ignoreScripts = false) =>
   cast<Record<string, unknown>>(testQuery({ path: { slug }, body: { endpoint_id: endpointId, params, ignore_scripts: ignoreScripts } }))
 
 export const apiExportOpenAPI = async (slug: string, projectId: number): Promise<void> => {

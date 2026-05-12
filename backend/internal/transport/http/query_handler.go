@@ -49,7 +49,9 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 	}
 
 	path := c.Param("path")
-	ep, err := h.endpoints.GetByPath(c.Request.Context(), tenant.ID, path)
+	method := c.Request.Method
+
+	ep, pathParams, err := h.endpoints.MatchByPath(c.Request.Context(), tenant.ID, path, method)
 	if err != nil {
 		Fail(c, http.StatusNotFound, "API endpoint not found")
 		return
@@ -65,8 +67,6 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 	}
 	endpoint := rel.Snapshot
 
-	// Validate HTTP method against the endpoint's allowed methods.
-	method := c.Request.Method
 	if !methodAllowed(method, endpoint.Methods) {
 		c.Header("Allow", joinMethods(endpoint.Methods))
 		Fail(c, http.StatusMethodNotAllowed, "method not allowed")
@@ -106,6 +106,11 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 			Fail(c, http.StatusBadRequest, fmt.Sprintf("missing required parameter: %s", def.Name))
 			return
 		}
+	}
+
+	// Path params are always authoritative — inject last so they override query/body values.
+	for k, v := range pathParams {
+		params[k] = v
 	}
 
 	tenantID := strconv.FormatInt(tenant.ID, 10)

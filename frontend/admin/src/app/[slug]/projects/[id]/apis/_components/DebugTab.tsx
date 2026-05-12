@@ -1,9 +1,11 @@
 "use client"
 
+import { useMemo, useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Play, Trash2, Terminal, ScrollText, Key, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -11,29 +13,115 @@ import Editor from "@monaco-editor/react"
 import { useEndpointFormStore } from "../_store/useEndpointFormStore"
 import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useTenantProject } from "../_hooks/useTenantProject"
+import { apiRun } from "@/lib/api/query"
+import { getErrorMessage } from "@/lib/errors"
+import type { ParamDef, ExecutionResult } from "../_types"
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function extractPathParamNames(path: string): Set<string> {
+  const matches = path.match(/:([a-zA-Z_][a-zA-Z0-9_]*)/g) ?? []
+  return new Set(matches.map(m => m.slice(1)))
+}
+
+type TagColor = "green" | "blue" | "amber"
+
+const colorMap: Record<TagColor, { tag: string; bar: string }> = {
+  green: { tag: "bg-emerald-50 text-emerald-600 border-emerald-200", bar: "bg-emerald-500" },
+  blue:  { tag: "bg-blue-50 text-blue-600 border-blue-200",          bar: "bg-blue-500"    },
+  amber: { tag: "bg-amber-50 text-amber-600 border-amber-200",       bar: "bg-amber-500"   },
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function DebugTab() {
   const { activeTenant } = useTenantProject()
-  const authToken = useEndpointFormStore(s => s.authToken)
+  const authToken    = useEndpointFormStore(s => s.authToken)
   const setAuthToken = useEndpointFormStore(s => s.setAuthToken)
-  const paramJSON = useEndpointFormStore(s => s.paramJSON)
+  const paramJSON    = useEndpointFormStore(s => s.paramJSON)
   const setParamJSON = useEndpointFormStore(s => s.setParamJSON)
-  const executing = useEndpointFormStore(s => s.executing)
-  const execResult = useEndpointFormStore(s => s.execResult)
-  const runDebug = useEndpointFormStore(s => s.runDebug)
-  const selectedId = useApiEditorStore(s => s.selectedId)
+  const selectedId   = useApiEditorStore(s => s.selectedId)
+
+  const formPath   = useEndpointFormStore(s => s.form.path)
+  const formMethod = useEndpointFormStore(s => s.form.method)
+  const paramDefs  = useEndpointFormStore(s => s.form.paramDefs)
+
+  const pathParamNames = extractPathParamNames(formPath)
+  const isQueryMethod  = formMethod === "GET" || formMethod === "DELETE"
+
+  const pathParams    = paramDefs.filter(d => pathParamNames.has(d.name))
+  const nonPathParams = paramDefs.filter(d => !pathParamNames.has(d.name))
+
+  // Parse current values from paramJSON
+  const paramValues = useMemo<Record<string, string>>(() => {
+    try { return JSON.parse(paramJSON) } catch { return {} }
+  }, [paramJSON])
+
+  function setParam(name: string, value: string) {
+    setParamJSON(JSON.stringify({ ...paramValues, [name]: value }, null, 2))
+  }
+
+  // Track which optional params are enabled (required + path params always on)
+  const [enabledOptional, setEnabledOptional] = useState<Set<string>>(() => {
+    return new Set(paramDefs.filter(d => !d.required).map(d => d.name))
+  })
+
+  // Reset enabled state when paramDefs change (endpoint switched)
+  useEffect(() => {
+    setEnabledOptional(new Set(paramDefs.filter(d => !d.required).map(d => d.name)))
+  }, [paramDefs])
+
+  function isEnabled(def: ParamDef): boolean {
+    return def.required || pathParamNames.has(def.name) || enabledOptional.has(def.name)
+  }
+
+  function toggleOptional(name: string) {
+    setEnabledOptional(prev => {
+      const next = new Set(prev)
+      next.has(name) ? next.delete(name) : next.add(name)
+      return next
+    })
+  }
+
+  // Execution state (local — bypasses store's runDebug so we control enabled params)
+  const [executing, setExecuting] = useState(false)
+  const [execResult, setExecResult] = useState<ExecutionResult>(null)
+
+  async function handleRun() {
+    if (!selectedId) return
+    setExecuting(true)
+    setExecResult(null)
+    try {
+      // Build flat params: only include enabled params with non-empty values
+      const params: Record<string, string> = {}
+      for (const def of paramDefs) {
+        if (!isEnabled(def)) continue
+        const val = paramValues[def.name] ?? def.default ?? ""
+        params[def.name] = val
+      }
+      const data = await apiRun(activeTenant, selectedId, params)
+      setExecResult(data as ExecutionResult)
+    } catch (err) {
+      setExecResult({ error: getErrorMessage(err) })
+    } finally {
+      setExecuting(false)
+    }
+  }
 
   return (
     <div className="p-6 animate-in fade-in duration-300">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Test Parameters Card */}
-        <Card className="border-zinc-200/60 shadow-sm bg-white overflow-hidden flex flex-col h-[500px] rounded-lg">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+        {/* ── Left: param inputs ── */}
+        <Card className="border-zinc-200/60 shadow-sm bg-white overflow-hidden flex flex-col rounded-lg">
           <CardHeader className="pb-3 pt-4 px-5 border-b border-zinc-100">
             <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
               <Terminal className="w-4 h-4 text-blue-500" /> 请求参数
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
+
+          <CardContent className="p-0 flex flex-col">
+            {/* Auth token */}
             <div className="p-4 space-y-2 border-b border-zinc-100">
               <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Key className="w-3 h-3" /> Auth Token
@@ -45,44 +133,66 @@ export function DebugTab() {
                 onChange={e => setAuthToken(e.target.value)}
               />
             </div>
-            <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
-              <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">参数 JSON</Label>
-              <Badge variant="outline" className="text-[10px] font-bold opacity-30 rounded-md">JSON</Badge>
-            </div>
-            <div className="flex-1 relative border-t border-zinc-100">
-              <Editor
-                height="100%"
-                defaultLanguage="json"
-                theme="light"
-                value={paramJSON}
-                onChange={val => setParamJSON(val || "{}")}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 13,
-                  padding: { top: 12, bottom: 12 },
-                  lineNumbers: "on",
-                  scrollBeyondLastLine: false,
-                  automaticLayout: true,
-                  renderLineHighlight: "none",
-                  tabSize: 2,
-                  wordWrap: "on",
-                }}
-              />
+
+            {/* Param groups */}
+            <div className="p-4 space-y-5">
+              {paramDefs.length === 0 && (
+                <p className="text-xs text-zinc-400 italic text-center py-4">该接口无请求参数</p>
+              )}
+
+              {/* Path */}
+              {pathParams.length > 0 && (
+                <ParamSection label="路径参数" tag="Path" color="green">
+                  {pathParams.map(def => (
+                    <ParamRow
+                      key={def.name}
+                      def={def}
+                      value={paramValues[def.name] ?? def.default ?? ""}
+                      enabled={true}
+                      alwaysOn={true}
+                      onChange={v => setParam(def.name, v)}
+                      onToggle={() => {}}
+                    />
+                  ))}
+                </ParamSection>
+              )}
+
+              {/* Query or Body */}
+              {nonPathParams.length > 0 && (
+                <ParamSection
+                  label={isQueryMethod ? "Query 参数" : "Body 参数"}
+                  tag={isQueryMethod ? "Query" : "Body"}
+                  color={isQueryMethod ? "blue" : "amber"}
+                >
+                  {nonPathParams.map(def => (
+                    <ParamRow
+                      key={def.name}
+                      def={def}
+                      value={paramValues[def.name] ?? def.default ?? ""}
+                      enabled={isEnabled(def)}
+                      alwaysOn={def.required}
+                      onChange={v => setParam(def.name, v)}
+                      onToggle={() => toggleOptional(def.name)}
+                    />
+                  ))}
+                </ParamSection>
+              )}
             </div>
           </CardContent>
+
           <div className="p-4 border-t border-zinc-100 bg-white">
             <Button
-              onClick={() => selectedId && runDebug(activeTenant, selectedId)}
+              onClick={handleRun}
               disabled={executing}
-              className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95 rounded-lg group"
+              className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95 rounded-lg"
             >
-              <Send className={cn("w-3.5 h-3.5 mr-2 transition-all", executing && "animate-pulse")} />
-              {executing ? "正在处理..." : "执行测试请求"}
+              <Send className={cn("w-3.5 h-3.5 mr-2", executing && "animate-pulse")} />
+              {executing ? "正在处理..." : "发送请求"}
             </Button>
           </div>
         </Card>
 
-        {/* Execution Result Card */}
+        {/* ── Right: response ── */}
         <Card className="lg:col-span-2 border-zinc-200/60 shadow-sm bg-white overflow-hidden flex flex-col h-[500px] rounded-lg">
           <CardHeader className="pb-3 pt-4 px-5 border-b border-zinc-100">
             <div className="flex items-center justify-between">
@@ -133,13 +243,77 @@ export function DebugTab() {
                 </div>
                 <h4 className="text-sm font-bold text-zinc-600">等待执行</h4>
                 <p className="text-xs text-zinc-400 mt-2 max-w-[220px] leading-relaxed">
-                  配置参数后点击左侧按钮发起请求，结果将在此展示。
+                  填写参数后点击「发送请求」，结果将在此展示。
                 </p>
               </div>
             )}
           </CardContent>
         </Card>
+
       </div>
+    </div>
+  )
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function ParamSection({
+  label, tag, color, children,
+}: {
+  label: string; tag: string; color: TagColor; children: React.ReactNode
+}) {
+  const c = colorMap[color]
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center gap-2">
+        <div className={cn("w-1 h-3.5 rounded-full shrink-0", c.bar)} />
+        <span className="text-xs font-bold text-zinc-700">{label}</span>
+        <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded border", c.tag)}>{tag}</span>
+      </div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  )
+}
+
+function ParamRow({
+  def, value, enabled, alwaysOn, onChange, onToggle,
+}: {
+  def: ParamDef
+  value: string
+  enabled: boolean
+  alwaysOn: boolean
+  onChange: (v: string) => void
+  onToggle: () => void
+}) {
+  return (
+    <div className={cn("flex items-center gap-2 transition-opacity", !enabled && "opacity-40")}>
+      {/* Toggle: hidden placeholder for always-on params, checkbox for optional */}
+      {alwaysOn ? (
+        <div className="w-4 shrink-0" />
+      ) : (
+        <Checkbox
+          checked={enabled}
+          onCheckedChange={onToggle}
+        />
+      )}
+
+      {/* Name + type */}
+      <div className="w-24 shrink-0 min-w-0">
+        <div className="flex items-center gap-1 truncate">
+          <span className="text-xs font-mono font-semibold text-zinc-700 truncate">{def.name}</span>
+          {def.required && <span className="text-red-500 text-[10px] font-black shrink-0">*</span>}
+        </div>
+        <span className="text-[10px] text-zinc-400">{def.type || "string"}</span>
+      </div>
+
+      {/* Input */}
+      <Input
+        className="h-8 text-xs font-mono border-zinc-200/80 bg-zinc-50/50 rounded-lg flex-1 min-w-0"
+        placeholder={def.default || def.name}
+        value={value}
+        disabled={!enabled}
+        onChange={e => onChange(e.target.value)}
+      />
     </div>
   )
 }

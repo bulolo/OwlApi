@@ -14,6 +14,7 @@ import { useReferenceData } from "../../_hooks/useReferenceData"
 import { useTenantProject } from "../../_hooks/useTenantProject"
 import { useParamSync } from "../../_hooks/useParamSync"
 import { useGroupsQuery } from "../../_hooks/useGroupsQuery"
+import type { DerivedParamDef } from "../../_types"
 
 export function DesignTab() {
   const { activeTenant, projectId } = useTenantProject()
@@ -161,20 +162,7 @@ export function DesignTab() {
                 <p className="text-xs text-zinc-400">SQL 中使用 :param 自动提取参数</p>
               </div>
             ) : (
-              <div className="space-y-1.5">
-                {derivedParamDefs.map(def => (
-                  <div key={def.name} className="flex items-center gap-2 py-1 px-2 rounded-md hover:bg-zinc-50">
-                    <span className="text-xs font-mono font-bold text-blue-600 min-w-0 truncate flex-1">{def.name}</span>
-                    <span className="text-[10px] text-zinc-400 shrink-0">{def.type || "string"}</span>
-                    {def.required && (
-                      <span className="text-[9px] px-1 py-0.5 rounded bg-red-50 text-red-500 font-bold shrink-0">必填</span>
-                    )}
-                    {def._isAuto && (
-                      <span className="text-[9px] px-1 py-0.5 rounded bg-blue-50 text-blue-500 shrink-0">自动</span>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <ParamSummaryGroups path={path} method={method} derivedParamDefs={derivedParamDefs} />
             )}
           </div>
         </div>
@@ -239,6 +227,82 @@ export function DesignTab() {
           setBasicInfoOpen(false)
         }}
       />
+    </div>
+  )
+}
+
+// ── Param summary helpers ─────────────────────────────────────────────────────
+
+function extractPathParamNames(path: string): Set<string> {
+  const matches = path.match(/:([a-zA-Z_][a-zA-Z0-9_]*)/g) ?? []
+  return new Set(matches.map(m => m.slice(1)))
+}
+
+function ParamSummaryGroups({ path, method, derivedParamDefs }: {
+  path: string
+  method: string
+  derivedParamDefs: DerivedParamDef[]
+}) {
+  const pathNames = extractPathParamNames(path)
+  const isQueryMethod = method === "GET" || method === "DELETE"
+  const pathParams = derivedParamDefs.filter(d => pathNames.has(d.name))
+  const otherParams = derivedParamDefs.filter(d => !pathNames.has(d.name))
+
+  return (
+    <div className="space-y-3">
+      {pathParams.length > 0 && (
+        <ParamGroup label="Path" color="green" params={pathParams} />
+      )}
+      {otherParams.length > 0 && (
+        <ParamGroup label={isQueryMethod ? "Query" : "Body"} color="blue" params={otherParams} />
+      )}
+    </div>
+  )
+}
+
+const sourceStyle: Record<string, string> = {
+  sql:    "bg-blue-100 text-blue-600",
+  script: "bg-violet-100 text-violet-600",
+  manual: "bg-emerald-100 text-emerald-600",
+}
+const sourceLabel: Record<string, string> = {
+  sql:    "SQL",
+  script: "脚本",
+  manual: "手动",
+}
+
+function ParamGroup({ label, color, params }: {
+  label: string
+  color: "green" | "blue"
+  params: DerivedParamDef[]
+}) {
+  const barCls = color === "green" ? "bg-emerald-400" : "bg-blue-400"
+  const tagCls = color === "green"
+    ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+    : "bg-blue-50 text-blue-600 border-blue-200"
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <div className={cn("w-1 h-3 rounded-full shrink-0", barCls)} />
+        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded border", tagCls)}>{label}</span>
+      </div>
+      {params.map(def => (
+        <div key={def.name} className="grid grid-cols-[1fr_auto_auto_auto_auto] items-center gap-x-2 py-1 px-2 rounded-md hover:bg-zinc-50">
+          <span className="text-xs font-mono font-bold text-blue-600 truncate">{def.name}</span>
+          <span className="text-[10px] text-zinc-400 shrink-0 w-12 text-right">{def.type || "string"}</span>
+          <span className={cn("text-[9px] px-1 py-0.5 rounded shrink-0 text-center w-8", sourceStyle[def._source ?? "manual"])}>
+            {sourceLabel[def._source ?? "manual"]}
+          </span>
+          <span className={cn("text-[9px] px-1 py-0.5 rounded font-bold shrink-0 text-center w-8",
+            def.required ? "bg-red-50 text-red-500" : "bg-zinc-100 text-zinc-400"
+          )}>
+            {def.required ? "必填" : "选填"}
+          </span>
+          <span className="text-[9px] font-mono text-zinc-400 shrink-0 w-12 truncate text-right">
+            {def.default || ""}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }

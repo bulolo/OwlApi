@@ -156,6 +156,25 @@ func (db *DB) initSchema(ctx context.Context) error {
 		)`,
 		`INSERT INTO platform_settings (id, allow_self_register) VALUES (1, true) ON CONFLICT DO NOTHING`,
 		`ALTER TABLE endpoint_releases ADD COLUMN IF NOT EXISTS is_draft BOOLEAN NOT NULL DEFAULT FALSE`,
+		// Migrate unique constraint from (tenant_id, path) → (tenant_id, path, methods)
+		// so the same path can exist with different HTTP methods (REST convention).
+		`DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'api_endpoints_tenant_id_path_key'
+      AND table_name = 'api_endpoints'
+  ) THEN
+    ALTER TABLE api_endpoints DROP CONSTRAINT api_endpoints_tenant_id_path_key;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'api_endpoints_tenant_id_path_methods_key'
+      AND table_name = 'api_endpoints'
+  ) THEN
+    ALTER TABLE api_endpoints ADD CONSTRAINT api_endpoints_tenant_id_path_methods_key UNIQUE (tenant_id, path, methods);
+  END IF;
+END $$`,
 	}
 	for _, q := range queries {
 		if _, err := db.Pool.Exec(ctx, q); err != nil {

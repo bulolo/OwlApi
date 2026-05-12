@@ -82,10 +82,12 @@ type APIGroupRepository interface {
 
 type APIEndpointRepository interface {
 	GetAPIEndpointByPath(ctx context.Context, tenantID int64, path string) (*APIEndpoint, error)
+	GetAPIEndpointByPathAndMethod(ctx context.Context, tenantID int64, path, method string) (*APIEndpoint, error)
 	GetAPIEndpointByID(ctx context.Context, tenantID, id int64) (*APIEndpoint, error)
 	CreateAPIEndpoint(ctx context.Context, ep *APIEndpoint) error
 	UpdateAPIEndpoint(ctx context.Context, ep *APIEndpoint) error
 	ListAPIEndpoints(ctx context.Context, tenantID, projectID int64, p ListParams) ([]*APIEndpoint, int, error)
+	ListPublishedByTenant(ctx context.Context, tenantID int64) ([]*APIEndpoint, error)
 	DeleteAPIEndpoint(ctx context.Context, tenantID, id int64) error
 }
 

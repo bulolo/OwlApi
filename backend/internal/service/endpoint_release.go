@@ -42,7 +42,7 @@ func (s *endpointReleaseService) Publish(ctx context.Context, tenantID, endpoint
 	}
 
 	// No draft — create a release directly from current endpoint state.
-	ep, err := s.endpoints.GetAPIEndpointByID(ctx, tenantID, endpointID)
+	ep, err := s.endpoints.GetByID(ctx, tenantID, endpointID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,11 +78,11 @@ func (s *endpointReleaseService) Activate(ctx context.Context, tenantID, endpoin
 	snap.TenantID = tenantID
 	snap.ID = endpointID
 	snap.Status = "published"
-	return s.endpoints.UpdateAPIEndpoint(ctx, snap)
+	return s.endpoints.Update(ctx, snap)
 }
 
 func (s *endpointReleaseService) UpsertDraft(ctx context.Context, tenantID, endpointID, publishedBy int64) error {
-	ep, err := s.endpoints.GetAPIEndpointByID(ctx, tenantID, endpointID)
+	ep, err := s.endpoints.GetByID(ctx, tenantID, endpointID)
 	if err != nil {
 		return err
 	}

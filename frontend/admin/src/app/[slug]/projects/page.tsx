@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useUIStore } from "@/store/useUIStore"
+import { useTenant } from "@/providers/TenantProvider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,7 @@ import { Pager } from "@/components/ui/pager"
 import { showConfirm } from "@/store/useConfirmStore"
 
 export default function ProjectsPage() {
-  const { activeTenant } = useUIStore()
+  const activeTenant = useTenant()
   const router = useRouter()
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(12)
@@ -82,8 +82,11 @@ export default function ProjectsPage() {
                   <p className="text-xs text-zinc-500 line-clamp-2 mt-1.5 min-h-[32px]">{project.description || "暂无描述"}</p>
                 </div>
                 <div className="mt-auto px-6 py-4 border-t border-zinc-100 bg-zinc-50/10 flex items-center justify-between">
-                  <div className="flex items-center text-[10px] font-bold text-zinc-500">
-                    <Database className="w-3.5 h-3.5 mr-2 text-blue-500" /> SQL to API
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400">
+                    <span className="flex items-center gap-1"><Database className="w-3 h-3 text-blue-400" /> SQL to API</span>
+                    <span className="text-zinc-200">·</span>
+                    <span className="font-mono">ID:{project.id}</span>
+                    {project.slug && <><span className="text-zinc-200">·</span><span className="font-mono">{project.slug}</span></>}
                   </div>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" className="w-7 h-7 rounded-lg hover:bg-blue-50 hover:text-blue-600" onClick={(e) => handleEdit(e, project)}>

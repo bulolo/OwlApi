@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation"
 import { useIsClient } from "@/hooks/useIsClient"
 import { ChevronsUpDown, Building2, Check } from "lucide-react"
-import { useUIStore } from "@/store/useUIStore"
 import { useAuthStore } from "@/store/useAuthStore"
 import { useTenants } from "@/hooks"
 import { cn } from "@/lib/utils"
@@ -20,10 +19,9 @@ import {
 export function TenantSwitcher({ slug }: { slug?: string }) {
   const router = useRouter()
   const mounted = useIsClient()
-  const { activeTenant: storeTenant } = useUIStore()
   const { user } = useAuthStore()
 
-  const activeTenant = slug !== 'system' ? (slug || storeTenant) : storeTenant
+  const activeTenant = slug !== 'system' ? (slug ?? "") : ""
   const { tenants } = useTenants({ is_pager: 0 })
   const isSuperAdmin = user?.is_superadmin === true
 

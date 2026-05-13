@@ -5,7 +5,9 @@ export default defineConfig({
   ignoreDeadLinks: true,
   title: 'OwlApi',
   description: '企业级 SQL to API 智能网关平台',
+  head: [['link', { rel: 'icon', href: '/favicon.ico' }]],
   themeConfig: {
+    logo: '/logo.svg',
     nav: [
       { text: '首页', link: '/' },
       { text: '指南', link: '/guide/introduction' },
@@ -26,6 +28,7 @@ export default defineConfig({
           items: [
             { text: '系统架构', link: '/guide/architecture' },
             { text: '多租户与权限', link: '/guide/multi-tenancy' },
+            { text: '代码生成', link: '/guide/codegen' },
           ],
         },
       ],
@@ -46,7 +49,7 @@ export default defineConfig({
     ],
 
     footer: {
-      message: 'Released under the MIT License.',
+      message: 'Released under the OwlApi Open Source License (Apache 2.0 with additional commercial restrictions).',
       copyright: 'Copyright © OwlApi',
     },
   },

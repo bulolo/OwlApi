@@ -8,8 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var _ = domain.GatewayOffline // keep domain import used
+
 type GatewayHandler struct {
-	gateways service.GatewayService
+	gateways service.GatewayAdminService
 	tenants  service.TenantService
 }
 
@@ -62,13 +64,9 @@ func (h *GatewayHandler) HandleCreate(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
-	OK(c, gin.H{
-		"id":        gw.ID,
-		"tenant_id": gw.TenantID,
-		"name":      gw.Name,
-		"token":     gw.Token,
-		"status":    gw.Status,
-		"version":   gw.Version,
+	OK(c, GatewayResp{
+		ID: gw.ID, TenantID: gw.TenantID, IsPlatform: gw.IsPlatform,
+		Name: gw.Name, Token: gw.Token, Status: string(gw.Status), Version: gw.Version,
 	})
 }
 
@@ -93,15 +91,10 @@ func (h *GatewayHandler) HandleGet(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
-	OK(c, gin.H{
-		"id":        gw.ID,
-		"tenant_id": gw.TenantID,
-		"name":      gw.Name,
-		"token":     gw.Token,
-		"status":    gw.Status,
-		"ip":        gw.IP,
-		"last_seen": gw.LastSeen,
-		"version":   gw.Version,
+	OK(c, GatewayResp{
+		ID: gw.ID, TenantID: gw.TenantID, IsPlatform: gw.IsPlatform,
+		Name: gw.Name, Token: gw.Token, Status: string(gw.Status),
+		IP: gw.IP, LastSeen: gw.LastSeen.Format("2006-01-02T15:04:05Z07:00"), Version: gw.Version,
 	})
 }
 

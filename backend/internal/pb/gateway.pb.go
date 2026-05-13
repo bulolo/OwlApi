@@ -602,12 +602,13 @@ func (x *HeartbeatResponse) GetServerTime() int64 {
 type ExecuteQueryRequest struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	RequestId      string                 `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	DatasourceId   string                 `protobuf:"bytes,2,opt,name=datasource_id,json=datasourceId,proto3" json:"datasource_id,omitempty"`
+	Dsn            string                 `protobuf:"bytes,2,opt,name=dsn,proto3" json:"dsn,omitempty"`
 	Sql            string                 `protobuf:"bytes,3,opt,name=sql,proto3" json:"sql,omitempty"`
 	Params         map[string]string      `protobuf:"bytes,4,rep,name=params,proto3" json:"params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	TimeoutSeconds int32                  `protobuf:"varint,5,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
 	PreScript      string                 `protobuf:"bytes,6,opt,name=pre_script,json=preScript,proto3" json:"pre_script,omitempty"`
 	PostScript     string                 `protobuf:"bytes,7,opt,name=post_script,json=postScript,proto3" json:"post_script,omitempty"`
+	DbType         string                 `protobuf:"bytes,8,opt,name=db_type,json=dbType,proto3" json:"db_type,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -649,9 +650,9 @@ func (x *ExecuteQueryRequest) GetRequestId() string {
 	return ""
 }
 
-func (x *ExecuteQueryRequest) GetDatasourceId() string {
+func (x *ExecuteQueryRequest) GetDsn() string {
 	if x != nil {
-		return x.DatasourceId
+		return x.Dsn
 	}
 	return ""
 }
@@ -687,6 +688,13 @@ func (x *ExecuteQueryRequest) GetPreScript() string {
 func (x *ExecuteQueryRequest) GetPostScript() string {
 	if x != nil {
 		return x.PostScript
+	}
+	return ""
+}
+
+func (x *ExecuteQueryRequest) GetDbType() string {
+	if x != nil {
+		return x.DbType
 	}
 	return ""
 }

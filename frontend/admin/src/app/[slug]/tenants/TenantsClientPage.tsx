@@ -27,7 +27,7 @@ export default function TenantsClientPage() {
   const [editing, setEditing] = useState<Tenant | null>(null)
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(20)
-  const { setViewContext, setActiveTenant } = useUIStore()
+  const { setViewContext } = useUIStore()
   const { tenants, pagination } = useTenants({ page, size, keyword })
   const qc = useQueryClient()
   const router = useRouter()
@@ -122,7 +122,6 @@ export default function TenantsClientPage() {
                     className="h-8 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     onClick={() => {
                       setViewContext('TENANT');
-                      setActiveTenant(tenant.slug!);
                       // markTenantAsRecent removed — using React Query now
                       router.push(`/${tenant.slug}/overview`);
                     }}

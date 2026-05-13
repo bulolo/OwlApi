@@ -15,43 +15,51 @@ type QueryHandler struct {
 	endpoints    service.APIEndpointService
 	releases     service.EndpointReleaseService
 	tenants      service.TenantService
+	projects     service.ProjectService
 }
 
-func NewQueryHandler(queryService service.QueryService, endpoints service.APIEndpointService, releases service.EndpointReleaseService, tenants service.TenantService) *QueryHandler {
-	return &QueryHandler{queryService: queryService, endpoints: endpoints, releases: releases, tenants: tenants}
+func NewQueryHandler(queryService service.QueryService, endpoints service.APIEndpointService, releases service.EndpointReleaseService, tenants service.TenantService, projects service.ProjectService) *QueryHandler {
+	return &QueryHandler{queryService: queryService, endpoints: endpoints, releases: releases, tenants: tenants, projects: projects}
 }
 
 func (h *QueryHandler) RegisterRoutes(r *gin.Engine) {
-	// Accept all methods; actual method validation happens inside the handler
-	// against the endpoint's configured Methods list.
-	r.Any("/api/v1/tenants/:slug/query/*path", h.HandleQuery)
+	// Published API gateway: /gw/{tenant-slug}/{project-slug}/{user-defined-path}
+	// All HTTP methods are accepted; per-endpoint method validation happens inside.
+	r.Any("/:tenantSlug/:projectSlug/*path", h.HandleQuery)
 }
 
 // HandleQuery godoc
-// @Summary 执行动态 API 查询
+// @Summary 执行已发布的 API 接口
 // @ID executeQuery
-// @Tags query
+// @Tags gateway
 // @Accept json
 // @Produce json
-// @Param slug path string true "租户 slug"
-// @Param path path string true "API 路径"
-// @Param body body object{} false "查询参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)"
+// @Param tenantSlug path string true "租户 slug"
+// @Param projectSlug path string true "项目 slug"
+// @Param path path string true "接口路径（用户在项目中定义的路径）"
+// @Param body body object{} false "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)"
 // @Success 200 {object} object
-// @Router /api/v1/tenants/{slug}/query/{path} [get]
-// @Router /api/v1/tenants/{slug}/query/{path} [post]
-// @Router /api/v1/tenants/{slug}/query/{path} [put]
-// @Router /api/v1/tenants/{slug}/query/{path} [delete]
+// @Router /gw/{tenantSlug}/{projectSlug}/{path} [get]
+// @Router /gw/{tenantSlug}/{projectSlug}/{path} [post]
+// @Router /gw/{tenantSlug}/{projectSlug}/{path} [put]
+// @Router /gw/{tenantSlug}/{projectSlug}/{path} [delete]
 func (h *QueryHandler) HandleQuery(c *gin.Context) {
-	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("slug"))
+	tenant, err := h.tenants.GetBySlug(c.Request.Context(), c.Param("tenantSlug"))
 	if err != nil {
 		Fail(c, http.StatusNotFound, "tenant not found")
+		return
+	}
+
+	project, err := h.projects.GetBySlug(c.Request.Context(), tenant.ID, c.Param("projectSlug"))
+	if err != nil {
+		Fail(c, http.StatusNotFound, "project not found")
 		return
 	}
 
 	path := c.Param("path")
 	method := c.Request.Method
 
-	ep, pathParams, err := h.endpoints.MatchByPath(c.Request.Context(), tenant.ID, path, method)
+	ep, pathParams, err := h.endpoints.MatchByPath(c.Request.Context(), tenant.ID, project.ID, path, method)
 	if err != nil {
 		Fail(c, http.StatusNotFound, "API endpoint not found")
 		return

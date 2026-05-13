@@ -77,10 +77,11 @@ message HeartbeatResponse {
 // 执行 SQL 查询指令
 message ExecuteQueryRequest {
   string request_id = 1;
-  string datasource_id = 2;
+  string dsn = 2;
   string sql = 3;
   map<string, string> params = 4;
   int32 timeout_seconds = 5;
   string pre_script = 6;
   string post_script = 7;
+  string db_type = 8;
 }

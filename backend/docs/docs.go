@@ -15,7 +15,111 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/tenants/{slug}/query/{path}": {
+        "/gw/{tenantSlug}/{projectSlug}/{path}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gateway"
+                ],
+                "summary": "执行已发布的 API 接口",
+                "operationId": "executeQuery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户 slug",
+                        "name": "tenantSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "项目 slug",
+                        "name": "projectSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "接口路径（用户在项目中定义的路径）",
+                        "name": "path",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gateway"
+                ],
+                "summary": "执行已发布的 API 接口",
+                "operationId": "executeQuery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户 slug",
+                        "name": "tenantSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "项目 slug",
+                        "name": "projectSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "接口路径（用户在项目中定义的路径）",
+                        "name": "path",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
             "post": {
                 "consumes": [
                     "application/json"
@@ -24,27 +128,86 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "query"
+                    "gateway"
                 ],
-                "summary": "执行动态 API 查询",
+                "summary": "执行已发布的 API 接口",
                 "operationId": "executeQuery",
                 "parameters": [
                     {
                         "type": "string",
                         "description": "租户 slug",
-                        "name": "slug",
+                        "name": "tenantSlug",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "API 路径",
+                        "description": "项目 slug",
+                        "name": "projectSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "接口路径（用户在项目中定义的路径）",
                         "name": "path",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "查询参数（由端点 param_defs 定义）",
+                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gateway"
+                ],
+                "summary": "执行已发布的 API 接口",
+                "operationId": "executeQuery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户 slug",
+                        "name": "tenantSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "项目 slug",
+                        "name": "projectSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "接口路径（用户在项目中定义的路径）",
+                        "name": "path",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
                         "name": "body",
                         "in": "body",
                         "schema": {
@@ -571,19 +734,59 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
+                            "$ref": "#/definitions/http.createDataSourceReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RDataSource"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/datasources/test": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "datasource"
+                ],
+                "summary": "测试数据源连接",
+                "operationId": "testDatasource",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "连接信息",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
                             "type": "object",
                             "properties": {
-                                "envs": {
-                                    "type": "array"
-                                },
-                                "is_dual": {
-                                    "type": "boolean"
-                                },
-                                "name": {
+                                "dsn": {
                                     "type": "string"
                                 },
-                                "type": {
-                                    "type": "string"
+                                "gateway_id": {
+                                    "type": "integer"
                                 }
                             }
                         }
@@ -593,7 +796,18 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.RDataSource"
+                            "type": "object",
+                            "properties": {
+                                "data": {
+                                    "type": "object",
+                                    "properties": {
+                                        "latency_ms": {
+                                            "type": "integer",
+                                            "format": "int64"
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -676,21 +890,7 @@ const docTemplate = `{
                         "name": "body",
                         "in": "body",
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "envs": {
-                                    "type": "array"
-                                },
-                                "is_dual": {
-                                    "type": "boolean"
-                                },
-                                "name": {
-                                    "type": "string"
-                                },
-                                "type": {
-                                    "type": "string"
-                                }
-                            }
+                            "$ref": "#/definitions/http.updateDataSourceReq"
                         }
                     }
                 ],
@@ -795,6 +995,60 @@ const docTemplate = `{
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/datasources/{datasourceId}/tables/{table}/preview": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "query"
+                ],
+                "summary": "预览表数据",
+                "operationId": "previewTable",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "数据源ID",
+                        "name": "datasourceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "表名",
+                        "name": "table",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "行数上限（默认100，最多500）",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
                         }
                     }
                 }
@@ -1081,6 +1335,9 @@ const docTemplate = `{
                                     "type": "string"
                                 },
                                 "name": {
+                                    "type": "string"
+                                },
+                                "slug": {
                                     "type": "string"
                                 }
                             }
@@ -2935,6 +3192,9 @@ const docTemplate = `{
                 "ip": {
                     "type": "string"
                 },
+                "is_platform": {
+                    "type": "boolean"
+                },
                 "last_seen": {
                     "type": "string"
                 },
@@ -3027,6 +3287,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "slug": {
                     "type": "string"
                 },
                 "tenant_id": {
@@ -3341,6 +3604,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "is_platform": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -3451,6 +3717,90 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "http.createDataSourceReq": {
+            "type": "object",
+            "required": [
+                "envs",
+                "name",
+                "type"
+            ],
+            "properties": {
+                "envs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/http.dsEnvReq"
+                    }
+                },
+                "is_dual": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "mysql",
+                        "postgres",
+                        "sqlserver",
+                        "starrocks",
+                        "doris",
+                        "sqlite"
+                    ]
+                }
+            }
+        },
+        "http.dsEnvReq": {
+            "type": "object",
+            "required": [
+                "env",
+                "gateway_id"
+            ],
+            "properties": {
+                "dsn": {
+                    "type": "string"
+                },
+                "env": {
+                    "type": "string",
+                    "enum": [
+                        "dev",
+                        "prod"
+                    ]
+                },
+                "gateway_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "http.updateDataSourceReq": {
+            "type": "object",
+            "properties": {
+                "envs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.dsEnvReq"
+                    }
+                },
+                "is_dual": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "mysql",
+                        "postgres",
+                        "sqlserver",
+                        "starrocks",
+                        "doris",
+                        "sqlite"
+                    ]
+                }
+            }
         }
     },
     "securityDefinitions": {
@@ -3465,7 +3815,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.1.2",
+	Version:          "0.1.5",
 	Host:             "localhost:3000",
 	BasePath:         "/",
 	Schemes:          []string{},

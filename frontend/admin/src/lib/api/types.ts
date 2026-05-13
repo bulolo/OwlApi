@@ -10,6 +10,7 @@ import type {
 } from '@/lib/sdk'
 
 // ── Domain Types ──
+// Derived from SDK generated types — update these when regenerating the SDK.
 
 export type User = Required<UserResp>
 export type Tenant = Required<Omit<TenantResp, 'max_release_versions'>> & { max_release_versions: number }
@@ -38,10 +39,12 @@ export type UpdateTenantRequest = { name?: string; plan?: string; status?: strin
 export type AddUserRequest = { email: string; name: string; password: string; role: UserRole }
 export type UpdateUserRoleRequest = { role: UserRole }
 export type CreateGatewayRequest = { name: string }
-export type CreateDataSourceRequest = { name: string; type: string; is_dual?: boolean; envs: { env: string; dsn: string; gateway_id: number }[] }
-export type UpdateDataSourceRequest = { name?: string; type?: string; is_dual?: boolean; envs?: { env: string; dsn: string; gateway_id: number }[] }
-export type CreateProjectRequest = { name: string; description?: string }
-export type UpdateProjectRequest = { name?: string; description?: string }
+export type DataSourceType = "mysql" | "postgres" | "sqlserver" | "starrocks" | "doris" | "sqlite"
+export type DataSourceEnvName = "dev" | "prod"
+export type CreateDataSourceRequest = { name: string; type: DataSourceType; is_dual?: boolean; envs: { env: DataSourceEnvName; dsn: string; gateway_id: number }[] }
+export type UpdateDataSourceRequest = { name?: string; type?: DataSourceType; is_dual?: boolean; envs?: { env: DataSourceEnvName; dsn: string; gateway_id: number }[] }
+export type CreateProjectRequest = { slug: string; name: string; description?: string }
+export type UpdateProjectRequest = { slug?: string; name?: string; description?: string }
 export type CreateEndpointRequest = { path: string; methods: string[]; sql: string; summary?: string; description?: string; datasource_id?: number; group_id?: number; pre_script_id?: number; post_script_id?: number; param_defs?: ParamDef[] }
 export type UpdateEndpointRequest = Partial<CreateEndpointRequest>
 export type CreateGroupRequest = { name: string; description?: string }

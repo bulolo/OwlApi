@@ -10,12 +10,13 @@ const (
 )
 
 type Gateway struct {
-	ID       int64         `json:"id"`
-	TenantID int64         `json:"tenant_id"`
-	Name     string        `json:"name"`
-	Token    string        `json:"-"`
-	Status   GatewayStatus `json:"status"`
-	IP       string        `json:"ip"`
-	LastSeen time.Time     `json:"last_seen"`
-	Version  string        `json:"version"`
+	ID         int64         `json:"id"`
+	TenantID   int64         `json:"tenant_id,omitempty"`
+	IsPlatform bool          `json:"is_platform"`
+	Name       string        `json:"name"`
+	Token      string        `json:"-"`
+	Status     GatewayStatus `json:"status"`
+	IP         string        `json:"ip"`
+	LastSeen   time.Time     `json:"last_seen"`
+	Version    string        `json:"version"`
 }

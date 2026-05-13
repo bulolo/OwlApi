@@ -3,48 +3,70 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strconv"
 )
 
-// Config holds the configuration for both Server and Gateway
-type Config struct {
-	// Common
-	LogLevel string
-
-	// Gateway Specific
-	ServerURL    string
-	GatewayID    string
-	GatewayToken string
-	TenantID     string
-
-	// Server Specific
-	HTTPPort    string
-	GRPCPort    string
-	DatabaseURL string
-	JWTSecret   string
+// ServerConfig holds configuration for the Control Plane (HTTP + gRPC server).
+type ServerConfig struct {
+	LogLevel            string
+	HTTPPort            string
+	GRPCPort            string
+	DatabaseURL         string
+	JWTSecret           string
+	CORSOrigin          string
+	QueryTimeoutSeconds int // client-side wait timeout (should be slightly > gateway QueryTimeout)
 }
 
-// LoadFromEnv loads configuration from environment variables
-func LoadFromEnv() *Config {
-	cfg := &Config{
-		LogLevel: getEnv("OWLAPI_LOG_LEVEL", "info"),
+// GatewayConfig holds configuration for the Gateway agent binary.
+type GatewayConfig struct {
+	LogLevel            string
+	ServerURL           string
+	GatewayID           string
+	GatewayToken        string
+	TenantID            string
+	QueryTimeoutSeconds int // timeout for SQL query execution on gateway side
+	JSTimeoutSeconds    int // timeout for JS pre/post script execution
+}
 
-		ServerURL:    getEnv("OWLAPI_SERVER_URL", "dns:///localhost:9090"),
-		GatewayID:    getEnv("OWLAPI_GATEWAY_ID", ""),
-		GatewayToken: getEnv("OWLAPI_GATEWAY_TOKEN", ""),
-		TenantID:     getEnv("OWLAPI_TENANT_ID", "1"),
-
-		HTTPPort:    getEnv("OWLAPI_HTTP_PORT", ":3000"),
-		GRPCPort:    getEnv("OWLAPI_GRPC_PORT", ":9090"),
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/owlapi?sslmode=disable"),
-		JWTSecret:   getEnv("OWLAPI_JWT_SECRET", ""),
+func LoadServerConfig() *ServerConfig {
+	queryTimeout, _ := strconv.Atoi(getEnv("OWLAPI_QUERY_TIMEOUT_SECONDS", "30"))
+	if queryTimeout <= 0 {
+		queryTimeout = 30
 	}
-
+	cfg := &ServerConfig{
+		LogLevel:            getEnv("OWLAPI_LOG_LEVEL", "info"),
+		HTTPPort:            getEnv("OWLAPI_HTTP_PORT", ":3000"),
+		GRPCPort:            getEnv("OWLAPI_GRPC_PORT", ":9090"),
+		DatabaseURL:         getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/owlapi?sslmode=disable"),
+		JWTSecret:           getEnv("OWLAPI_JWT_SECRET", ""),
+		CORSOrigin:          getEnv("OWLAPI_CORS_ORIGIN", "*"),
+		QueryTimeoutSeconds: queryTimeout,
+	}
 	if cfg.JWTSecret == "" {
 		slog.Warn("OWLAPI_JWT_SECRET not set, using insecure default (DO NOT use in production)")
 		cfg.JWTSecret = "owlapi-dev-secret-change-me"
 	}
-
 	return cfg
+}
+
+func LoadGatewayConfig() *GatewayConfig {
+	queryTimeout, _ := strconv.Atoi(getEnv("OWLAPI_QUERY_TIMEOUT_SECONDS", "30"))
+	jsTimeout, _ := strconv.Atoi(getEnv("OWLAPI_JS_TIMEOUT_SECONDS", "5"))
+	if queryTimeout <= 0 {
+		queryTimeout = 30
+	}
+	if jsTimeout <= 0 {
+		jsTimeout = 5
+	}
+	return &GatewayConfig{
+		LogLevel:            getEnv("OWLAPI_LOG_LEVEL", "info"),
+		ServerURL:           getEnv("OWLAPI_SERVER_URL", "dns:///localhost:9090"),
+		GatewayID:           getEnv("OWLAPI_GATEWAY_ID", ""),
+		GatewayToken:        getEnv("OWLAPI_GATEWAY_TOKEN", ""),
+		TenantID:            getEnv("OWLAPI_TENANT_ID", "1"),
+		QueryTimeoutSeconds: queryTimeout,
+		JSTimeoutSeconds:    jsTimeout,
+	}
 }
 
 func getEnv(key, fallback string) string {

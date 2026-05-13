@@ -1,17 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { useUIStore } from "@/store/useUIStore"
+import { useTenant } from "@/providers/TenantProvider"
 import { useScripts, useCreateScript, useUpdateScript, useDeleteScript } from "@/hooks"
 import type { Script } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Plus, FileCode2, Trash2, Save, Search } from "lucide-react"
-import { cn } from "@/lib/utils"
-import Editor from "@monaco-editor/react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Plus, FileCode2, Search, ChevronDown } from "lucide-react"
 import { Pager } from "@/components/ui/pager"
 import { showConfirm } from "@/store/useConfirmStore"
+import { ScriptItem } from "./_components/ScriptItem"
+import { ScriptEditor, ScriptEditorEmpty } from "./_components/ScriptEditor"
 
 const TEMPLATE_PRE = `// 前置脚本 — 在 SQL 执行前处理参数
 //
@@ -58,7 +58,7 @@ function main(data, params) {
 `
 
 export default function ScriptsClientPage() {
-  const { activeTenant } = useUIStore()
+  const activeTenant = useTenant()
   const [keyword, setKeyword] = useState("")
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(20)
@@ -73,6 +73,8 @@ export default function ScriptsClientPage() {
   const [formType, setFormType] = useState<"pre" | "post">("pre")
   const [formCode, setFormCode] = useState("")
   const [formDesc, setFormDesc] = useState("")
+
+  const selectedScript = scripts.find(s => s.id === selectedId) ?? null
 
   const handleSelect = (s: Script) => {
     setSelectedId(s.id)
@@ -107,11 +109,14 @@ export default function ScriptsClientPage() {
   }
 
   const handleDelete = async (s: Script) => {
+    if (s.is_platform) return
     if (!await showConfirm(`确定删除脚本「${s.name}」？`)) return
     deleteMutation.mutate(s.id, {
       onSuccess: () => { if (selectedId === s.id) { setSelectedId(null); setEditing(false) } },
     })
   }
+
+  const isPlatformSelected = !editing && selectedScript?.is_platform === true
 
   const preScripts = scripts.filter(s => s.type === "pre")
   const postScripts = scripts.filter(s => s.type === "post")
@@ -124,14 +129,21 @@ export default function ScriptsClientPage() {
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">脚本库</h1>
           <p className="text-sm text-zinc-500 mt-1 font-medium">管理可复用的前置/后置 JavaScript 脚本，挂载到接口上实现参数处理和数据转换</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="h-9 px-4 rounded-lg border-zinc-200 text-xs font-bold shadow-sm" onClick={() => handleNew("pre")}>
-            <Plus className="w-4 h-4 mr-2" /> 前置脚本
-          </Button>
-          <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95" onClick={() => handleNew("post")}>
-            <Plus className="w-4 h-4 mr-2" /> 后置脚本
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
+              <Plus className="w-4 h-4 mr-1.5" /> 新建脚本 <ChevronDown className="w-3 h-3 ml-1.5 opacity-70" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[120px]">
+            <DropdownMenuItem className="text-xs font-medium cursor-pointer" onClick={() => handleNew("pre")}>
+              <span className="inline-block w-2 h-2 rounded-full bg-amber-400 mr-2 shrink-0" /> 前置脚本
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-xs font-medium cursor-pointer" onClick={() => handleNew("post")}>
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-400 mr-2 shrink-0" /> 后置脚本
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px]">
@@ -185,83 +197,24 @@ export default function ScriptsClientPage() {
         {/* Editor */}
         <div className="flex-1 min-w-0">
           {isActive ? (
-            <div className="h-full flex flex-col bg-white border border-zinc-100 rounded-lg shadow-sm overflow-hidden">
-              {/* Header */}
-              <div className="h-12 border-b border-zinc-100 flex items-center justify-between px-4 bg-zinc-50/20">
-                <div className="flex items-center gap-3">
-                  <Input className="h-7 w-[200px] text-xs font-bold border-zinc-200 rounded-lg" placeholder="脚本名称" value={formName} onChange={e => setFormName(e.target.value)} />
-                  <Badge variant="secondary" className={cn("text-[10px] h-5 px-2 rounded-md", formType === "pre" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600")}>
-                    {formType === "pre" ? "前置" : "后置"}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button onClick={handleSave} disabled={saving} className="h-8 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-bold shadow-sm transition-all active:scale-95">
-                    <Save className="w-3 h-3 mr-1.5" /> {saving ? "保存中..." : selectedId ? "更新" : "保存"}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div className="px-4 py-2 border-b border-zinc-100 bg-zinc-50/10">
-                <Input className="h-7 text-xs border-zinc-200 rounded-lg" placeholder="脚本描述（可选）" value={formDesc} onChange={e => setFormDesc(e.target.value)} />
-              </div>
-
-              {/* Code editor */}
-              <div className="flex-1 relative">
-                <Editor
-                  height="100%"
-                  defaultLanguage="javascript"
-                  theme="light"
-                  value={formCode}
-                  onChange={val => setFormCode(val || "")}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 13,
-                    padding: { top: 15 },
-                    lineNumbers: "on",
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                    renderLineHighlight: "none",
-                    tabSize: 2,
-                  }}
-                />
-              </div>
-            </div>
+            <ScriptEditor
+              formName={formName}
+              formType={formType}
+              formCode={formCode}
+              formDesc={formDesc}
+              selectedId={selectedId}
+              isPlatformSelected={isPlatformSelected}
+              saving={saving}
+              onNameChange={setFormName}
+              onDescChange={setFormDesc}
+              onCodeChange={setFormCode}
+              onSave={handleSave}
+            />
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-12 bg-white border border-dashed border-zinc-200 rounded-lg">
-              <div className="w-14 h-14 rounded-lg border border-zinc-100 flex items-center justify-center mb-5 bg-zinc-50 shadow-sm">
-                <FileCode2 className="w-7 h-7 text-zinc-300" />
-              </div>
-              <h3 className="text-lg font-bold text-zinc-900 tracking-tight">选择或创建脚本</h3>
-              <p className="text-xs text-zinc-400 mt-2 max-w-xs font-medium">从左侧列表选择脚本编辑，或创建新的前置/后置脚本。</p>
-            </div>
+            <ScriptEditorEmpty />
           )}
         </div>
       </div>
-    </div>
-  )
-}
-
-function ScriptItem({ script, active, onSelect, onDelete }: { script: Script; active: boolean; onSelect: () => void; onDelete: () => void }) {
-  return (
-    <div
-      onClick={onSelect}
-      className={cn(
-        "px-4 py-3 cursor-pointer transition-all group flex items-center justify-between border-b border-zinc-50",
-        active ? "bg-blue-50/50 border-r-2 border-r-blue-600" : "hover:bg-zinc-50/50"
-      )}
-    >
-      <div className="min-w-0">
-        <div className={cn("text-xs font-bold truncate tracking-tight", active ? "text-blue-700" : "text-zinc-700 group-hover:text-blue-600")}>
-          {script.name}
-        </div>
-        {script.description && (
-          <p className="text-[10px] text-zinc-400 truncate mt-0.5">{script.description}</p>
-        )}
-      </div>
-      <Button variant="ghost" size="icon" className="w-6 h-6 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 shrink-0 ml-2" onClick={e => { e.stopPropagation(); onDelete() }}>
-        <Trash2 className="w-3 h-3" />
-      </Button>
     </div>
   )
 }

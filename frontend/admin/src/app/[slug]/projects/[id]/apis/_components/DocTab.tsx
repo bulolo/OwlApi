@@ -7,6 +7,7 @@ import { useEndpointFormStore } from "../_store/useEndpointFormStore"
 import { useParamSync } from "../_hooks/useParamSync"
 import { useTenantProject } from "../_hooks/useTenantProject"
 import { useReferenceData } from "../_hooks/useReferenceData"
+import { useProject } from "@/hooks"
 import type { ParamDef } from "../_types"
 
 // ── Pagination ────────────────────────────────────────────────────────────────
@@ -35,7 +36,8 @@ function extractPathParamNames(path: string): Set<string> {
 function buildCurl(
   method: string,
   path: string,
-  slug: string,
+  tenantSlug: string,
+  projectSlug: string,
   baseUrl: string,
   paramDefs: ParamDef[],
   paginationEnabled: boolean,
@@ -52,7 +54,7 @@ function buildCurl(
     }
   }
 
-  const url = `${baseUrl}/api/v1/tenants/${slug}/query${resolvedPath}`
+  const url = `${baseUrl}/${tenantSlug}/${projectSlug}${resolvedPath}`
   const isQueryMethod = method === "GET" || method === "DELETE"
 
   const businessEntries = paramDefs
@@ -67,14 +69,13 @@ function buildCurl(
     const qs = allEntries.length
       ? "?" + allEntries.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&")
       : ""
-    return `curl -X ${method} "${url}${qs}" \\\n  -H "X-Tenant-Slug: ${slug}"`
+    return `curl -X ${method} "${url}${qs}"`
   }
 
   const body = JSON.stringify(Object.fromEntries(allEntries), null, 2)
   return (
     `curl -X ${method} "${url}" \\\n` +
     `  -H "Content-Type: application/json" \\\n` +
-    `  -H "X-Tenant-Slug: ${slug}" \\\n` +
     `  -d '${body}'`
   )
 }
@@ -82,7 +83,8 @@ function buildCurl(
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function DocTab() {
-  const { slug, activeTenant } = useTenantProject()
+  const { projectId, activeTenant } = useTenantProject()
+  const { data: project } = useProject(activeTenant, Number(projectId))
   const formMethod   = useEndpointFormStore(s => s.form.method)
   const paramDefs    = useEndpointFormStore(s => s.form.paramDefs)
   const preScriptId  = useEndpointFormStore(s => s.form.preScriptId)
@@ -98,7 +100,8 @@ export function DocTab() {
   const formPath    = useEndpointFormStore(s => s.form.path)
   const formSummary = useEndpointFormStore(s => s.form.summary)
   const pathParamNames = extractPathParamNames(formPath)
-  const curl = buildCurl(formMethod, formPath, slug, baseUrl, paramDefs, paginationEnabled)
+  const projectSlug = project?.slug ?? projectId
+  const curl = buildCurl(formMethod, formPath, activeTenant, projectSlug, baseUrl, paramDefs, paginationEnabled)
 
   // Split params into three groups
   const businessParams = paramDefs.filter(d => !paginationEnabled || !PAGINATION_PARAM_NAMES.has(d.name))

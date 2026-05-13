@@ -50,22 +50,22 @@ func marshalParamDefs(defs []domain.ParamDef) ([]byte, error) {
 	return json.Marshal(defs)
 }
 
-func (r *APIEndpointRepo) GetAPIEndpointByPath(ctx context.Context, tenantID int64, path string) (*domain.APIEndpoint, error) {
+func (r *APIEndpointRepo) GetByPath(ctx context.Context, tenantID int64, path string) (*domain.APIEndpoint, error) {
 	row := r.DB.Pool.QueryRow(ctx, `SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND path=$2`, tenantID, path)
 	return scanEP(row.Scan)
 }
 
-func (r *APIEndpointRepo) GetAPIEndpointByPathAndMethod(ctx context.Context, tenantID int64, path, method string) (*domain.APIEndpoint, error) {
+func (r *APIEndpointRepo) GetByPathAndMethod(ctx context.Context, tenantID, projectID int64, path, method string) (*domain.APIEndpoint, error) {
 	row := r.DB.Pool.QueryRow(ctx,
-		`SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND path=$2 AND $3 = ANY(methods)`,
-		tenantID, path, method)
+		`SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND project_id=$2 AND path=$3 AND $4 = ANY(methods)`,
+		tenantID, projectID, path, method)
 	return scanEP(row.Scan)
 }
 
-func (r *APIEndpointRepo) ListPublishedByTenant(ctx context.Context, tenantID int64) ([]*domain.APIEndpoint, error) {
+func (r *APIEndpointRepo) ListPublishedByProject(ctx context.Context, tenantID, projectID int64) ([]*domain.APIEndpoint, error) {
 	rows, err := r.DB.Pool.Query(ctx,
-		`SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND status='published'`,
-		tenantID)
+		`SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND project_id=$2 AND status='published'`,
+		tenantID, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -81,12 +81,12 @@ func (r *APIEndpointRepo) ListPublishedByTenant(ctx context.Context, tenantID in
 	return list, rows.Err()
 }
 
-func (r *APIEndpointRepo) GetAPIEndpointByID(ctx context.Context, tenantID, id int64) (*domain.APIEndpoint, error) {
+func (r *APIEndpointRepo) GetByID(ctx context.Context, tenantID, id int64) (*domain.APIEndpoint, error) {
 	row := r.DB.Pool.QueryRow(ctx, `SELECT `+epCols+` FROM api_endpoints WHERE tenant_id=$1 AND id=$2`, tenantID, id)
 	return scanEP(row.Scan)
 }
 
-func (r *APIEndpointRepo) CreateAPIEndpoint(ctx context.Context, ep *domain.APIEndpoint) error {
+func (r *APIEndpointRepo) Create(ctx context.Context, ep *domain.APIEndpoint) error {
 	paramDefs, err := marshalParamDefs(ep.ParamDefs)
 	if err != nil {
 		return err
@@ -96,7 +96,7 @@ func (r *APIEndpointRepo) CreateAPIEndpoint(ctx context.Context, ep *domain.APIE
 		ep.TenantID, ep.ProjectID, ep.GroupID, ep.DataSourceID, ep.Path, ep.Methods, ep.Summary, ep.Description, ep.SQL, ep.Params, paramDefs, ep.PreScriptID, ep.PostScriptID).Scan(&ep.ID)
 }
 
-func (r *APIEndpointRepo) UpdateAPIEndpoint(ctx context.Context, ep *domain.APIEndpoint) error {
+func (r *APIEndpointRepo) Update(ctx context.Context, ep *domain.APIEndpoint) error {
 	paramDefs, err := marshalParamDefs(ep.ParamDefs)
 	if err != nil {
 		return err
@@ -107,7 +107,7 @@ func (r *APIEndpointRepo) UpdateAPIEndpoint(ctx context.Context, ep *domain.APIE
 	return err
 }
 
-func (r *APIEndpointRepo) ListAPIEndpoints(ctx context.Context, tenantID, projectID int64, p domain.ListParams) ([]*domain.APIEndpoint, int, error) {
+func (r *APIEndpointRepo) List(ctx context.Context, tenantID, projectID int64, p domain.ListParams) ([]*domain.APIEndpoint, int, error) {
 	where := "WHERE ae.tenant_id=$1 AND ae.project_id=$2"
 	args := []interface{}{tenantID, projectID}
 	argN := 3
@@ -140,7 +140,7 @@ func (r *APIEndpointRepo) ListAPIEndpoints(ctx context.Context, tenantID, projec
 	return list, total, rows.Err()
 }
 
-func (r *APIEndpointRepo) DeleteAPIEndpoint(ctx context.Context, tenantID, id int64) error {
+func (r *APIEndpointRepo) Delete(ctx context.Context, tenantID, id int64) error {
 	_, err := r.DB.Pool.Exec(ctx, `DELETE FROM api_endpoints WHERE tenant_id=$1 AND id=$2`, tenantID, id)
 	return err
 }

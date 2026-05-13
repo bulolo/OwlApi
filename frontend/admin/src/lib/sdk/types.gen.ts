@@ -135,6 +135,7 @@ export type GatewayListResp = {
 export type GatewayResp = {
     id?: number;
     ip?: string;
+    is_platform?: boolean;
     last_seen?: string;
     name?: string;
     status?: string;
@@ -172,6 +173,7 @@ export type ProjectResp = {
     description?: string;
     id?: number;
     name?: string;
+    slug?: string;
     tenant_id?: number;
 };
 
@@ -305,6 +307,7 @@ export type ScriptResp = {
     created_at?: string;
     description?: string;
     id?: number;
+    is_platform?: boolean;
     name?: string;
     tenant_id?: number;
     type?: string;
@@ -348,9 +351,29 @@ export type UserResp = {
     updated_at?: string;
 };
 
+export type CreateDataSourceReq = {
+    envs: Array<DsEnvReq>;
+    is_dual?: boolean;
+    name: string;
+    type: 'mysql' | 'postgres' | 'sqlserver' | 'starrocks' | 'doris' | 'sqlite';
+};
+
+export type DsEnvReq = {
+    dsn?: string;
+    env: 'dev' | 'prod';
+    gateway_id: number;
+};
+
+export type UpdateDataSourceReq = {
+    envs?: Array<DsEnvReq>;
+    is_dual?: boolean;
+    name?: string;
+    type?: 'mysql' | 'postgres' | 'sqlserver' | 'starrocks' | 'doris' | 'sqlite';
+};
+
 export type ExecuteQueryData = {
     /**
-     * 查询参数（由端点 param_defs 定义）
+     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
      */
     body?: {
         [key: string]: unknown;
@@ -359,14 +382,18 @@ export type ExecuteQueryData = {
         /**
          * 租户 slug
          */
-        slug: string;
+        tenantSlug: string;
         /**
-         * API 路径
+         * 项目 slug
+         */
+        projectSlug: string;
+        /**
+         * 接口路径（用户在项目中定义的路径）
          */
         path: string;
     };
     query?: never;
-    url: '/api/v1/tenants/{slug}/query/{path}';
+    url: '/gw/{tenantSlug}/{projectSlug}/{path}';
 };
 
 export type ExecuteQueryResponses = {
@@ -379,6 +406,114 @@ export type ExecuteQueryResponses = {
 };
 
 export type ExecuteQueryResponse = ExecuteQueryResponses[keyof ExecuteQueryResponses];
+
+export type ExecuteQuery2Data = {
+    /**
+     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    path: {
+        /**
+         * 租户 slug
+         */
+        tenantSlug: string;
+        /**
+         * 项目 slug
+         */
+        projectSlug: string;
+        /**
+         * 接口路径（用户在项目中定义的路径）
+         */
+        path: string;
+    };
+    query?: never;
+    url: '/gw/{tenantSlug}/{projectSlug}/{path}';
+};
+
+export type ExecuteQuery2Responses = {
+    /**
+     * OK
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ExecuteQuery2Response = ExecuteQuery2Responses[keyof ExecuteQuery2Responses];
+
+export type ExecuteQuery3Data = {
+    /**
+     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    path: {
+        /**
+         * 租户 slug
+         */
+        tenantSlug: string;
+        /**
+         * 项目 slug
+         */
+        projectSlug: string;
+        /**
+         * 接口路径（用户在项目中定义的路径）
+         */
+        path: string;
+    };
+    query?: never;
+    url: '/gw/{tenantSlug}/{projectSlug}/{path}';
+};
+
+export type ExecuteQuery3Responses = {
+    /**
+     * OK
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ExecuteQuery3Response = ExecuteQuery3Responses[keyof ExecuteQuery3Responses];
+
+export type ExecuteQuery4Data = {
+    /**
+     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    path: {
+        /**
+         * 租户 slug
+         */
+        tenantSlug: string;
+        /**
+         * 项目 slug
+         */
+        projectSlug: string;
+        /**
+         * 接口路径（用户在项目中定义的路径）
+         */
+        path: string;
+    };
+    query?: never;
+    url: '/gw/{tenantSlug}/{projectSlug}/{path}';
+};
+
+export type ExecuteQuery4Responses = {
+    /**
+     * OK
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ExecuteQuery4Response = ExecuteQuery4Responses[keyof ExecuteQuery4Responses];
 
 export type LoginData = {
     /**
@@ -665,12 +800,7 @@ export type CreateDataSourceData = {
     /**
      * 数据源信息
      */
-    body: {
-        envs?: Array<unknown>;
-        is_dual?: boolean;
-        name?: string;
-        type?: string;
-    };
+    body: CreateDataSourceReq;
     path: {
         /**
          * 租户slug
@@ -689,6 +819,37 @@ export type CreateDataSourceResponses = {
 };
 
 export type CreateDataSourceResponse = CreateDataSourceResponses[keyof CreateDataSourceResponses];
+
+export type TestDatasourceData = {
+    /**
+     * 连接信息
+     */
+    body: {
+        dsn?: string;
+        gateway_id?: number;
+    };
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/datasources/test';
+};
+
+export type TestDatasourceResponses = {
+    /**
+     * OK
+     */
+    200: {
+        data?: {
+            latency_ms?: number;
+        };
+    };
+};
+
+export type TestDatasourceResponse = TestDatasourceResponses[keyof TestDatasourceResponses];
 
 export type DeleteDataSourceData = {
     body?: never;
@@ -744,12 +905,7 @@ export type UpdateDataSourceData = {
     /**
      * 更新信息
      */
-    body?: {
-        envs?: Array<unknown>;
-        is_dual?: boolean;
-        name?: string;
-        type?: string;
-    };
+    body?: UpdateDataSourceReq;
     path: {
         /**
          * 租户slug
@@ -802,6 +958,42 @@ export type GetDatasourceSchemaResponses = {
 };
 
 export type GetDatasourceSchemaResponse = GetDatasourceSchemaResponses[keyof GetDatasourceSchemaResponses];
+
+export type PreviewTableData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 数据源ID
+         */
+        datasourceId: number;
+        /**
+         * 表名
+         */
+        table: string;
+    };
+    query?: {
+        /**
+         * 行数上限（默认100，最多500）
+         */
+        limit?: number;
+    };
+    url: '/v1/tenants/{slug}/datasources/{datasourceId}/tables/{table}/preview';
+};
+
+export type PreviewTableResponses = {
+    /**
+     * OK
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type PreviewTableResponse = PreviewTableResponses[keyof PreviewTableResponses];
 
 export type ListGatewaysData = {
     body?: never;
@@ -962,6 +1154,7 @@ export type CreateProjectData = {
     body: {
         description?: string;
         name?: string;
+        slug?: string;
     };
     path: {
         /**

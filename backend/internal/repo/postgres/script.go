@@ -11,43 +11,67 @@ type ScriptRepo struct{ DB *DB }
 
 var _ domain.ScriptRepository = (*ScriptRepo)(nil)
 
-func (r *ScriptRepo) CreateScript(ctx context.Context, s *domain.Script) error {
+func (r *ScriptRepo) Create(ctx context.Context, s *domain.Script) error {
+	var tenantID interface{}
+	if !s.IsPlatform {
+		tenantID = s.TenantID
+	}
 	return r.DB.Pool.QueryRow(ctx,
-		`INSERT INTO scripts (tenant_id, name, type, code, description) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-		s.TenantID, s.Name, s.Type, s.Code, s.Description).Scan(&s.ID)
+		`INSERT INTO scripts (tenant_id, name, type, code, description, is_platform) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+		tenantID, s.Name, s.Type, s.Code, s.Description, s.IsPlatform).Scan(&s.ID)
 }
 
-func (r *ScriptRepo) UpdateScript(ctx context.Context, s *domain.Script) error {
+func (r *ScriptRepo) Update(ctx context.Context, s *domain.Script) error {
 	_, err := r.DB.Pool.Exec(ctx,
 		`UPDATE scripts SET name=$1, type=$2, code=$3, description=$4 WHERE tenant_id=$5 AND id=$6`,
 		s.Name, s.Type, s.Code, s.Description, s.TenantID, s.ID)
 	return err
 }
 
-func (r *ScriptRepo) GetScriptByID(ctx context.Context, tenantID, id int64) (*domain.Script, error) {
+func (r *ScriptRepo) GetByID(ctx context.Context, tenantID, id int64) (*domain.Script, error) {
 	var s domain.Script
+	var tid *int64
 	err := r.DB.Pool.QueryRow(ctx,
-		`SELECT id, tenant_id, name, type, code, description, created_at FROM scripts WHERE tenant_id=$1 AND id=$2`,
-		tenantID, id).Scan(&s.ID, &s.TenantID, &s.Name, &s.Type, &s.Code, &s.Description, &s.CreatedAt)
+		`SELECT id, tenant_id, name, type, code, description, is_platform, created_at
+		 FROM scripts WHERE (tenant_id=$1 OR is_platform=TRUE) AND id=$2`,
+		tenantID, id).Scan(&s.ID, &tid, &s.Name, &s.Type, &s.Code, &s.Description, &s.IsPlatform, &s.CreatedAt)
 	if err != nil {
 		return nil, err
+	}
+	if tid != nil {
+		s.TenantID = *tid
 	}
 	return &s, nil
 }
 
-func (r *ScriptRepo) GetScriptByName(ctx context.Context, tenantID int64, name string) (*domain.Script, error) {
+func (r *ScriptRepo) GetByName(ctx context.Context, tenantID int64, name string) (*domain.Script, error) {
 	var s domain.Script
-	err := r.DB.Pool.QueryRow(ctx,
-		`SELECT id, tenant_id, name, type, code, description, created_at FROM scripts WHERE tenant_id=$1 AND name=$2`,
-		tenantID, name).Scan(&s.ID, &s.TenantID, &s.Name, &s.Type, &s.Code, &s.Description, &s.CreatedAt)
+	var tid *int64
+	var query string
+	var args []interface{}
+	if tenantID == 0 {
+		// tenantID=0 is used by seed/init to check platform scripts only.
+		query = `SELECT id, tenant_id, name, type, code, description, is_platform, created_at
+		         FROM scripts WHERE is_platform=TRUE AND name=$1`
+		args = []interface{}{name}
+	} else {
+		query = `SELECT id, tenant_id, name, type, code, description, is_platform, created_at
+		         FROM scripts WHERE (tenant_id=$1 OR is_platform=TRUE) AND name=$2`
+		args = []interface{}{tenantID, name}
+	}
+	err := r.DB.Pool.QueryRow(ctx, query, args...).Scan(
+		&s.ID, &tid, &s.Name, &s.Type, &s.Code, &s.Description, &s.IsPlatform, &s.CreatedAt)
 	if err != nil {
 		return nil, err
+	}
+	if tid != nil {
+		s.TenantID = *tid
 	}
 	return &s, nil
 }
 
-func (r *ScriptRepo) ListScripts(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.Script, int, error) {
-	where := "WHERE tenant_id=$1"
+func (r *ScriptRepo) List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.Script, int, error) {
+	where := "WHERE (tenant_id=$1 OR is_platform=TRUE)"
 	args := []interface{}{tenantID}
 	argN := 2
 	if p.Keyword != "" {
@@ -62,7 +86,8 @@ func (r *ScriptRepo) ListScripts(ctx context.Context, tenantID int64, p domain.L
 	}
 	pgSuffix, pgArgs := appendPagination(p, argN, args)
 	rows, err := r.DB.Pool.Query(ctx,
-		fmt.Sprintf(`SELECT id, tenant_id, name, type, code, description, created_at FROM scripts %s ORDER BY id%s`, where, pgSuffix),
+		fmt.Sprintf(`SELECT id, tenant_id, name, type, code, description, is_platform, created_at
+		             FROM scripts %s ORDER BY is_platform DESC, id%s`, where, pgSuffix),
 		pgArgs...)
 	if err != nil {
 		return nil, 0, err
@@ -71,15 +96,19 @@ func (r *ScriptRepo) ListScripts(ctx context.Context, tenantID int64, p domain.L
 	var list []*domain.Script
 	for rows.Next() {
 		var s domain.Script
-		if err := rows.Scan(&s.ID, &s.TenantID, &s.Name, &s.Type, &s.Code, &s.Description, &s.CreatedAt); err != nil {
+		var tid *int64
+		if err := rows.Scan(&s.ID, &tid, &s.Name, &s.Type, &s.Code, &s.Description, &s.IsPlatform, &s.CreatedAt); err != nil {
 			return nil, 0, err
+		}
+		if tid != nil {
+			s.TenantID = *tid
 		}
 		list = append(list, &s)
 	}
 	return list, total, rows.Err()
 }
 
-func (r *ScriptRepo) DeleteScript(ctx context.Context, tenantID, id int64) error {
+func (r *ScriptRepo) Delete(ctx context.Context, tenantID, id int64) error {
 	_, err := r.DB.Pool.Exec(ctx, `DELETE FROM scripts WHERE tenant_id=$1 AND id=$2`, tenantID, id)
 	return err
 }

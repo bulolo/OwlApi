@@ -21,25 +21,39 @@ func NewScriptService(repo domain.ScriptRepository) ScriptService {
 }
 
 func (s *scriptService) List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.Script, int, error) {
-	return s.repo.ListScripts(ctx, tenantID, p)
+	return s.repo.List(ctx, tenantID, p)
 }
 
 func (s *scriptService) Create(ctx context.Context, sc *domain.Script) error {
-	existing, _ := s.repo.GetScriptByName(ctx, sc.TenantID, sc.Name)
+	existing, _ := s.repo.GetByName(ctx, sc.TenantID, sc.Name)
 	if existing != nil {
 		return domain.ErrConflictf("script name '%s' already exists", sc.Name)
 	}
-	return s.repo.CreateScript(ctx, sc)
+	return s.repo.Create(ctx, sc)
 }
 
 func (s *scriptService) Update(ctx context.Context, sc *domain.Script) error {
-	return s.repo.UpdateScript(ctx, sc)
+	existing, err := s.repo.GetByID(ctx, sc.TenantID, sc.ID)
+	if err != nil {
+		return err
+	}
+	if existing.IsPlatform {
+		return domain.ErrForbidden("cannot modify a platform built-in script")
+	}
+	return s.repo.Update(ctx, sc)
 }
 
 func (s *scriptService) Delete(ctx context.Context, tenantID, id int64) error {
-	return s.repo.DeleteScript(ctx, tenantID, id)
+	sc, err := s.repo.GetByID(ctx, tenantID, id)
+	if err != nil {
+		return err
+	}
+	if sc.IsPlatform {
+		return domain.ErrForbidden("cannot delete a platform built-in script")
+	}
+	return s.repo.Delete(ctx, tenantID, id)
 }
 
 func (s *scriptService) GetByID(ctx context.Context, tenantID, id int64) (*domain.Script, error) {
-	return s.repo.GetScriptByID(ctx, tenantID, id)
+	return s.repo.GetByID(ctx, tenantID, id)
 }

@@ -1,0 +1,252 @@
+package http
+
+// ---- Swagger Response Types ----
+// These types are used only for swagger @Success annotations to generate typed SDK.
+
+type UserResp struct {
+	ID           int64  `json:"id"`
+	Email        string `json:"email"`
+	Name         string `json:"name"`
+	IsSuperAdmin bool   `json:"is_superadmin"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
+type TenantResp struct {
+	ID                 int64  `json:"id"`
+	Name               string `json:"name"`
+	Slug               string `json:"slug"`
+	Plan               string `json:"plan"`
+	Status             string `json:"status"`
+	MaxReleaseVersions int    `json:"max_release_versions"`
+	CreatedAt          string `json:"created_at"`
+	UpdatedAt          string `json:"updated_at"`
+}
+
+type TenantUserResp struct {
+	TenantID int64     `json:"tenant_id"`
+	UserID   int64     `json:"user_id"`
+	Role     string    `json:"role"`
+	JoinedAt string    `json:"joined_at"`
+	User     *UserResp `json:"user,omitempty"`
+}
+
+type GatewayResp struct {
+	ID         int64  `json:"id"`
+	TenantID   int64  `json:"tenant_id,omitempty"`
+	IsPlatform bool   `json:"is_platform"`
+	Name       string `json:"name"`
+	Token      string `json:"token,omitempty"`
+	Status     string `json:"status"`
+	IP         string `json:"ip"`
+	LastSeen   string `json:"last_seen"`
+	Version    string `json:"version"`
+}
+
+type DataSourceEnvResp struct {
+	ID           int64  `json:"id"`
+	DataSourceID int64  `json:"datasource_id"`
+	Env          string `json:"env"`
+	DSN          string `json:"dsn,omitempty"`
+	GatewayID    int64  `json:"gateway_id"`
+}
+
+type DataSourceResp struct {
+	ID        int64               `json:"id"`
+	TenantID  int64               `json:"tenant_id"`
+	Name      string              `json:"name"`
+	IsDual    bool                `json:"is_dual"`
+	Type      string              `json:"type"`
+	Envs      []DataSourceEnvResp `json:"envs,omitempty"`
+	CreatedAt string              `json:"created_at"`
+}
+
+type ProjectResp struct {
+	ID          int64  `json:"id"`
+	TenantID    int64  `json:"tenant_id"`
+	Slug        string `json:"slug"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type ParamDefResp struct {
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Required bool   `json:"required"`
+	Default  string `json:"default,omitempty"`
+	Desc     string `json:"desc,omitempty"`
+}
+
+type APIEndpointResp struct {
+	ID                 int64          `json:"id"`
+	TenantID           int64          `json:"tenant_id"`
+	ProjectID          int64          `json:"project_id"`
+	GroupID            int64          `json:"group_id"`
+	DataSourceID       int64          `json:"datasource_id"`
+	Path               string         `json:"path"`
+	Methods            []string       `json:"methods"`
+	Summary            string         `json:"summary"`
+	Description        string         `json:"description,omitempty"`
+	SQL                string         `json:"sql"`
+	Params             []string       `json:"params"`
+	ParamDefs          []ParamDefResp `json:"param_defs,omitempty"`
+	PreScriptID        int64          `json:"pre_script_id,omitempty"`
+	PostScriptID       int64          `json:"post_script_id,omitempty"`
+	Status             string         `json:"status"`
+	PublishedReleaseID int64          `json:"published_release_id,omitempty"`
+	HasDraft           bool           `json:"has_draft,omitempty"`
+	CreatedAt          string         `json:"created_at"`
+}
+
+type APIGroupResp struct {
+	ID          int64  `json:"id"`
+	TenantID    int64  `json:"tenant_id"`
+	ProjectID   int64  `json:"project_id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type ScriptResp struct {
+	ID          int64  `json:"id"`
+	TenantID    int64  `json:"tenant_id,omitempty"`
+	IsPlatform  bool   `json:"is_platform"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Code        string `json:"code"`
+	Description string `json:"description,omitempty"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type PlatformSettingsResp struct {
+	AllowSelfRegister bool `json:"allow_self_register"`
+}
+
+type AuthResp struct {
+	User    UserResp     `json:"user"`
+	Token   string       `json:"token"`
+	Tenant  *TenantResp  `json:"tenant,omitempty"`
+	Tenants []TenantResp `json:"tenants,omitempty"`
+}
+
+// Paginated response wrappers for swagger
+type TenantListResp struct {
+	List       []TenantResp   `json:"list"`
+	Pagination PaginationInfo `json:"pagination"`
+}
+type TenantUserListResp struct {
+	List       []TenantUserResp `json:"list"`
+	Pagination PaginationInfo   `json:"pagination"`
+}
+type GatewayListResp struct {
+	List       []GatewayResp  `json:"list"`
+	Pagination PaginationInfo `json:"pagination"`
+}
+type DataSourceListResp struct {
+	List       []DataSourceResp `json:"list"`
+	Pagination PaginationInfo   `json:"pagination"`
+}
+type ProjectListResp struct {
+	List       []ProjectResp  `json:"list"`
+	Pagination PaginationInfo `json:"pagination"`
+}
+type APIEndpointListResp struct {
+	List       []APIEndpointResp `json:"list"`
+	Pagination PaginationInfo    `json:"pagination"`
+}
+type APIGroupListResp struct {
+	List       []APIGroupResp `json:"list"`
+	Pagination PaginationInfo `json:"pagination"`
+}
+type ScriptListResp struct {
+	List       []ScriptResp   `json:"list"`
+	Pagination PaginationInfo `json:"pagination"`
+}
+
+// Typed R wrappers for swagger
+type RAuth struct {
+	Code int      `json:"code"`
+	Msg  string   `json:"msg"`
+	Data AuthResp `json:"data"`
+}
+type RTenant struct {
+	Code int        `json:"code"`
+	Msg  string     `json:"msg"`
+	Data TenantResp `json:"data"`
+}
+type RTenantList struct {
+	Code int            `json:"code"`
+	Msg  string         `json:"msg"`
+	Data TenantListResp `json:"data"`
+}
+type RTenantUserList struct {
+	Code int                `json:"code"`
+	Msg  string             `json:"msg"`
+	Data TenantUserListResp `json:"data"`
+}
+type RGateway struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data GatewayResp `json:"data"`
+}
+type RGatewayList struct {
+	Code int             `json:"code"`
+	Msg  string          `json:"msg"`
+	Data GatewayListResp `json:"data"`
+}
+type RDataSource struct {
+	Code int            `json:"code"`
+	Msg  string         `json:"msg"`
+	Data DataSourceResp `json:"data"`
+}
+type RDataSourceList struct {
+	Code int                `json:"code"`
+	Msg  string             `json:"msg"`
+	Data DataSourceListResp `json:"data"`
+}
+type RProject struct {
+	Code int         `json:"code"`
+	Msg  string      `json:"msg"`
+	Data ProjectResp `json:"data"`
+}
+type RProjectList struct {
+	Code int             `json:"code"`
+	Msg  string          `json:"msg"`
+	Data ProjectListResp `json:"data"`
+}
+type RAPIEndpoint struct {
+	Code int             `json:"code"`
+	Msg  string          `json:"msg"`
+	Data APIEndpointResp `json:"data"`
+}
+type RAPIEndpointList struct {
+	Code int                 `json:"code"`
+	Msg  string              `json:"msg"`
+	Data APIEndpointListResp `json:"data"`
+}
+type RAPIGroup struct {
+	Code int          `json:"code"`
+	Msg  string       `json:"msg"`
+	Data APIGroupResp `json:"data"`
+}
+type RAPIGroupList struct {
+	Code int              `json:"code"`
+	Msg  string           `json:"msg"`
+	Data APIGroupListResp `json:"data"`
+}
+type RScript struct {
+	Code int        `json:"code"`
+	Msg  string     `json:"msg"`
+	Data ScriptResp `json:"data"`
+}
+type RScriptList struct {
+	Code int            `json:"code"`
+	Msg  string         `json:"msg"`
+	Data ScriptListResp `json:"data"`
+}
+type RPlatformSettings struct {
+	Code int                  `json:"code"`
+	Msg  string               `json:"msg"`
+	Data PlatformSettingsResp `json:"data"`
+}

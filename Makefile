@@ -11,6 +11,7 @@
 	prod-static-up prod-static-up-build prod-static-down prod-static-logs \
 	gen-proto gen-sdk gen-swagger clean set-version \
 	format check-changed check-all setup-hooks \
+	init-test-db \
  publish-ce-github
 
 # ------------------------------------------------------------------------------
@@ -72,9 +73,10 @@ help:
 	@echo "  make help                显示此帮助信息"
 	@echo ""
 	@echo " 📦 [发布同步] (Release & Sync)"
-	@echo "  make set-version v=0.1.4 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
+	@echo "  make set-version v=0.1.5 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
 	@echo "  make             从 ee 生成 Community Edition (CE) 分支"
 	@echo "  make   将 origin/ce 同步并推送到 GitHub 公开仓库"
+	@echo "  make init-test-db        向 default 租户写入四种测试数据源 (需服务已启动)"
 	@echo ""
 	@echo " ⚠️  Windows 用户注意: 请使用 WSL2 或 Git Bash 运行 make 命令"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

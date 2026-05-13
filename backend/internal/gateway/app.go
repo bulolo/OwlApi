@@ -19,7 +19,7 @@ import (
 )
 
 type App struct {
-	config   *config.Config
+	config   *config.GatewayConfig
 	executor *Executor
 }
 
@@ -36,7 +36,7 @@ func (sw *streamWriter) Send(msg *pb.GatewayMessage) error {
 }
 
 func New() *App {
-	cfg := config.LoadFromEnv()
+	cfg := config.LoadGatewayConfig()
 	logger.Init(cfg.LogLevel)
 
 	if cfg.GatewayID == "" || cfg.GatewayToken == "" {
@@ -46,12 +46,13 @@ func New() *App {
 
 	return &App{
 		config:   cfg,
-		executor: NewExecutor(),
+		executor: NewExecutor(cfg.QueryTimeoutSeconds, cfg.JSTimeoutSeconds),
 	}
 }
 
 func (a *App) Run() {
-	a.executor.InitDemoData("/data/owlapi_demo.db")
+	a.executor.InitDemoData("/data/owlapi_ecommerce_demo.db")
+	a.executor.InitCMSDemoData("/data/owlapi_cms_demo.db")
 	slog.Info("OwlApi Gateway starting...",
 		"tenant_id", a.config.TenantID,
 		"gateway_id", a.config.GatewayID,
@@ -96,7 +97,7 @@ func (a *App) connectAndServe() error {
 			Register: &pb.RegisterRequest{
 				GatewayId:    a.config.GatewayID,
 				GatewayToken: a.config.GatewayToken,
-				Version:      "v0.1.4",
+				Version:      "v0.1.5",
 				TenantId:     a.config.TenantID,
 			},
 		},

@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { apiLogin, apiRegister, clearToken, getToken, type AuthResponse } from '@/lib/api-client'
 import type { User } from '@/lib/api-client'
 import { STORAGE_KEYS } from '@/lib/constants'
-import { useUIStore } from '@/store/useUIStore'
 
 interface AuthStore {
   user: User | null
@@ -35,7 +34,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
     clearToken()
     localStorage.removeItem(STORAGE_KEYS.USER)
     set({ user: null, token: null })
-    useUIStore.getState().setActiveTenant('')
   },
 
   restoreSession: () => {

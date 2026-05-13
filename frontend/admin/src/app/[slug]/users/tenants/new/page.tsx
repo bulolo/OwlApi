@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, ShieldCheck, CheckCircle2 } from "lucide-react"
-import { useUIStore } from "@/store/useUIStore"
+import { useTenant } from "@/providers/TenantProvider"
 
 export default function RegisterTenantPage() {
-  const { activeTenant } = useUIStore()
+  const activeTenant = useTenant()
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({

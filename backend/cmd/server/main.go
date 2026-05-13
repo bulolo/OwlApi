@@ -1,5 +1,5 @@
 // @title           OwlApi Control Plane
-// @version         0.1.4
+// @version         0.1.5
 // @description     企业级 SQL to API 智能网关平台管理接口
 // @host            localhost:3000
 // @BasePath        /
@@ -28,13 +28,14 @@ import (
 	"github.com/bulolo/owlapi/internal/service"
 	transport_grpc "github.com/bulolo/owlapi/internal/transport/grpc"
 	transport_http "github.com/bulolo/owlapi/internal/transport/http"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
 
 func main() {
-	cfg := config.LoadFromEnv()
+	cfg := config.LoadServerConfig()
 	logger.Init(cfg.LogLevel)
 	slog.Info("Starting OwlApi Control Plane...")
 
@@ -74,35 +75,28 @@ func main() {
 	releaseSvc := service.NewEndpointReleaseService(releaseRepo, endpointRepo)
 	groupSvc := service.NewAPIGroupService(groupRepo)
 	scriptSvc := service.NewScriptService(scriptRepo)
-	querySvc := service.NewQueryService(gatewaySvc, dsSvc, scriptSvc)
+	querySvc := service.NewQueryService(gatewaySvc, dsSvc, scriptSvc, cfg.QueryTimeoutSeconds+5)
+	authzSvc := service.NewAuthorizationService(tenantRepo, tenantUserRepo)
 
 	// HTTP Server
 	r := gin.Default()
-
-	// CORS — restrict to configured origins in production
-	allowedOrigin := os.Getenv("OWLAPI_CORS_ORIGIN")
-	if allowedOrigin == "" {
-		allowedOrigin = "*"
-	}
-	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", allowedOrigin)
-		c.Header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Tenant-ID,X-Gateway-ID")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	})
+	r.Use(transport_http.RequestID())
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{cfg.CORSOrigin},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type", "Authorization", "X-Tenant-ID", "X-Gateway-ID", "X-Request-ID"},
+		AllowCredentials: cfg.CORSOrigin != "*",
+	}))
 	r.GET("/health", func(c *gin.Context) { transport_http.OK(c, gin.H{"status": "ok"}) })
 	transport_http.RegisterSwagger(r)
 
 	app := &transport_http.App{
 		Auth: authSvc, Tenant: tenantSvc, TenantUser: tenantUserSvc,
-		Gateway: gatewaySvc, DataSource: dsSvc, Project: projectSvc,
+		Gateway: gatewaySvc, GatewayBroker: gatewaySvc,
+		DataSource: dsSvc, Project: projectSvc,
 		Endpoint: endpointSvc, Release: releaseSvc, Group: groupSvc, Script: scriptSvc, Query: querySvc,
 		PlatformSettings: platformSettingsSvc,
-		TenantRepo:       tenantRepo, TenantUserRepo: tenantUserRepo,
+		Authz:            authzSvc,
 	}
 	app.RegisterRoutes(r)
 

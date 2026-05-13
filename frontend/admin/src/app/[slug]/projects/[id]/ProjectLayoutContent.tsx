@@ -1,6 +1,6 @@
 "use client"
 
-import { useUIStore } from "@/store/useUIStore"
+import { useTenant } from "@/providers/TenantProvider"
 import { Box, ArrowLeft, Download, ChevronRight, Layers } from "lucide-react"
 import { useProject } from "@/hooks"
 import { apiExportOpenAPI } from "@/lib/api-client"
@@ -18,7 +18,7 @@ export default function ProjectLayoutContent({
   children: React.ReactNode
   projectId: string
 }) {
-  const { activeTenant } = useUIStore()
+  const activeTenant = useTenant()
   const { data: project } = useProject(activeTenant, Number(projectId))
   const { data: epData } = useQuery({
     queryKey: ["endpoints", activeTenant, projectId],

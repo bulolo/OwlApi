@@ -1,29 +1,29 @@
 "use client"
 
 import { useState } from "react"
-import { Server, Plus, Globe, Trash2, Eye, Copy, Check, Search } from "lucide-react"
+import { Server, Plus, Search } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { useUIStore } from "@/store/useUIStore"
+import { useTenant } from "@/providers/TenantProvider"
 import { useGateways, useDeleteGateway } from "@/hooks"
 import { apiGetGateway, type Gateway } from "@/lib/api-client"
-import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { ListSkeleton } from "@/components/ui/skeletons"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Pager } from "@/components/ui/pager"
 import { toast } from "sonner"
 import { showConfirm } from "@/store/useConfirmStore"
+import { GatewayCard } from "./_components/GatewayCard"
+import { GatewayDeployPanel } from "./_components/GatewayDeployPanel"
 
 export default function GatewaysClientPage() {
-  const { activeTenant } = useUIStore()
+  const activeTenant = useTenant()
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(10)
   const [keyword, setKeyword] = useState("")
   const { gateways, pagination, isLoading, refetch } = useGateways(activeTenant, { page, size, keyword })
   const deleteMutation = useDeleteGateway(activeTenant)
   const [detail, setDetail] = useState<Gateway | null>(null)
-  const [copied, setCopied] = useState(false)
 
   const handleDelete = async (gw: Gateway) => {
     if (!await showConfirm(`确定要删除网关节点 "${gw.name}" 吗？`)) return
@@ -37,25 +37,6 @@ export default function GatewaysClientPage() {
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "获取详情失败")
     }
-  }
-
-  const composeYaml = detail ? `services:
-  gateway:
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:latest
-    container_name: owlapi_gateway
-    restart: unless-stopped
-    environment:
-      - OWLAPI_SERVER_URL=dns:///your-server:9090
-      - OWLAPI_GATEWAY_ID=${detail.id}
-      - OWLAPI_GATEWAY_TOKEN=${detail.token}
-      - OWLAPI_TENANT_ID=${detail.tenant_id}
-      - OWLAPI_LOG_LEVEL=info
-      - TZ=Asia/Shanghai` : ""
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(composeYaml)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
   }
 
   const formatTime = (ts: string) => {
@@ -103,48 +84,13 @@ export default function GatewaysClientPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {gateways.map((gw) => (
-            <div key={gw.id} className="bg-white border border-zinc-100 rounded-lg p-5 flex flex-col shadow-sm hover:shadow-md transition-all group">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-4">
-                  <div className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center border transition-colors",
-                    gw.status === "online" ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-zinc-50 text-zinc-400 border-zinc-100"
-                  )}>
-                    <Server className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-zinc-900 group-hover:text-blue-600 transition-colors tracking-tight">{gw.name}</h3>
-                    <div className="flex items-center gap-1.5 mt-1 text-xs text-zinc-400 font-medium">
-                      <Globe className="w-3 h-3" />
-                      {gw.ip || "-"} {gw.version && `• ${gw.version}`}
-                    </div>
-                  </div>
-                </div>
-                <div className={cn(
-                  "px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center shadow-sm",
-                  gw.status === "online"
-                    ? "text-emerald-600 border-emerald-100 bg-emerald-50"
-                    : "text-zinc-400 border-zinc-100 bg-zinc-50"
-                )}>
-                  <div className={cn("w-1.5 h-1.5 rounded-full mr-1.5", gw.status === "online" ? "bg-emerald-500" : "bg-zinc-300")} />
-                  {gw.status === "online" ? "Online" : "Offline"}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
-                <div className="text-xs font-medium text-zinc-400">
-                  最后心跳: {formatTime(gw.last_seen)}
-                </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] font-bold text-zinc-500 hover:text-blue-600" onClick={() => handleViewDeploy(gw)}>
-                    <Eye className="w-3.5 h-3.5 mr-1" /> 部署信息
-                  </Button>
-                  <Button variant="ghost" size="icon" className="w-7 h-7 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors" onClick={() => handleDelete(gw)}>
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <GatewayCard
+              key={gw.id}
+              gateway={gw}
+              formatTime={formatTime}
+              onViewDeploy={handleViewDeploy}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
@@ -152,23 +98,7 @@ export default function GatewaysClientPage() {
       <Pager page={page} size={size} total={pagination?.total ?? 0} onPageChange={setPage} onSizeChange={setSize} />
 
       {detail && (
-        <div className="bg-white border border-zinc-100 rounded-lg shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-zinc-900">部署信息 — {detail.name}</h3>
-            <Button variant="ghost" size="sm" className="text-xs text-zinc-400" onClick={() => setDetail(null)}>关闭</Button>
-          </div>
-          <div className="bg-zinc-900 rounded-lg p-4 font-mono text-sm text-emerald-400 relative">
-            <div className="absolute top-3 right-3">
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded" onClick={handleCopy}>
-                {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
-            <pre className="whitespace-pre pr-12 text-sm">{composeYaml}</pre>
-          </div>
-          <p className="text-xs text-zinc-400">
-            将 <code className="bg-zinc-100 px-1 rounded">your-server:9090</code> 替换为 Control Plane 的实际地址，然后执行 <code className="bg-zinc-100 px-1 rounded">docker compose up -d</code>
-          </p>
-        </div>
+        <GatewayDeployPanel gateway={detail} onClose={() => setDetail(null)} />
       )}
     </div>
   )

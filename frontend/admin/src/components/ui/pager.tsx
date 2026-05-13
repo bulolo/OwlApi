@@ -37,7 +37,7 @@ export function Pager({
             <div className="flex items-center gap-1.5">
               <span>每页</span>
               <Select value={String(size)} onValueChange={(v) => { onSizeChange(Number(v)); onPageChange(1) }}>
-                <SelectTrigger className="h-7 w-[72px] text-xs border-zinc-200"><SelectValue /></SelectTrigger>
+                <SelectTrigger suppressHydrationWarning className="h-7 w-[72px] text-xs border-zinc-200"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {sizeOptions.map((s) => (
                     <SelectItem key={s} value={String(s)}>{s} 条</SelectItem>

@@ -10,6 +10,30 @@ import (
 
 type DataSourceHandler struct{ dataSources service.DataSourceService }
 
+// ── request types ────────────────────────────────────────────────────────────
+
+type dsEnvReq struct {
+	Env       string `json:"env"       binding:"required,oneof=dev prod"`
+	DSN       string `json:"dsn"`
+	GatewayID int64  `json:"gateway_id" binding:"required"`
+}
+
+type createDataSourceReq struct {
+	Name   string     `json:"name"   binding:"required"`
+	Type   string     `json:"type"   binding:"required,oneof=mysql postgres sqlserver starrocks doris sqlite"`
+	IsDual bool       `json:"is_dual"`
+	Envs   []dsEnvReq `json:"envs"   binding:"required,min=1"`
+}
+
+type updateDataSourceReq struct {
+	Name   string     `json:"name"`
+	Type   string     `json:"type"   binding:"omitempty,oneof=mysql postgres sqlserver starrocks doris sqlite"`
+	IsDual *bool      `json:"is_dual"`
+	Envs   []dsEnvReq `json:"envs"`
+}
+
+// ── handlers ─────────────────────────────────────────────────────────────────
+
 // HandleList godoc
 // @Summary 获取数据源列表
 // @ID listDataSources
@@ -31,13 +55,12 @@ func (h *DataSourceHandler) HandleList(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
-	OKPaged(c, list, lp, total)
-}
-
-type createDSEnvReq struct {
-	Env       string `json:"env" binding:"required"`
-	DSN       string `json:"dsn" binding:"required"`
-	GatewayID int64  `json:"gateway_id" binding:"required"`
+	// Mask DSN passwords before returning to the client.
+	masked := make([]*domain.DataSource, len(list))
+	for i, ds := range list {
+		masked[i] = ds.MaskEnvs()
+	}
+	OKPaged(c, masked, lp, total)
 }
 
 // HandleCreate godoc
@@ -48,17 +71,12 @@ type createDSEnvReq struct {
 // @Accept json
 // @Produce json
 // @Param slug path string true "租户slug"
-// @Param body body object{name=string,type=string,is_dual=bool,envs=array} true "数据源信息"
+// @Param body body createDataSourceReq true "数据源信息"
 // @Success 200 {object} RDataSource
 // @Router /v1/tenants/{slug}/datasources [post]
 func (h *DataSourceHandler) HandleCreate(c *gin.Context) {
 	tenant := GetTenant(c)
-	var req struct {
-		Name   string           `json:"name" binding:"required"`
-		Type   string           `json:"type" binding:"required"`
-		IsDual bool             `json:"is_dual"`
-		Envs   []createDSEnvReq `json:"envs" binding:"required,min=1"`
-	}
+	var req createDataSourceReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
@@ -71,7 +89,7 @@ func (h *DataSourceHandler) HandleCreate(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
-	OK(c, ds)
+	OK(c, ds.MaskEnvs())
 }
 
 // HandleGet godoc
@@ -95,7 +113,7 @@ func (h *DataSourceHandler) HandleGet(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
-	OK(c, ds)
+	OK(c, ds.MaskEnvs())
 }
 
 // HandleUpdate godoc
@@ -107,7 +125,7 @@ func (h *DataSourceHandler) HandleGet(c *gin.Context) {
 // @Produce json
 // @Param slug path string true "租户slug"
 // @Param datasourceId path int true "数据源ID"
-// @Param body body object{name=string,type=string,is_dual=bool,envs=array} false "更新信息"
+// @Param body body updateDataSourceReq false "更新信息"
 // @Success 200 {object} RDataSource
 // @Router /v1/tenants/{slug}/datasources/{datasourceId} [put]
 func (h *DataSourceHandler) HandleUpdate(c *gin.Context) {
@@ -121,12 +139,7 @@ func (h *DataSourceHandler) HandleUpdate(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
-	var req struct {
-		Name   string           `json:"name"`
-		Type   string           `json:"type"`
-		IsDual *bool            `json:"is_dual"`
-		Envs   []createDSEnvReq `json:"envs"`
-	}
+	var req updateDataSourceReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
@@ -150,12 +163,13 @@ func (h *DataSourceHandler) HandleUpdate(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
-	ds, err = h.dataSources.GetByID(c.Request.Context(), tenant.ID, dsID)
+	// Re-fetch to return the authoritative persisted state.
+	updated, err := h.dataSources.GetByID(c.Request.Context(), tenant.ID, dsID)
 	if err != nil {
 		FailErr(c, err)
 		return
 	}
-	OK(c, ds)
+	OK(c, updated.MaskEnvs())
 }
 
 // HandleDelete godoc

@@ -17,16 +17,19 @@ export type EndpointRelease = {
 
 export type { EndpointReleaseResp, EndpointReleaseListResp }
 
-const cast = <T>(p: unknown): Promise<T> => p as Promise<T>
+// ── SDK wrappers ─────────────────────────────────────────────────────────────
+// The generated SDK functions return typed data inside an opaque response
+// object. We unwrap with `as` only at this boundary so the rest of the app
+// stays type-safe.
 
 export const apiListReleases = (slug: string, projectId: number, endpointId: number, q: ListQuery = {}) =>
-  cast<PaginatedData<EndpointRelease>>(listReleases({ path: { slug, projectId, endpointId }, query: q }))
+  listReleases({ path: { slug, projectId, endpointId }, query: q }) as unknown as Promise<PaginatedData<EndpointRelease>>
 
 export const apiPublishEndpoint = (slug: string, projectId: number, endpointId: number, note = '') =>
-  cast<EndpointRelease>(publishEndpoint({ path: { slug, projectId, endpointId }, body: { note } }))
+  publishEndpoint({ path: { slug, projectId, endpointId }, body: { note } }) as unknown as Promise<EndpointRelease>
 
 export const apiActivateRelease = (slug: string, projectId: number, endpointId: number, releaseId: number) =>
-  cast<void>(activateRelease({ path: { slug, projectId, endpointId, releaseId } }))
+  activateRelease({ path: { slug, projectId, endpointId, releaseId } }) as unknown as Promise<void>
 
 export const apiUnpublishEndpoint = (slug: string, projectId: number, endpointId: number) =>
-  cast<void>(unpublishEndpoint({ path: { slug, projectId, endpointId } }))
+  unpublishEndpoint({ path: { slug, projectId, endpointId } }) as unknown as Promise<void>

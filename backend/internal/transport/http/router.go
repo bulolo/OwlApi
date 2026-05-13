@@ -11,7 +11,8 @@ type App struct {
 	Auth             service.AuthService
 	Tenant           service.TenantService
 	TenantUser       service.TenantUserService
-	Gateway          service.GatewayService
+	Gateway          service.GatewayAdminService
+	GatewayBroker    service.GatewayBroker
 	DataSource       service.DataSourceService
 	Project          service.ProjectService
 	Endpoint         service.APIEndpointService
@@ -20,9 +21,7 @@ type App struct {
 	Script           service.ScriptService
 	Query            service.QueryService
 	PlatformSettings service.PlatformSettingsService
-	// repos needed only by middleware
-	TenantRepo     domain.TenantRepository
-	TenantUserRepo domain.TenantUserRepository
+	Authz            service.AuthorizationService
 }
 
 // RegisterRoutes wires all HTTP handlers and middleware to the gin engine.
@@ -38,8 +37,8 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	releaseH := &EndpointReleaseHandler{releases: a.Release}
 	groupH := &APIGroupHandler{groups: a.Group}
 	scriptH := &ScriptHandler{scripts: a.Script}
-	queryH := NewQueryHandler(a.Query, a.Endpoint, a.Release, a.Tenant)
-	queryTestH := &QueryTestHandler{tenants: a.Tenant, gateways: a.Gateway, queries: a.Query, endpoints: a.Endpoint, dataSources: a.DataSource}
+	queryH := NewQueryHandler(a.Query, a.Endpoint, a.Release, a.Tenant, a.Project)
+	queryTestH := &QueryTestHandler{tenants: a.Tenant, gateways: a.GatewayBroker, queries: a.Query, endpoints: a.Endpoint, dataSources: a.DataSource}
 	openAPIH := &OpenAPIHandler{projects: a.Project, endpoints: a.Endpoint, groups: a.Group}
 
 	v1 := r.Group("/v1")
@@ -47,8 +46,9 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	v1.POST("/auth/login", authH.HandleLogin)
 	v1.GET("/platform/settings", platformSettingsH.HandleGet)
 	v1.GET("/my/tenants", JWTAuth(), tenantH.HandleMyTenants)
-	v1.POST("/tenants/:slug/query/test", JWTAuth(), RequireTenantRole(a.TenantRepo, a.TenantUserRepo, domain.RoleViewer), queryTestH.HandleTestQuery)
-	v1.GET("/tenants/:slug/datasources/:datasourceId/schema", JWTAuth(), RequireTenantRole(a.TenantRepo, a.TenantUserRepo, domain.RoleViewer), queryTestH.HandleGetSchema)
+	v1.POST("/tenants/:slug/query/test", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleViewer), queryTestH.HandleTestQuery)
+	v1.GET("/tenants/:slug/datasources/:datasourceId/schema", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleViewer), queryTestH.HandleGetSchema)
+	v1.GET("/tenants/:slug/datasources/:datasourceId/tables/:table/preview", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleViewer), queryTestH.HandlePreviewTable)
 
 	sa := v1.Group("", JWTAuth(), RequireSuperAdmin())
 	sa.PUT("/platform/settings", platformSettingsH.HandleUpdate)
@@ -57,7 +57,7 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	sa.PUT("/tenants/:slug", tenantH.HandleUpdateTenant)
 	sa.DELETE("/tenants/:slug", tenantH.HandleDeleteTenant)
 
-	viewer := v1.Group("", JWTAuth(), RequireTenantRole(a.TenantRepo, a.TenantUserRepo, domain.RoleViewer))
+	viewer := v1.Group("", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleViewer))
 	viewer.GET("/tenants/:slug", tenantH.HandleGetTenant)
 	viewer.GET("/tenants/:slug/users", tuH.HandleList)
 	viewer.GET("/tenants/:slug/gateways", gatewayH.HandleList)
@@ -72,13 +72,14 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	viewer.GET("/tenants/:slug/projects/:projectId/openapi.json", openAPIH.HandleExportOpenAPI)
 	viewer.GET("/tenants/:slug/scripts", scriptH.HandleList)
 
-	admin := v1.Group("", JWTAuth(), RequireTenantRole(a.TenantRepo, a.TenantUserRepo, domain.RoleAdmin))
+	admin := v1.Group("", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleAdmin))
 	admin.PUT("/tenants/:slug/settings", tenantH.HandleUpdateTenantSettings)
 	admin.POST("/tenants/:slug/users", tuH.HandleCreate)
 	admin.PUT("/tenants/:slug/users/:userId/role", tuH.HandleUpdateRole)
 	admin.DELETE("/tenants/:slug/users/:userId", tuH.HandleDelete)
 	admin.POST("/tenants/:slug/gateways", gatewayH.HandleCreate)
 	admin.DELETE("/tenants/:slug/gateways/:gatewayId", gatewayH.HandleDelete)
+	admin.POST("/tenants/:slug/datasources/test", queryTestH.HandleTestDatasource)
 	admin.POST("/tenants/:slug/datasources", dsH.HandleCreate)
 	admin.PUT("/tenants/:slug/datasources/:datasourceId", dsH.HandleUpdate)
 	admin.DELETE("/tenants/:slug/datasources/:datasourceId", dsH.HandleDelete)

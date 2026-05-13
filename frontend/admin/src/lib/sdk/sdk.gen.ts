@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ActivateReleaseData, ActivateReleaseResponses, AddUserData, AddUserResponses, CreateDataSourceData, CreateDataSourceResponses, CreateEndpointData, CreateEndpointResponses, CreateGatewayData, CreateGatewayResponses, CreateGroupData, CreateGroupResponses, CreateProjectData, CreateProjectResponses, CreateScriptData, CreateScriptResponses, CreateTenantData, CreateTenantResponses, DeleteDataSourceData, DeleteDataSourceResponses, DeleteEndpointData, DeleteEndpointResponses, DeleteGatewayData, DeleteGatewayResponses, DeleteGroupData, DeleteGroupResponses, DeleteProjectData, DeleteProjectResponses, DeleteScriptData, DeleteScriptResponses, DeleteTenantData, DeleteTenantResponses, ExecuteQueryData, ExecuteQueryResponses, ExportOpenApiData, ExportOpenApiResponses, GetDataSourceData, GetDataSourceResponses, GetDatasourceSchemaData, GetDatasourceSchemaResponses, GetGatewayData, GetGatewayResponses, GetPlatformSettingsData, GetPlatformSettingsResponses, GetProjectData, GetProjectResponses, GetTenantData, GetTenantResponses, ListAllTenantsData, ListAllTenantsResponses, ListDataSourcesData, ListDataSourcesResponses, ListEndpointsData, ListEndpointsResponses, ListGatewaysData, ListGatewaysResponses, ListGroupsData, ListGroupsResponses, ListProjectsData, ListProjectsResponses, ListReleasesData, ListReleasesResponses, ListScriptsData, ListScriptsResponses, ListUsersData, ListUsersResponses, LoginData, LoginResponses, MyTenantsData, MyTenantsResponses, PublishEndpointData, PublishEndpointResponses, RegisterData, RegisterResponses, RemoveUserData, RemoveUserResponses, TestQueryData, TestQueryResponses, UnpublishEndpointData, UnpublishEndpointResponses, UpdateDataSourceData, UpdateDataSourceResponses, UpdateEndpointData, UpdateEndpointResponses, UpdateGroupData, UpdateGroupResponses, UpdatePlatformSettingsData, UpdatePlatformSettingsResponses, UpdateProjectData, UpdateProjectResponses, UpdateScriptData, UpdateScriptResponses, UpdateTenantData, UpdateTenantResponses, UpdateTenantSettingsData, UpdateTenantSettingsResponses, UpdateUserRoleData, UpdateUserRoleResponses } from './types.gen';
+import type { ActivateReleaseData, ActivateReleaseResponses, AddUserData, AddUserResponses, CreateDataSourceData, CreateDataSourceResponses, CreateEndpointData, CreateEndpointResponses, CreateGatewayData, CreateGatewayResponses, CreateGroupData, CreateGroupResponses, CreateProjectData, CreateProjectResponses, CreateScriptData, CreateScriptResponses, CreateTenantData, CreateTenantResponses, DeleteDataSourceData, DeleteDataSourceResponses, DeleteEndpointData, DeleteEndpointResponses, DeleteGatewayData, DeleteGatewayResponses, DeleteGroupData, DeleteGroupResponses, DeleteProjectData, DeleteProjectResponses, DeleteScriptData, DeleteScriptResponses, DeleteTenantData, DeleteTenantResponses, ExecuteQuery2Data, ExecuteQuery2Responses, ExecuteQuery3Data, ExecuteQuery3Responses, ExecuteQuery4Data, ExecuteQuery4Responses, ExecuteQueryData, ExecuteQueryResponses, ExportOpenApiData, ExportOpenApiResponses, GetDataSourceData, GetDataSourceResponses, GetDatasourceSchemaData, GetDatasourceSchemaResponses, GetGatewayData, GetGatewayResponses, GetPlatformSettingsData, GetPlatformSettingsResponses, GetProjectData, GetProjectResponses, GetTenantData, GetTenantResponses, ListAllTenantsData, ListAllTenantsResponses, ListDataSourcesData, ListDataSourcesResponses, ListEndpointsData, ListEndpointsResponses, ListGatewaysData, ListGatewaysResponses, ListGroupsData, ListGroupsResponses, ListProjectsData, ListProjectsResponses, ListReleasesData, ListReleasesResponses, ListScriptsData, ListScriptsResponses, ListUsersData, ListUsersResponses, LoginData, LoginResponses, MyTenantsData, MyTenantsResponses, PreviewTableData, PreviewTableResponses, PublishEndpointData, PublishEndpointResponses, RegisterData, RegisterResponses, RemoveUserData, RemoveUserResponses, TestDatasourceData, TestDatasourceResponses, TestQueryData, TestQueryResponses, UnpublishEndpointData, UnpublishEndpointResponses, UpdateDataSourceData, UpdateDataSourceResponses, UpdateEndpointData, UpdateEndpointResponses, UpdateGroupData, UpdateGroupResponses, UpdatePlatformSettingsData, UpdatePlatformSettingsResponses, UpdateProjectData, UpdateProjectResponses, UpdateScriptData, UpdateScriptResponses, UpdateTenantData, UpdateTenantResponses, UpdateTenantSettingsData, UpdateTenantSettingsResponses, UpdateUserRoleData, UpdateUserRoleResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,11 +19,50 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
- * 执行动态 API 查询
+ * 执行已发布的 API 接口
  */
-export const executeQuery = <ThrowOnError extends boolean = false>(options: Options<ExecuteQueryData, ThrowOnError>) => (options.client ?? client).post<ExecuteQueryResponses, unknown, ThrowOnError, 'data'>({
+export const executeQuery = <ThrowOnError extends boolean = false>(options: Options<ExecuteQueryData, ThrowOnError>) => (options.client ?? client).delete<ExecuteQueryResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
-    url: '/api/v1/tenants/{slug}/query/{path}',
+    url: '/gw/{tenantSlug}/{projectSlug}/{path}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 执行已发布的 API 接口
+ */
+export const executeQuery2 = <ThrowOnError extends boolean = false>(options: Options<ExecuteQuery2Data, ThrowOnError>) => (options.client ?? client).get<ExecuteQuery2Responses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/gw/{tenantSlug}/{projectSlug}/{path}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 执行已发布的 API 接口
+ */
+export const executeQuery3 = <ThrowOnError extends boolean = false>(options: Options<ExecuteQuery3Data, ThrowOnError>) => (options.client ?? client).post<ExecuteQuery3Responses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/gw/{tenantSlug}/{projectSlug}/{path}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 执行已发布的 API 接口
+ */
+export const executeQuery4 = <ThrowOnError extends boolean = false>(options: Options<ExecuteQuery4Data, ThrowOnError>) => (options.client ?? client).put<ExecuteQuery4Responses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/gw/{tenantSlug}/{projectSlug}/{path}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -172,6 +211,20 @@ export const createDataSource = <ThrowOnError extends boolean = false>(options: 
 });
 
 /**
+ * 测试数据源连接
+ */
+export const testDatasource = <ThrowOnError extends boolean = false>(options: Options<TestDatasourceData, ThrowOnError>) => (options.client ?? client).post<TestDatasourceResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/datasources/test',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * 删除数据源
  */
 export const deleteDataSource = <ThrowOnError extends boolean = false>(options: Options<DeleteDataSourceData, ThrowOnError>) => (options.client ?? client).delete<DeleteDataSourceResponses, unknown, ThrowOnError, 'data'>({
@@ -212,6 +265,16 @@ export const getDatasourceSchema = <ThrowOnError extends boolean = false>(option
     responseStyle: 'data',
     security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/v1/tenants/{slug}/datasources/{datasourceId}/schema',
+    ...options
+});
+
+/**
+ * 预览表数据
+ */
+export const previewTable = <ThrowOnError extends boolean = false>(options: Options<PreviewTableData, ThrowOnError>) => (options.client ?? client).get<PreviewTableResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/datasources/{datasourceId}/tables/{table}/preview',
     ...options
 });
 

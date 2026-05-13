@@ -1,13 +1,32 @@
 package http
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"strings"
 
 	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/bulolo/owlapi/internal/pkg/auth"
+	"github.com/bulolo/owlapi/internal/service"
 	"github.com/gin-gonic/gin"
 )
+
+// RequestID injects a unique request ID into every request context and response header.
+func RequestID() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.GetHeader("X-Request-ID")
+		if id == "" {
+			b := make([]byte, 8)
+			if _, err := rand.Read(b); err == nil {
+				id = hex.EncodeToString(b)
+			}
+		}
+		c.Set("request_id", id)
+		c.Header("X-Request-ID", id)
+		c.Next()
+	}
+}
 
 const (
 	ctxClaims = "claims"
@@ -62,8 +81,7 @@ func RequireSuperAdmin() gin.HandlerFunc {
 }
 
 // RequireTenantRole checks the user has at least the given role in the tenant identified by :slug.
-// It needs a TenantUserRepository to look up the user's role.
-func RequireTenantRole(tenants domain.TenantRepository, tenantUsers domain.TenantUserRepository, minRole domain.UserRole) gin.HandlerFunc {
+func RequireTenantRole(authz service.AuthorizationService, minRole domain.UserRole) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims := GetClaims(c)
 		if claims == nil {
@@ -75,7 +93,7 @@ func RequireTenantRole(tenants domain.TenantRepository, tenantUsers domain.Tenan
 		if claims.IsSuperAdmin {
 			slug := c.Param("slug")
 			if slug != "" {
-				tenant, err := tenants.GetBySlug(c.Request.Context(), slug)
+				tenant, err := authz.GetTenantBySlug(c.Request.Context(), slug)
 				if err != nil {
 					Fail(c, http.StatusNotFound, "tenant not found")
 					c.Abort()
@@ -92,13 +110,13 @@ func RequireTenantRole(tenants domain.TenantRepository, tenantUsers domain.Tenan
 			c.Abort()
 			return
 		}
-		tenant, err := tenants.GetBySlug(c.Request.Context(), slug)
+		tenant, err := authz.GetTenantBySlug(c.Request.Context(), slug)
 		if err != nil {
 			Fail(c, http.StatusNotFound, "tenant not found")
 			c.Abort()
 			return
 		}
-		tu, err := tenantUsers.GetByTenantAndUser(c.Request.Context(), tenant.ID, claims.UserID)
+		tu, err := authz.GetTenantUser(c.Request.Context(), tenant.ID, claims.UserID)
 		if err != nil {
 			Fail(c, http.StatusForbidden, "not a user of this tenant")
 			c.Abort()

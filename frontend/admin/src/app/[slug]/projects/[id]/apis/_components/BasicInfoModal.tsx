@@ -141,7 +141,7 @@ export function BasicInfoModal({ open, onClose, mode, initialValues, loading, on
               value={path}
               onChange={e => setPath(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") handleConfirm() }}
-              placeholder="/api/v1/your-endpoint"
+              placeholder="/users 或 /orders/:id"
               className="h-9 w-full px-3 rounded-lg border border-zinc-200 bg-white text-sm font-mono text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-400/40"
               autoFocus
             />

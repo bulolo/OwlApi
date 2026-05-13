@@ -21,3 +21,4 @@ func ErrUnavailable(msg string) *Error  { return &Error{Code: 503, Message: msg}
 func ErrNotFoundf(format string, a ...any) *Error   { return ErrNotFound(fmt.Sprintf(format, a...)) }
 func ErrBadRequestf(format string, a ...any) *Error { return ErrBadRequest(fmt.Sprintf(format, a...)) }
 func ErrConflictf(format string, a ...any) *Error   { return ErrConflict(fmt.Sprintf(format, a...)) }
+func ErrForbiddenf(format string, a ...any) *Error  { return ErrForbidden(fmt.Sprintf(format, a...)) }

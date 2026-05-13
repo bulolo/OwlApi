@@ -13,17 +13,16 @@ import (
 
 type Handler struct {
 	pb.UnimplementedGatewayServiceServer
-	gateways service.GatewayService
+	gateways service.GatewayBroker
 	queries  service.QueryService
 }
 
-func NewHandler(gateways service.GatewayService, queries service.QueryService) *Handler {
+func NewHandler(gateways service.GatewayBroker, queries service.QueryService) *Handler {
 	return &Handler{gateways: gateways, queries: queries}
 }
 
 func (h *Handler) Connect(stream pb.GatewayService_ConnectServer) error {
 	var gatewayID string
-	var tenantID string
 	ctx := stream.Context()
 
 	peerIP := ""
@@ -35,9 +34,9 @@ func (h *Handler) Connect(stream pb.GatewayService_ConnectServer) error {
 	}
 
 	defer func() {
-		if gatewayID != "" && tenantID != "" {
-			h.gateways.RemoveStream(tenantID, gatewayID)
-			slog.Info("Gateway disconnected", "tenant_id", tenantID, "gateway_id", gatewayID)
+		if gatewayID != "" {
+			h.gateways.RemoveStream(gatewayID)
+			slog.Info("Gateway disconnected", "gateway_id", gatewayID)
 		}
 	}()
 
@@ -52,8 +51,6 @@ func (h *Handler) Connect(stream pb.GatewayService_ConnectServer) error {
 
 		switch p := req.Payload.(type) {
 		case *pb.GatewayMessage_Register:
-			gatewayID = p.Register.GatewayId
-			tenantID = p.Register.TenantId
 			resp, err := h.gateways.Register(ctx, p.Register, peerIP)
 			if err != nil {
 				return err
@@ -64,17 +61,18 @@ func (h *Handler) Connect(stream pb.GatewayService_ConnectServer) error {
 				return err
 			}
 			if resp.Success {
-				h.gateways.AddStream(tenantID, gatewayID, stream)
-				slog.Info("Gateway registered", "tenant_id", tenantID, "gateway_id", gatewayID)
+				gatewayID = resp.SessionId // numeric gateway ID from DB
+				h.gateways.AddStream(gatewayID, stream)
+				slog.Info("Gateway registered", "gateway_id", gatewayID)
 			}
 
 		case *pb.GatewayMessage_Heartbeat:
-			if gatewayID == "" || tenantID == "" {
+			if gatewayID == "" {
 				slog.Warn("Heartbeat received before registration")
 				continue
 			}
-			if err := h.gateways.Heartbeat(ctx, tenantID, gatewayID, peerIP); err != nil {
-				slog.Error("Failed to process heartbeat", "tenant_id", tenantID, "gateway_id", gatewayID, "error", err)
+			if err := h.gateways.Heartbeat(ctx, gatewayID, peerIP); err != nil {
+				slog.Error("Failed to process heartbeat", "gateway_id", gatewayID, "error", err)
 			}
 			if err := stream.Send(&pb.ServerMessage{
 				Payload: &pb.ServerMessage_HeartbeatAck{

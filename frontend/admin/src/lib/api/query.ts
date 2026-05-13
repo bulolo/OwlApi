@@ -1,13 +1,16 @@
 import { testQuery, exportOpenApi } from '@/lib/sdk'
 
-const cast = <T>(p: unknown): Promise<T> => p as Promise<T>
+// ── SDK wrappers ─────────────────────────────────────────────────────────────
+// The generated SDK functions return typed data inside an opaque response
+// object. We unwrap with `as` only at this boundary so the rest of the app
+// stays type-safe.
 
 export const apiRun = (slug: string, endpointId: number, params: Record<string, string>, ignoreScripts = false) =>
-  cast<Record<string, unknown>>(testQuery({ path: { slug }, body: { endpoint_id: endpointId, params, ignore_scripts: ignoreScripts } }))
+  testQuery({ path: { slug }, body: { endpoint_id: endpointId, params, ignore_scripts: ignoreScripts } }) as unknown as Promise<Record<string, unknown>>
 
 export const apiExportOpenAPI = async (slug: string, projectId: number): Promise<void> => {
   if (typeof window === 'undefined') return
-  const spec = await cast<Record<string, unknown>>(exportOpenApi({ path: { slug, projectId } }))
+  const spec = await (exportOpenApi({ path: { slug, projectId } }) as unknown as Promise<Record<string, unknown>>)
   const blob = new Blob([JSON.stringify(spec, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

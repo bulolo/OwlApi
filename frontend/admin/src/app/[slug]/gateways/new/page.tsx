@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Copy, Check, Server, Shield, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import { useUIStore } from "@/store/useUIStore"
+import { useTenant } from "@/providers/TenantProvider"
 import { useCreateGateway } from "@/hooks"
 import type { Gateway } from "@/lib/api-client"
 
 export default function RegisterGatewayPage() {
-  const { activeTenant } = useUIStore()
+  const activeTenant = useTenant()
   const [step, setStep] = useState(1)
   const [name, setName] = useState("")
   const [created, setCreated] = useState<Gateway | null>(null)

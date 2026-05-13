@@ -239,6 +239,8 @@ definitions:
         type: integer
       ip:
         type: string
+      is_platform:
+        type: boolean
       last_seen:
         type: string
       name:
@@ -299,6 +301,8 @@ definitions:
       id:
         type: integer
       name:
+        type: string
+      slug:
         type: string
       tenant_id:
         type: integer
@@ -501,6 +505,8 @@ definitions:
         type: string
       id:
         type: integer
+      is_platform:
+        type: boolean
       name:
         type: string
       tenant_id:
@@ -573,30 +579,95 @@ definitions:
       updated_at:
         type: string
     type: object
+  http.createDataSourceReq:
+    properties:
+      envs:
+        items:
+          $ref: '#/definitions/http.dsEnvReq'
+        minItems: 1
+        type: array
+      is_dual:
+        type: boolean
+      name:
+        type: string
+      type:
+        enum:
+        - mysql
+        - postgres
+        - sqlserver
+        - starrocks
+        - doris
+        - sqlite
+        type: string
+    required:
+    - envs
+    - name
+    - type
+    type: object
+  http.dsEnvReq:
+    properties:
+      dsn:
+        type: string
+      env:
+        enum:
+        - dev
+        - prod
+        type: string
+      gateway_id:
+        type: integer
+    required:
+    - env
+    - gateway_id
+    type: object
+  http.updateDataSourceReq:
+    properties:
+      envs:
+        items:
+          $ref: '#/definitions/http.dsEnvReq'
+        type: array
+      is_dual:
+        type: boolean
+      name:
+        type: string
+      type:
+        enum:
+        - mysql
+        - postgres
+        - sqlserver
+        - starrocks
+        - doris
+        - sqlite
+        type: string
+    type: object
 host: localhost:3000
 info:
   contact: {}
   description: 企业级 SQL to API 智能网关平台管理接口
   title: OwlApi Control Plane
-  version: 0.1.2
+  version: 0.1.5
 paths:
-  /api/v1/tenants/{slug}/query/{path}:
-    post:
+  /gw/{tenantSlug}/{projectSlug}/{path}:
+    delete:
       consumes:
       - application/json
       operationId: executeQuery
       parameters:
       - description: 租户 slug
         in: path
-        name: slug
+        name: tenantSlug
         required: true
         type: string
-      - description: API 路径
+      - description: 项目 slug
+        in: path
+        name: projectSlug
+        required: true
+        type: string
+      - description: 接口路径（用户在项目中定义的路径）
         in: path
         name: path
         required: true
         type: string
-      - description: 查询参数（由端点 param_defs 定义）
+      - description: 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
         in: body
         name: body
         schema:
@@ -608,9 +679,114 @@ paths:
           description: OK
           schema:
             type: object
-      summary: 执行动态 API 查询
+      summary: 执行已发布的 API 接口
       tags:
-      - query
+      - gateway
+    get:
+      consumes:
+      - application/json
+      operationId: executeQuery
+      parameters:
+      - description: 租户 slug
+        in: path
+        name: tenantSlug
+        required: true
+        type: string
+      - description: 项目 slug
+        in: path
+        name: projectSlug
+        required: true
+        type: string
+      - description: 接口路径（用户在项目中定义的路径）
+        in: path
+        name: path
+        required: true
+        type: string
+      - description: 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
+        in: body
+        name: body
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: 执行已发布的 API 接口
+      tags:
+      - gateway
+    post:
+      consumes:
+      - application/json
+      operationId: executeQuery
+      parameters:
+      - description: 租户 slug
+        in: path
+        name: tenantSlug
+        required: true
+        type: string
+      - description: 项目 slug
+        in: path
+        name: projectSlug
+        required: true
+        type: string
+      - description: 接口路径（用户在项目中定义的路径）
+        in: path
+        name: path
+        required: true
+        type: string
+      - description: 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
+        in: body
+        name: body
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: 执行已发布的 API 接口
+      tags:
+      - gateway
+    put:
+      consumes:
+      - application/json
+      operationId: executeQuery
+      parameters:
+      - description: 租户 slug
+        in: path
+        name: tenantSlug
+        required: true
+        type: string
+      - description: 项目 slug
+        in: path
+        name: projectSlug
+        required: true
+        type: string
+      - description: 接口路径（用户在项目中定义的路径）
+        in: path
+        name: path
+        required: true
+        type: string
+      - description: 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
+        in: body
+        name: body
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      summary: 执行已发布的 API 接口
+      tags:
+      - gateway
   /v1/auth/login:
     post:
       consumes:
@@ -930,16 +1106,7 @@ paths:
         name: body
         required: true
         schema:
-          properties:
-            envs:
-              type: array
-            is_dual:
-              type: boolean
-            name:
-              type: string
-            type:
-              type: string
-          type: object
+          $ref: '#/definitions/http.createDataSourceReq'
       produces:
       - application/json
       responses:
@@ -1022,16 +1189,7 @@ paths:
         in: body
         name: body
         schema:
-          properties:
-            envs:
-              type: array
-            is_dual:
-              type: boolean
-            name:
-              type: string
-            type:
-              type: string
-          type: object
+          $ref: '#/definitions/http.updateDataSourceReq'
       produces:
       - application/json
       responses:
@@ -1080,6 +1238,82 @@ paths:
       summary: 获取数据源表结构
       tags:
       - query
+  /v1/tenants/{slug}/datasources/{datasourceId}/tables/{table}/preview:
+    get:
+      operationId: previewTable
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 数据源ID
+        in: path
+        name: datasourceId
+        required: true
+        type: integer
+      - description: 表名
+        in: path
+        name: table
+        required: true
+        type: string
+      - description: 行数上限（默认100，最多500）
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 预览表数据
+      tags:
+      - query
+  /v1/tenants/{slug}/datasources/test:
+    post:
+      consumes:
+      - application/json
+      operationId: testDatasource
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 连接信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            dsn:
+              type: string
+            gateway_id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              data:
+                properties:
+                  latency_ms:
+                    format: int64
+                    type: integer
+                type: object
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 测试数据源连接
+      tags:
+      - datasource
   /v1/tenants/{slug}/gateways:
     get:
       operationId: listGateways
@@ -1255,6 +1489,8 @@ paths:
             description:
               type: string
             name:
+              type: string
+            slug:
               type: string
           type: object
       produces:

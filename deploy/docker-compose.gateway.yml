@@ -13,7 +13,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile.gateway
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.1.4}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.1.5}
     container_name: owlapi_gateway
     restart: unless-stopped
     environment:
@@ -29,6 +29,8 @@ services:
     volumes:
       # 日志持久化
       - ./logs:/owlapi/logs
+      # SQLite 数据持久化（演示数据库 & 用户自建 SQLite）
+      - sqlite_data:/data
     deploy:
       resources:
         limits:
@@ -39,3 +41,6 @@ services:
       options:
         max-size: "50m"
         max-file: "3"
+
+volumes:
+  sqlite_data:

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Activity, Server, ArrowUpRight, ArrowDownRight, Box, FolderGit2 } from "lucide-react"
-import { useUIStore } from "@/store/useUIStore"
+import { useTenant } from "@/providers/TenantProvider"
 import { useGateways, useProjects, useDataSources, useScripts } from "@/hooks"
 
 const TRAFFIC_DATA = {
@@ -19,7 +19,7 @@ const RANGE_LABELS = {
 
 export default function OverviewPage() {
   const [range, setRange] = useState<keyof typeof TRAFFIC_DATA>("24H")
-  const { activeTenant } = useUIStore()
+  const activeTenant = useTenant()
   const { gateways, pagination: gwPagination } = useGateways(activeTenant, { is_pager: 0 })
   const { pagination: projPagination } = useProjects(activeTenant, { is_pager: 0 })
   const { pagination: dsPagination } = useDataSources(activeTenant, { is_pager: 0 })

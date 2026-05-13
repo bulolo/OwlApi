@@ -1,27 +1,20 @@
 "use client"
 
 import { useState } from "react"
-
-import {
-  Users,
-  Plus,
-  Search,
-  Mail,
-  Trash2,
-  X,
-} from "lucide-react"
+import { Users, Plus, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
-import { useUIStore } from "@/store/useUIStore"
+import { useTenant } from "@/providers/TenantProvider"
 import { useUsers, useAddUser, useRemoveUser, useUpdateUserRole } from "@/hooks"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Pager } from "@/components/ui/pager"
 import { ListSkeleton } from "@/components/ui/skeletons"
 import { EmptyState } from "@/components/ui/empty-state"
 import { showConfirm } from "@/store/useConfirmStore"
+import { AddUserForm } from "./_components/AddUserForm"
+import { UserRow } from "./_components/UserRow"
+
 export default function UsersClientPage() {
-  const { activeTenant } = useUIStore()
+  const activeTenant = useTenant()
   const [keyword, setKeyword] = useState("")
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ email: "", name: "", password: "", role: "Viewer" })
@@ -39,7 +32,7 @@ export default function UsersClientPage() {
     if (!form.email || !form.name || !form.password || !activeTenant) return
     setAddError("")
     addMutation.mutate(
-      { email: form.email, name: form.name, password: form.password, role: form.role as 'Admin' | 'Viewer' },
+      { email: form.email, name: form.name, password: form.password, role: form.role as "Admin" | "Viewer" },
       {
         onSuccess: () => { setForm({ email: "", name: "", password: "", role: "Viewer" }); setShowAdd(false) },
         onError: (err) => setAddError(err.message || "添加失败"),
@@ -52,7 +45,7 @@ export default function UsersClientPage() {
     removeMutation.mutate(userId)
   }
 
-  const handleRoleChange = (userId: number, role: 'Admin' | 'Viewer') => {
+  const handleRoleChange = (userId: number, role: "Admin" | "Viewer") => {
     roleMutation.mutate({ userId, role })
   }
 
@@ -77,46 +70,15 @@ export default function UsersClientPage() {
         </Button>
       </div>
 
-      {/* Add User Form */}
       {showAdd && (
-        <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-zinc-900">添加成员</h3>
-            <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => { setShowAdd(false); setAddError("") }}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase">邮箱</label>
-              <Input placeholder="user@company.com" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="h-9 text-xs" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase">姓名</label>
-              <Input placeholder="张三" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="h-9 text-xs" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase">密码</label>
-              <Input type="password" placeholder="••••••••" value={form.password} onChange={(e) => setForm({...form, password: e.target.value})} className="h-9 text-xs" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase">角色</label>
-              <Select value={form.role} onValueChange={(v) => setForm({...form, role: v})}>
-                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="Viewer">Viewer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {addError && <p className="text-xs text-red-500">{addError}</p>}
-          <div className="flex justify-end">
-            <Button onClick={handleAdd} disabled={addMutation.isPending} className="h-9 px-6 bg-blue-600 text-white text-xs font-bold">
-              {addMutation.isPending ? "添加中..." : "确认添加"}
-            </Button>
-          </div>
-        </div>
+        <AddUserForm
+          form={form}
+          addError={addError}
+          isPending={addMutation.isPending}
+          onFormChange={setForm}
+          onAdd={handleAdd}
+          onClose={() => { setShowAdd(false); setAddError("") }}
+        />
       )}
 
       {/* Search */}
@@ -140,45 +102,13 @@ export default function UsersClientPage() {
           <EmptyState icon={Users} title="暂无成员" description="添加第一个团队成员" />
         ) : (
           users.map((m) => (
-            <div
+            <UserRow
               key={m.user_id}
-              className="bg-white border border-zinc-100 rounded-lg p-4 shadow-sm hover:shadow-sm transition-all group"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold uppercase border",
-                    roleColor(m.role)
-                  )}>
-                    {(m.user?.name || "?").charAt(0)}
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-zinc-900">{m.user?.name}</h4>
-                    <p className="text-xs text-zinc-400 font-medium flex items-center gap-1.5 mt-0.5">
-                      <Mail className="w-3 h-3" />
-                      {m.user?.email}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Select value={m.role} onValueChange={(v) => handleRoleChange(m.user_id!, v as 'Admin' | 'Viewer')}>
-                    <SelectTrigger className={cn("h-7 w-24 text-[10px] font-bold uppercase rounded-full border", roleColor(m.role))}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Viewer">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="w-8 h-8 text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                    onClick={() => handleRemove(m.user_id!)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+              member={m}
+              roleColor={roleColor}
+              onRoleChange={handleRoleChange}
+              onRemove={handleRemove}
+            />
           ))
         )}
       </div>

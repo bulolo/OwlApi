@@ -42,12 +42,13 @@ func (h *ProjectHandler) HandleList(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param slug path string true "租户slug"
-// @Param body body object{name=string,description=string} true "项目信息"
+// @Param body body object{slug=string,name=string,description=string} true "项目信息"
 // @Success 200 {object} RProject
 // @Router /v1/tenants/{slug}/projects [post]
 func (h *ProjectHandler) HandleCreate(c *gin.Context) {
 	tenant := GetTenant(c)
 	var req struct {
+		Slug        string `json:"slug" binding:"required"`
 		Name        string `json:"name" binding:"required"`
 		Description string `json:"description"`
 	}
@@ -55,7 +56,7 @@ func (h *ProjectHandler) HandleCreate(c *gin.Context) {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	p := &domain.Project{TenantID: tenant.ID, Name: req.Name, Description: req.Description}
+	p := &domain.Project{TenantID: tenant.ID, Slug: req.Slug, Name: req.Name, Description: req.Description}
 	if err := h.projects.Create(c.Request.Context(), p); err != nil {
 		FailErr(c, err)
 		return
@@ -111,12 +112,16 @@ func (h *ProjectHandler) HandleUpdate(c *gin.Context) {
 		return
 	}
 	var req struct {
+		Slug        string `json:"slug"`
 		Name        string `json:"name"`
 		Description string `json:"description"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
+	}
+	if req.Slug != "" {
+		p.Slug = req.Slug
 	}
 	if req.Name != "" {
 		p.Name = req.Name

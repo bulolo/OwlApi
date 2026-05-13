@@ -1,13 +1,13 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Box,
   Server,
   Database,
-  Hexagon,
   PanelLeftClose,
   PanelLeftOpen,
   FileCode2,
@@ -17,10 +17,10 @@ import { useUIStore } from "@/store/useUIStore"
 import pkg from "../../../package.json"
 
 export function Sidebar({ slug }: { slug?: string }) {
-  const { activeTenant: storeTenant, sidebarCollapsed, setSidebarCollapsed } = useUIStore()
+  const { sidebarCollapsed, setSidebarCollapsed } = useUIStore()
   const collapsed = sidebarCollapsed
 
-  const activeTenant = slug !== 'system' ? (slug || storeTenant) : storeTenant
+  const activeTenant = slug ?? ""
 
   const MENUS = [
     {
@@ -53,9 +53,7 @@ export function Sidebar({ slug }: { slug?: string }) {
       {/* Brand */}
       <div className={cn("h-16 flex items-center mb-1", collapsed ? "px-3 justify-center" : "px-5")}>
         <Link href={`/${activeTenant}/overview`} className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-lg bg-zinc-900 flex items-center justify-center shrink-0 transition-all duration-500 group-hover:bg-blue-600 group-hover:rotate-6 shadow-sm">
-            <Hexagon className="w-4.5 h-4.5 text-white stroke-[2.5]" />
-          </div>
+          <Image src="/logo.svg" alt="OwlApi" width={36} height={36} className="shrink-0" />
           {!collapsed && (
             <div className="flex flex-col">
               <span className="text-base font-bold text-zinc-900 tracking-tight leading-none group-hover:text-blue-600 transition-colors">OwlAPI</span>

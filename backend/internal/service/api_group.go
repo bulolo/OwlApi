@@ -20,21 +20,21 @@ func NewAPIGroupService(repo domain.APIGroupRepository) APIGroupService {
 }
 
 func (s *apiGroupService) List(ctx context.Context, tenantID, projectID int64, p domain.ListParams) ([]*domain.APIGroup, int, error) {
-	return s.repo.ListAPIGroups(ctx, tenantID, projectID, p)
+	return s.repo.List(ctx, tenantID, projectID, p)
 }
 
 func (s *apiGroupService) Create(ctx context.Context, g *domain.APIGroup) error {
-	existing, _ := s.repo.GetAPIGroupByName(ctx, g.TenantID, g.ProjectID, g.Name)
+	existing, _ := s.repo.GetByName(ctx, g.TenantID, g.ProjectID, g.Name)
 	if existing != nil {
 		return domain.ErrConflictf("group name '%s' already exists", g.Name)
 	}
-	return s.repo.CreateAPIGroup(ctx, g)
+	return s.repo.Create(ctx, g)
 }
 
 func (s *apiGroupService) Update(ctx context.Context, g *domain.APIGroup) error {
-	return s.repo.UpdateAPIGroup(ctx, g)
+	return s.repo.Update(ctx, g)
 }
 
 func (s *apiGroupService) Delete(ctx context.Context, tenantID, id int64) error {
-	return s.repo.DeleteAPIGroup(ctx, tenantID, id)
+	return s.repo.Delete(ctx, tenantID, id)
 }

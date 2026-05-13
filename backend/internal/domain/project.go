@@ -8,27 +8,10 @@ import (
 type Project struct {
 	ID          int64     `json:"id"`
 	TenantID    int64     `json:"tenant_id"`
+	Slug        string    `json:"slug"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
-}
-
-type DataSource struct {
-	ID        int64            `json:"id"`
-	TenantID  int64            `json:"tenant_id"`
-	Name      string           `json:"name"`
-	IsDual    bool             `json:"is_dual"`
-	Type      string           `json:"type"`
-	Envs      []*DataSourceEnv `json:"envs,omitempty"`
-	CreatedAt time.Time        `json:"created_at"`
-}
-
-type DataSourceEnv struct {
-	ID           int64  `json:"id"`
-	DataSourceID int64  `json:"datasource_id"`
-	Env          string `json:"env"` // dev, prod
-	DSN          string `json:"dsn,omitempty"`
-	GatewayID    int64  `json:"gateway_id"`
 }
 
 // ParamDef describes a single API parameter for OpenAPI spec generation.
@@ -87,7 +70,8 @@ type EndpointRelease struct {
 // Script is a reusable JavaScript snippet that can be attached to endpoints.
 type Script struct {
 	ID          int64     `json:"id"`
-	TenantID    int64     `json:"tenant_id"`
+	TenantID    int64     `json:"tenant_id,omitempty"`
+	IsPlatform  bool      `json:"is_platform"`
 	Name        string    `json:"name"`
 	Type        string    `json:"type"` // "pre" or "post"
 	Code        string    `json:"code"`

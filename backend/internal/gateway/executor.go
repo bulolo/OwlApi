@@ -13,18 +13,26 @@ import (
 
 	"github.com/bulolo/owlapi/internal/pb"
 	"github.com/dop251/goja"
-	_ "github.com/jackc/pgx/v5/stdlib" // PostgreSQL driver
-	_ "modernc.org/sqlite"             // SQLite driver
+	_ "github.com/go-sql-driver/mysql"  // MySQL driver
+	_ "github.com/jackc/pgx/v5/stdlib"  // PostgreSQL driver
+	_ "github.com/microsoft/go-mssqldb" // SQL Server driver
+	_ "modernc.org/sqlite"              // SQLite driver
 )
 
 // Executor manages database connections and executes SQL queries.
 type Executor struct {
-	mu    sync.RWMutex
-	conns map[string]*sql.DB
+	mu                  sync.RWMutex
+	conns               map[string]*sql.DB
+	queryTimeoutSeconds int
+	jsTimeoutSeconds    int
 }
 
-func NewExecutor() *Executor {
-	return &Executor{conns: make(map[string]*sql.DB)}
+func NewExecutor(queryTimeout, jsTimeout int) *Executor {
+	return &Executor{
+		conns:               make(map[string]*sql.DB),
+		queryTimeoutSeconds: queryTimeout,
+		jsTimeoutSeconds:    jsTimeout,
+	}
 }
 
 // resolveDriver determines the sql.Open driver name from a DSN string.
@@ -42,6 +50,30 @@ func resolveDriver(dsn string) string {
 		return "sqlite"
 	}
 	return "pgx"
+}
+
+// driverForType maps a logical db_type string to a sql driver name.
+func driverForType(dbType string) string {
+	switch dbType {
+	case "mysql", "starrocks", "doris":
+		return "mysql"
+	case "postgres":
+		return "pgx"
+	case "sqlserver":
+		return "sqlserver"
+	case "sqlite":
+		return "sqlite"
+	default:
+		return "pgx"
+	}
+}
+
+// resolveDriverForRequest picks the driver: explicit db_type wins, falls back to DSN heuristic.
+func resolveDriverForRequest(req *pb.ExecuteQueryRequest) string {
+	if req.DbType != "" {
+		return driverForType(req.DbType)
+	}
+	return resolveDriver(req.Dsn)
 }
 
 // redactDSN masks credentials in a DSN for safe logging.
@@ -74,6 +106,7 @@ func (e *Executor) getConn(dsn string) (*sql.DB, error) {
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(10 * time.Minute)
 
 	e.conns[dsn] = db
 	slog.Info("Opened database connection", "driver", driver, "dsn", redactDSN(dsn))
@@ -81,7 +114,7 @@ func (e *Executor) getConn(dsn string) (*sql.DB, error) {
 }
 
 // allowedSQLPrefixes defines the SQL statement types that are permitted.
-var allowedSQLPrefixes = []string{"SELECT", "INSERT", "UPDATE", "DELETE", "WITH"}
+var allowedSQLPrefixes = []string{"SELECT", "INSERT", "UPDATE", "DELETE", "WITH", "SHOW"}
 
 // validateSQLStatement checks that a SQL statement starts with an allowed keyword.
 func validateSQLStatement(stmt string) error {
@@ -304,20 +337,22 @@ func isAlphaNum(b byte) bool {
 func (e *Executor) Execute(req *pb.ExecuteQueryRequest) *pb.QueryResult {
 	start := time.Now()
 
-	if req.DatasourceId == "" {
+	if req.Dsn == "" {
 		return fail(req.RequestId, "datasource DSN is empty")
 	}
 
-	db, err := e.getConn(req.DatasourceId)
+	db, err := e.getConn(req.Dsn)
 	if err != nil {
 		return fail(req.RequestId, fmt.Sprintf("connect failed: %v", err))
 	}
+
+	jsTimeout := time.Duration(e.jsTimeoutSeconds) * time.Second
 
 	// Pre-script: can modify params and optionally rewrite SQL
 	params := req.Params
 	sqlText := req.Sql
 	if req.PreScript != "" {
-		psr, err := runPreScript(req.PreScript, params, sqlText)
+		psr, err := runPreScript(req.PreScript, params, sqlText, jsTimeout)
 		if err != nil {
 			return fail(req.RequestId, fmt.Sprintf("pre_script failed: %v", err))
 		}
@@ -327,7 +362,7 @@ func (e *Executor) Execute(req *pb.ExecuteQueryRequest) *pb.QueryResult {
 		}
 	}
 
-	driver := resolveDriver(req.DatasourceId)
+	driver := resolveDriverForRequest(req)
 
 	_, hasLimit := params["limit"]
 	_, hasOffset := params["offset"]
@@ -397,7 +432,7 @@ func (e *Executor) Execute(req *pb.ExecuteQueryRequest) *pb.QueryResult {
 		stmtQuery, stmtArgs := buildQueryArgs(stmt, params, driver)
 		upper := strings.ToUpper(stmt)
 		isLast := i == len(stmts)-1
-		isSelect := strings.HasPrefix(upper, "SELECT") || strings.HasPrefix(upper, "WITH")
+		isSelect := strings.HasPrefix(upper, "SELECT") || strings.HasPrefix(upper, "WITH") || strings.HasPrefix(upper, "SHOW")
 
 		if isSelect {
 			rows, err := tx.Query(stmtQuery, stmtArgs...)
@@ -435,7 +470,7 @@ func (e *Executor) Execute(req *pb.ExecuteQueryRequest) *pb.QueryResult {
 
 	// Post-script
 	if req.PostScript != "" {
-		transformed, err := runPostScript(req.PostScript, results, params)
+		transformed, err := runPostScript(req.PostScript, results, params, jsTimeout)
 		if err != nil {
 			return fail(req.RequestId, fmt.Sprintf("post_script failed: %v", err))
 		}
@@ -517,11 +552,9 @@ type preScriptResult struct {
 	SQL    string
 }
 
-const jsTimeout = 5 * time.Second
-
 // runPreScript executes JS: function main(params, sql) { ... return { params, sql? }; }
 // Enforces a timeout to prevent infinite loops.
-func runPreScript(code string, params map[string]string, sql string) (*preScriptResult, error) {
+func runPreScript(code string, params map[string]string, sql string, jsTimeout time.Duration) (*preScriptResult, error) {
 	vm := goja.New()
 	vm.SetFieldNameMapper(goja.UncapFieldNameMapper())
 
@@ -601,7 +634,7 @@ func stripOrderBy(sql string) string {
 
 // runPostScript executes JS: function main(data, params) { ... return any; }
 // Enforces a timeout to prevent infinite loops.
-func runPostScript(code string, data []map[string]interface{}, params map[string]string) (interface{}, error) {
+func runPostScript(code string, data []map[string]interface{}, params map[string]string, jsTimeout time.Duration) (interface{}, error) {
 	vm := goja.New()
 	vm.SetFieldNameMapper(goja.UncapFieldNameMapper())
 
@@ -622,7 +655,7 @@ func runPostScript(code string, data []map[string]interface{}, params map[string
 	return result.Export(), nil
 }
 
-// InitDemoData creates demo tables and sample data in the given SQLite database.
+// InitDemoData creates ecommerce demo tables and sample data in the given SQLite database.
 func (e *Executor) InitDemoData(dsn string) {
 	db, err := e.getConn(dsn)
 	if err != nil {
@@ -630,7 +663,7 @@ func (e *Executor) InitDemoData(dsn string) {
 		return
 	}
 
-	queries := []string{
+	ddl := []string{
 		`CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
@@ -657,20 +690,20 @@ func (e *Executor) InitDemoData(dsn string) {
 		)`,
 	}
 
-	for _, q := range queries {
+	for _, q := range ddl {
 		if _, err := db.Exec(q); err != nil {
-			slog.Error("Failed to create demo table", "error", err)
+			slog.Error("Failed to create ecommerce table", "error", err)
 			return
 		}
 	}
 
 	var count int
 	if err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count); err != nil {
-		slog.Error("Failed to check demo data", "error", err)
+		slog.Error("Failed to check ecommerce demo data", "error", err)
 		return
 	}
 	if count > 0 {
-		slog.Info("Demo data already exists, skipping")
+		slog.Info("Ecommerce demo data already exists, skipping")
 		return
 	}
 
@@ -704,10 +737,102 @@ func (e *Executor) InitDemoData(dsn string) {
 
 	for _, q := range seedSQL {
 		if _, err := db.Exec(q); err != nil {
-			slog.Error("Failed to seed demo data", "error", err)
+			slog.Error("Failed to seed ecommerce demo data", "error", err)
 			return
 		}
 	}
 
-	slog.Info("Demo data initialized", "dsn", redactDSN(dsn))
+	slog.Info("Ecommerce demo data initialized", "dsn", redactDSN(dsn))
+}
+
+// InitCMSDemoData creates CMS demo tables and sample data in the given SQLite database.
+func (e *Executor) InitCMSDemoData(dsn string) {
+	db, err := e.getConn(dsn)
+	if err != nil {
+		slog.Error("Failed to init CMS demo data", "dsn", redactDSN(dsn), "error", err)
+		return
+	}
+
+	ddl := []string{
+		`CREATE TABLE IF NOT EXISTS categories (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			slug TEXT NOT NULL UNIQUE,
+			description TEXT DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS tags (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			slug TEXT NOT NULL UNIQUE
+		)`,
+		`CREATE TABLE IF NOT EXISTS articles (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT NOT NULL,
+			content TEXT NOT NULL DEFAULT '',
+			summary TEXT NOT NULL DEFAULT '',
+			author_id INTEGER NOT NULL DEFAULT 1,
+			category_id INTEGER NOT NULL DEFAULT 1,
+			status TEXT NOT NULL DEFAULT 'draft',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS comments (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			article_id INTEGER NOT NULL,
+			author_name TEXT NOT NULL,
+			content TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'pending',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+	}
+
+	for _, q := range ddl {
+		if _, err := db.Exec(q); err != nil {
+			slog.Error("Failed to create CMS table", "error", err)
+			return
+		}
+	}
+
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM categories").Scan(&count); err != nil {
+		slog.Error("Failed to check CMS demo data", "error", err)
+		return
+	}
+	if count > 0 {
+		slog.Info("CMS demo data already exists, skipping")
+		return
+	}
+
+	seedSQL := []string{
+		`INSERT INTO categories (name, slug, description) VALUES
+			('旅行', 'travel', '目的地攻略与出行体验分享'),
+			('美食', 'food', '餐厅探店与家常食谱'),
+			('生活', 'lifestyle', '居家、健康与日常好物')`,
+		`INSERT INTO tags (name, slug) VALUES
+			('周末游', 'weekend-trip'),
+			('探店', 'restaurant'),
+			('家常菜', 'home-cooking'),
+			('好物推荐', 'recommendations'),
+			('亲子', 'family')`,
+		`INSERT INTO articles (title, content, summary, author_id, category_id, status) VALUES
+			('大理古城三日游完全攻略', '## 第一天：古城漫步\n\n从南门进入，沿着人民路一路向北...', '含住宿、餐饮、景点全安排，拿走不谢', 1, 1, 'published'),
+			('成都必吃的 10 家苍蝇馆子', '## 老妈蹄花\n\n藏在小巷里的这家店排队要两小时...', '本地人带路，专挑游客不知道的宝藏小店', 2, 2, 'published'),
+			('周末两天一夜：莫干山亲子游', '## 适合家庭的行程\n\n民宿选在山腰，推窗就是竹林...', '带娃出行也可以不累，附详细时间表', 1, 1, 'published'),
+			('在家复刻网红咖啡馆燕麦拿铁', '## 材料清单\n\n燕麦奶 200ml、浓缩咖啡 30ml...', '不用出门，10 分钟做出好喝的燕麦拿铁', 3, 2, 'published'),
+			('租房改造：50㎡小户型住出大感觉', '## 收纳是关键\n\n利用垂直空间，墙面打柜到顶...', '低预算软装改造全记录，附购物清单', 2, 3, 'draft')`,
+		`INSERT INTO comments (article_id, author_name, content, status) VALUES
+			(1, '背包客小林', '古城南门那家乳扇真的绝，谢谢推荐！', 'approved'),
+			(1, '旅行爱好者', '请问民宿提前多久订比较好？', 'approved'),
+			(2, '吃货本货', '老妈蹄花那家我去年去的，味道没变！', 'approved'),
+			(3, '两娃妈妈', '正在做攻略，这篇太及时了，收藏！', 'pending'),
+			(4, '咖啡爱好者', '燕麦奶用哪个牌子？', 'approved')`,
+	}
+
+	for _, q := range seedSQL {
+		if _, err := db.Exec(q); err != nil {
+			slog.Error("Failed to seed CMS demo data", "error", err)
+			return
+		}
+	}
+
+	slog.Info("CMS demo data initialized", "dsn", redactDSN(dsn))
 }

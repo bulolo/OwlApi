@@ -27,14 +27,18 @@ type QueryService interface {
 }
 
 type queryService struct {
-	gateways    GatewayService
-	dataSources DataSourceService
-	scripts     ScriptService
-	pending     sync.Map
+	gateways          GatewayBroker
+	dataSources       DataSourceService
+	scripts           ScriptService
+	pending           sync.Map
+	serverWaitSeconds int
 }
 
-func NewQueryService(gateways GatewayService, dataSources DataSourceService, scripts ScriptService) QueryService {
-	return &queryService{gateways: gateways, dataSources: dataSources, scripts: scripts}
+func NewQueryService(gateways GatewayBroker, dataSources DataSourceService, scripts ScriptService, serverWaitSeconds int) QueryService {
+	if serverWaitSeconds <= 0 {
+		serverWaitSeconds = 35
+	}
+	return &queryService{gateways: gateways, dataSources: dataSources, scripts: scripts, serverWaitSeconds: serverWaitSeconds}
 }
 
 func generateRequestID() string {
@@ -47,15 +51,15 @@ func generateRequestID() string {
 }
 
 func (s *queryService) Execute(ctx context.Context, tenantID string, endpoint *domain.APIEndpoint, params map[string]string) (*pb.QueryResult, error) {
-	dsEnv, err := s.dataSources.GetEnv(ctx, endpoint.DataSourceID, "prod")
+	dsEnv, err := s.dataSources.GetEnv(ctx, endpoint.TenantID, endpoint.DataSourceID, "prod")
 	if err != nil {
 		return nil, fmt.Errorf("%w: datasource %d: %v", ErrDatasourceNotFound, endpoint.DataSourceID, err)
 	}
 
 	gatewayID := strconv.FormatInt(dsEnv.GatewayID, 10)
-	stream := s.gateways.GetStream(tenantID, gatewayID)
+	stream := s.gateways.GetStream(gatewayID)
 	if stream == nil {
-		return nil, fmt.Errorf("%w: gateway %s for tenant %s", ErrGatewayNotConnected, gatewayID, tenantID)
+		return nil, fmt.Errorf("%w: gateway %s", ErrGatewayNotConnected, gatewayID)
 	}
 
 	var preScript, postScript string
@@ -83,7 +87,8 @@ func (s *queryService) Execute(ctx context.Context, tenantID string, endpoint *d
 		Payload: &pb.ServerMessage_ExecuteQuery{
 			ExecuteQuery: &pb.ExecuteQueryRequest{
 				RequestId:      requestID,
-				DatasourceId:   dsEnv.DSN,
+				Dsn:            dsEnv.DSN,
+				DbType:         "",
 				Sql:            endpoint.SQL,
 				Params:         params,
 				TimeoutSeconds: 30,
@@ -96,7 +101,8 @@ func (s *queryService) Execute(ctx context.Context, tenantID string, endpoint *d
 		return nil, err
 	}
 
-	timer := time.NewTimer(35 * time.Second)
+	// serverWaitSeconds = gateway QueryTimeout + 5s buffer
+	timer := time.NewTimer(time.Duration(s.serverWaitSeconds) * time.Second)
 	defer timer.Stop()
 
 	select {
@@ -110,7 +116,7 @@ func (s *queryService) Execute(ctx context.Context, tenantID string, endpoint *d
 }
 
 func (s *queryService) ExecuteDirect(ctx context.Context, tenantID, gatewayID, dsn, sqlStr string) (*pb.QueryResult, error) {
-	stream := s.gateways.GetStream(tenantID, gatewayID)
+	stream := s.gateways.GetStream(gatewayID)
 	if stream == nil {
 		return nil, fmt.Errorf("%w: gateway %s", ErrGatewayNotConnected, gatewayID)
 	}
@@ -124,7 +130,8 @@ func (s *queryService) ExecuteDirect(ctx context.Context, tenantID, gatewayID, d
 		Payload: &pb.ServerMessage_ExecuteQuery{
 			ExecuteQuery: &pb.ExecuteQueryRequest{
 				RequestId:      requestID,
-				DatasourceId:   dsn,
+				Dsn:            dsn,
+				DbType:         "",
 				Sql:            sqlStr,
 				TimeoutSeconds: 30,
 			},
@@ -134,7 +141,8 @@ func (s *queryService) ExecuteDirect(ctx context.Context, tenantID, gatewayID, d
 		return nil, err
 	}
 
-	timer := time.NewTimer(35 * time.Second)
+	// serverWaitSeconds = gateway QueryTimeout + 5s buffer
+	timer := time.NewTimer(time.Duration(s.serverWaitSeconds) * time.Second)
 	defer timer.Stop()
 
 	select {

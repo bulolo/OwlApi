@@ -1,9 +1,19 @@
 import { listGateways, createGateway, getGateway, deleteGateway } from '@/lib/sdk'
 import type { Gateway, ListQuery, PaginatedData, CreateGatewayRequest } from './types'
 
-const cast = <T>(p: unknown): Promise<T> => p as Promise<T>
+// ── SDK wrappers ─────────────────────────────────────────────────────────────
+// The generated SDK functions return typed data inside an opaque response
+// object. We unwrap with `as` only at this boundary so the rest of the app
+// stays type-safe.
 
-export const apiListGateways = (slug: string, q: ListQuery = {}) => cast<PaginatedData<Gateway>>(listGateways({ path: { slug }, query: q }))
-export const apiCreateGateway = (slug: string, req: CreateGatewayRequest) => cast<Gateway>(createGateway({ path: { slug }, body: req }))
-export const apiGetGateway = (slug: string, gatewayId: number) => cast<Gateway>(getGateway({ path: { slug, gatewayId } }))
-export const apiDeleteGateway = (slug: string, gatewayId: number) => cast<void>(deleteGateway({ path: { slug, gatewayId } }))
+export const apiListGateways = (slug: string, q: ListQuery = {}) =>
+  listGateways({ path: { slug }, query: q }) as unknown as Promise<PaginatedData<Gateway>>
+
+export const apiCreateGateway = (slug: string, req: CreateGatewayRequest) =>
+  createGateway({ path: { slug }, body: req }) as unknown as Promise<Gateway>
+
+export const apiGetGateway = (slug: string, gatewayId: number) =>
+  getGateway({ path: { slug, gatewayId } }) as unknown as Promise<Gateway>
+
+export const apiDeleteGateway = (slug: string, gatewayId: number) =>
+  deleteGateway({ path: { slug, gatewayId } }) as unknown as Promise<void>

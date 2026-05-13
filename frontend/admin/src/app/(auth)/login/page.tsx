@@ -10,7 +10,7 @@ import { useAuthStore } from "@/store/useAuthStore"
 import { STORAGE_KEYS } from "@/lib/constants"
 import { useQueryClient } from "@tanstack/react-query"
 import { useQuery } from "@tanstack/react-query"
-import { apiGetPlatformSettings } from "@/lib/api-client"
+import { apiGetPlatformSettings, getToken } from "@/lib/api-client"
 
 export default function LoginPage() {
   return (
@@ -36,6 +36,14 @@ function LoginForm() {
   const [error, setError] = useState("")
   const [remember, setRemember] = useState(false)
 
+  // If already authenticated, skip the login page entirely
+  useEffect(() => {
+    if (getToken()) {
+      const redirect = searchParams.get('redirect')
+      router.replace(redirect || '/')
+    }
+  }, [router, searchParams])
+
   // Restore saved email only (never store password)
   useEffect(() => {
     const savedEmail = localStorage.getItem(STORAGE_KEYS.REMEMBER_EMAIL)
@@ -56,7 +64,7 @@ function LoginForm() {
         localStorage.removeItem(STORAGE_KEYS.REMEMBER_EMAIL)
       }
       const res = await login(email, password)
-      await qc.invalidateQueries({ queryKey: ["tenants"] })
+      qc.invalidateQueries({ queryKey: ["tenants"] })
       const redirect = searchParams.get('redirect')
       if (redirect) {
         router.push(redirect)

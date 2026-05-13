@@ -10,7 +10,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.5}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.6}
     container_name: owlapi_backend
     restart: unless-stopped
     ports:
@@ -19,13 +19,16 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
       - OWLAPI_HTTP_PORT=:3000
-      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - OWLAPI_JWT_SECRET=${OWLAPI_JWT_SECRET:-change-me-in-production}
+      - OWLAPI_CORS_ORIGIN=${OWLAPI_CORS_ORIGIN:-*}
+      - OWLAPI_LOG_LEVEL=${OWLAPI_LOG_LEVEL:-info}
       - TZ=Asia/Shanghai
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,7 +52,7 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:${DOCKER_IMAGE_TAG:-v0.1.5}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:${DOCKER_IMAGE_TAG:-v0.1.6}
     container_name: owlapi_admin
     restart: unless-stopped
     ports:
@@ -98,16 +101,47 @@ services:
         max-size: "50m"
         max-file: "3"
 
+  # Built-in Gateway Node (local, connects to backend via gRPC)
+  gateway:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.gateway
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.1.6}
+    container_name: owlapi_gateway
+    restart: unless-stopped
+    environment:
+      - OWLAPI_SERVER_URL=dns:///backend:9090
+      - OWLAPI_GATEWAY_ID=${OWLAPI_GATEWAY_ID:-1}
+      - OWLAPI_GATEWAY_TOKEN=${OWLAPI_GATEWAY_TOKEN:-}
+      - OWLAPI_TENANT_ID=${OWLAPI_TENANT_ID:-1}
+      - TZ=Asia/Shanghai
+    volumes:
+      - gateway_data:/data
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
   # Backend Init: schema + seed demo data (runs every startup)
   backend-init:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.5}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.6}
     container_name: owlapi_init
     command: ["./init"]
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
+      - OWLAPI_GATEWAY_TOKEN=${OWLAPI_GATEWAY_TOKEN:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,3 +149,4 @@ services:
 
 volumes:
   postgres_data:
+  gateway_data:

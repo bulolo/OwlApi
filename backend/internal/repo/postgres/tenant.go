@@ -60,7 +60,7 @@ func (r *TenantRepo) List(ctx context.Context, p domain.ListParams) ([]*domain.T
 	}
 	pgSuffix, pgArgs := appendPagination(p, argN, args)
 	rows, err := r.DB.Pool.Query(ctx,
-		fmt.Sprintf(`SELECT `+tenantCols+` FROM tenants %s ORDER BY created_at DESC%s`, where, pgSuffix),
+		fmt.Sprintf(`SELECT `+tenantCols+` FROM tenants %s ORDER BY id ASC%s`, where, pgSuffix),
 		pgArgs...)
 	if err != nil {
 		return nil, 0, err
@@ -100,7 +100,7 @@ func (r *TenantRepo) ListByIDs(ctx context.Context, ids []int64, p domain.ListPa
 	}
 	pgSuffix, pgArgs := appendPagination(p, argN, args)
 	rows, err := r.DB.Pool.Query(ctx,
-		fmt.Sprintf(`SELECT `+tenantCols+` FROM tenants %s ORDER BY created_at DESC%s`, where, pgSuffix),
+		fmt.Sprintf(`SELECT `+tenantCols+` FROM tenants %s ORDER BY id ASC%s`, where, pgSuffix),
 		pgArgs...)
 	if err != nil {
 		return nil, 0, err

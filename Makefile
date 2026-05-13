@@ -23,6 +23,13 @@ DEV_COMPOSE    := docker compose -f docker-compose.dev.yml
 PROD_COMPOSE   := docker compose -f deploy/docker-compose.yml
 STATIC_COMPOSE := docker compose -f deploy/docker-compose.static.yml
 
+# 跨平台 sed -i (macOS 需要空字符串参数)
+ifeq ($(UNAME_S),Darwin)
+  SED_I := sed -i ''
+else
+  SED_I := sed -i
+endif
+
 # ------------------------------------------------------------------------------
 # 2. 帮助信息 (Help)
 # ------------------------------------------------------------------------------
@@ -73,7 +80,7 @@ help:
 	@echo "  make help                显示此帮助信息"
 	@echo ""
 	@echo " 📦 [发布同步] (Release & Sync)"
-	@echo "  make set-version v=0.1.5 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
+	@echo "  make set-version v=0.1.6 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
 	@echo "  make             从 ee 生成 Community Edition (CE) 分支"
 	@echo "  make   将 origin/ce 同步并推送到 GitHub 公开仓库"
 	@echo "  make init-test-db        向 default 租户写入四种测试数据源 (需服务已启动)"
@@ -96,6 +103,8 @@ check-dev-env:
 dev-init:
 	@echo "🔧 [OwlApi] 正在初始化开发环境配置..."
 	@cp backend/.env.example backend/.env
+	@$(SED_I) 's|OWLAPI_CORS_ORIGIN=https://admin.owlapi.cn|OWLAPI_CORS_ORIGIN=http://localhost:8001|' backend/.env
+	@$(SED_I) 's|PUBLIC_API_URL=https://api.owlapi.cn|PUBLIC_API_URL=http://localhost:3000|' backend/.env
 	@echo "✅ [OwlApi] 开发环境配置文件已生成: backend/.env"
 
 dev-build: check-dev-env
@@ -156,7 +165,11 @@ prod-init:
 	@echo "🚀 [OwlApi] 正在初始化生产环境配置..."
 	@cp backend/.env.example deploy/.env
 	@echo "✅ [OwlApi] 生产环境配置文件已生成: deploy/.env"
-	@echo "⚠️  请务必在运行 'make prod-up' 前修改敏感信息 (OWLAPI_JWT_SECRET, POSTGRES_PASSWORD 等)！"
+	@echo "⚠️  请务必在运行 'make prod-up' 前修改以下敏感信息："
+	@echo "    - POSTGRES_PASSWORD   数据库密码"
+	@echo "    - OWLAPI_JWT_SECRET   JWT 签名密钥 (建议: openssl rand -hex 32)"
+	@echo "    - OWLAPI_GATEWAY_TOKEN  网关认证令牌 (建议: openssl rand -hex 16)"
+	@echo "    - PUBLIC_API_URL      后端 API 公网地址"
 
 prod-up: check-prod-env
 	@echo "🚀 [PROD] 正在启动生产集群..."

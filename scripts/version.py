@@ -97,7 +97,15 @@ def set_version(version):
         if changed_a or changed_b:
             print(f"✅ Updated: {compose_path} (image tags → {v_tag})")
 
-    # 5. Makefile help example
+    # 5. deploy/.env — 清除 DOCKER_IMAGE_TAG（版本由 compose fallback 管理，不存 .env）
+    if update_file(
+        'deploy/.env',
+        r'(?m)^DOCKER_IMAGE_TAG=[^\s#]+\n?',
+        '',
+    ):
+        print("✅ Cleaned: deploy/.env (removed DOCKER_IMAGE_TAG)")
+
+    # 6. Makefile help example
     if update_file(
         'Makefile',
         r'make set-version v=[\d.]+',

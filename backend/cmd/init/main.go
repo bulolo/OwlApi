@@ -312,7 +312,6 @@ func seed(ctx context.Context,
 	}
 
 	superadmin := ensureUser(ctx, r, "superadmin@owlapi.cn", "SuperAdmin", "superadmin123", true)
-	_ = superadmin
 
 	ps := seedPlatformScripts(ctx, r)
 
@@ -320,15 +319,18 @@ func seed(ctx context.Context,
 	gwToken := os.Getenv("OWLAPI_GATEWAY_TOKEN")
 	gw := ensureGateway(ctx, r, 0, "内置网关", gwToken, true)
 
-	seedEcommerce(ctx, r, ps, gw)
+	defaultTenant := seedEcommerce(ctx, r, ps, gw)
 	seedCMS(ctx, r, ps, gw)
+
+	// superadmin 关联到 default 租户，确保登录后能看到数据
+	ensureTenantUser(ctx, r, defaultTenant.ID, superadmin.ID, domain.RoleAdmin)
 
 	slog.Info("🦉 Seed completed!")
 }
 
 // ── tenant 1: 研发中心 / ecommerce ────────────────────────────────────────────
 
-func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain.Gateway) {
+func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain.Gateway) *domain.Tenant {
 	tenant := ensureTenant(ctx, r, "default", "研发中心")
 	admin := ensureUser(ctx, r, "admin@owlapi.cn", "Admin", "admin123", false)
 	ensureTenantUser(ctx, r, tenant.ID, admin.ID, domain.RoleAdmin)
@@ -461,6 +463,7 @@ func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain
 			Summary: "用户消费排行", SQL: "SELECT u.name, u.email, COUNT(o.id) AS orders, SUM(o.total) AS total_spent FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.name, u.email ORDER BY total_spent DESC",
 			PostScriptID: postList},
 	})
+	return tenant
 }
 
 // ── tenant 2: 内容平台 / cms ──────────────────────────────────────────────────

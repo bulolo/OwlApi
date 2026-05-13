@@ -3,7 +3,7 @@ import { STORAGE_KEYS } from '@/lib/constants'
 
 export const createClientConfig: CreateClientConfig = (config) => ({
   ...config,
-  baseUrl: '/',
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || '',
   responseStyle: 'data',
   auth: () => {
     if (typeof window !== 'undefined') {

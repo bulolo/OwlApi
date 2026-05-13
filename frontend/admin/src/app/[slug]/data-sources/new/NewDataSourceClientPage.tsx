@@ -29,7 +29,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { DB_TYPES } from "@/lib/constants"
-import { apiTestDatasource } from "@/lib/api/data-sources"
+import { apiTestDatasource } from "@/lib/api-client"
 import type { DataSource } from "@/lib/api-client"
 
 // ─── Types ────────────────────────────────────────────────────────────────────

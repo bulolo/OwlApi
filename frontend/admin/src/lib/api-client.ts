@@ -1,7 +1,14 @@
-/**
- * OwlApi Client — public re-export surface
- *
- * Domain logic lives in src/lib/api/*. This file is kept for backwards
- * compatibility so existing imports (@/lib/api-client) continue to work.
- */
-export * from './api'
+export * from './api/types'
+export { setToken, clearToken, getToken } from './api/token'
+export * from './api/auth'
+export * from './api/tenants'
+export * from './api/users'
+export * from './api/gateways'
+export * from './api/data-sources'
+export * from './api/projects'
+export * from './api/endpoints'
+export * from './api/groups'
+export * from './api/scripts'
+export * from './api/query'
+export * from './api/releases'
+export * from './api/platform-settings'

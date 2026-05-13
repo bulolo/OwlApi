@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useIsClient } from "@/hooks/useIsClient"
-import { Settings, LogOut, Settings2 } from "lucide-react"
+import { LogOut, Settings, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import PlatformSettingsModal from "./PlatformSettingsModal"
 import TenantSettingsModal from "./TenantSettingsModal"
@@ -34,27 +34,26 @@ export function Header({ slug }: { slug?: string }) {
       <div className="flex items-center gap-3">
         {mounted ? (
           <>
-            {/* 1. Tenant Settings (all users) */}
-            <Button
-              variant="ghost"
-              className="h-9 px-3 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-lg transition-all text-xs font-bold gap-1.5"
-              onClick={() => setOpenTenantSettings(true)}
-            >
-              <Settings2 className="w-4 h-4" />
-              系统设置
-            </Button>
-
-            {/* 2. Platform Settings (SuperAdmin only) */}
+            {/* 1. Platform Settings (SuperAdmin only) */}
             {user?.is_superadmin && (
-              <Button
-                variant="ghost"
-                className="h-9 px-3 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-lg transition-all text-xs font-bold gap-1.5"
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200 rounded-xl hover:bg-amber-100 transition-all"
                 onClick={() => setOpenSettings(true)}
+                title="平台设置"
               >
-                <Settings className="w-4 h-4" />
+                <ShieldCheck className="w-3.5 h-3.5" />
                 平台设置
-              </Button>
+              </button>
             )}
+
+            {/* 2. Tenant Settings (all users) */}
+            <button
+              className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-xl transition-all"
+              onClick={() => setOpenTenantSettings(true)}
+              title="系统设置"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
 
             <div className="w-px h-4 bg-zinc-100 mx-1" />
 

@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { useQuery } from "@tanstack/react-query"
+import { useAdminMutation } from "@/hooks"
 import { Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -10,8 +10,6 @@ import { cn } from "@/lib/utils"
 import { apiGetPlatformSettings, apiUpdatePlatformSettings } from "@/lib/api-client"
 
 export default function PlatformSettingsClientPage() {
-  const qc = useQueryClient()
-
   const { data: settings } = useQuery({
     queryKey: ["platform-settings"],
     queryFn: apiGetPlatformSettings,
@@ -20,13 +18,10 @@ export default function PlatformSettingsClientPage() {
   const [localAllowSelfRegister, setLocalAllowSelfRegister] = useState<boolean | null>(null)
   const allowSelfRegister = localAllowSelfRegister ?? settings?.allow_self_register ?? true
 
-  const saveSettings = useMutation({
+  const saveSettings = useAdminMutation({
     mutationFn: () => apiUpdatePlatformSettings({ allow_self_register: allowSelfRegister }),
-    onSuccess: () => {
-      toast.success("平台配置已保存")
-      qc.invalidateQueries({ queryKey: ["platform-settings"] })
-    },
-    onError: (e: Error) => toast.error(e.message || "保存失败"),
+    successMsg: "平台配置已保存",
+    invalidateKeys: [["platform-settings"]],
   })
 
   return (
@@ -38,7 +33,7 @@ export default function PlatformSettingsClientPage() {
         </div>
         <Button
           className="h-9 px-6 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm"
-          onClick={() => saveSettings.mutate()}
+          onClick={() => saveSettings.mutate(undefined)}
           disabled={saveSettings.isPending}
         >
           {saveSettings.isPending ? "保存中..." : "保存更改"}

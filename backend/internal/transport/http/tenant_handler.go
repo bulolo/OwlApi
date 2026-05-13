@@ -150,13 +150,14 @@ func (h *TenantHandler) HandleUpdateTenant(c *gin.Context) {
 // @Router /v1/tenants/{slug}/settings [put]
 func (h *TenantHandler) HandleUpdateTenantSettings(c *gin.Context) {
 	var req struct {
-		MaxReleaseVersions int `json:"max_release_versions"`
+		MaxReleaseVersions int    `json:"max_release_versions"`
+		Avatar             string `json:"avatar"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	tenant, err := h.tenants.UpdateSettings(c.Request.Context(), c.Param("slug"), req.MaxReleaseVersions)
+	tenant, err := h.tenants.UpdateSettings(c.Request.Context(), c.Param("slug"), req.MaxReleaseVersions, req.Avatar)
 	if err != nil {
 		FailErr(c, err)
 		return

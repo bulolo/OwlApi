@@ -13,7 +13,7 @@ import Editor from "@monaco-editor/react"
 import { useEndpointFormStore } from "../_store/useEndpointFormStore"
 import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useTenantProject } from "../_hooks/useTenantProject"
-import { apiRun } from "@/lib/api/query"
+import { apiRun } from "@/lib/api-client"
 import { getErrorMessage } from "@/lib/errors"
 import type { ParamDef, ExecutionResult } from "../_types"
 

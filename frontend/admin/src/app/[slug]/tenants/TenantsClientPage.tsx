@@ -18,10 +18,13 @@ import { Pager } from "@/components/ui/pager"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
 import { showConfirm } from "@/store/useConfirmStore"
+import { useIsClient } from "@/hooks/useIsClient"
 
 import TenantRegisterForm from "./TenantRegisterForm"
 
 export default function TenantsClientPage() {
+  const isClient = useIsClient()
+  const appHost = isClient ? window.location.host : ''
   const [isRegistering, setIsRegistering] = useState(false)
   const [keyword, setKeyword] = useState("")
   const [editing, setEditing] = useState<Tenant | null>(null)
@@ -102,7 +105,7 @@ export default function TenantsClientPage() {
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-zinc-400 font-medium">
                       <span className="flex items-center gap-1">
-                        <Globe className="w-3 h-3" /> owlapi.cn/{tenant.slug}
+                        <Globe className="w-3 h-3" /> {appHost}/{tenant.slug}
                       </span>
                       <span className="w-1 h-1 rounded-full bg-zinc-200" />
                       <span className="flex items-center gap-1">

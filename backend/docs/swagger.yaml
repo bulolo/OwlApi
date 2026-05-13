@@ -68,6 +68,9 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
     type: object
   http.APIEndpointResp:
     properties:
@@ -113,6 +116,19 @@ definitions:
         type: string
       tenant_id:
         type: integer
+    required:
+    - created_at
+    - datasource_id
+    - group_id
+    - id
+    - methods
+    - params
+    - path
+    - project_id
+    - sql
+    - status
+    - summary
+    - tenant_id
     type: object
   http.APIGroupListResp:
     properties:
@@ -122,6 +138,9 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
     type: object
   http.APIGroupResp:
     properties:
@@ -137,6 +156,12 @@ definitions:
         type: integer
       tenant_id:
         type: integer
+    required:
+    - created_at
+    - id
+    - name
+    - project_id
+    - tenant_id
     type: object
   http.AuthResp:
     properties:
@@ -150,6 +175,9 @@ definitions:
         type: string
       user:
         $ref: '#/definitions/http.UserResp'
+    required:
+    - token
+    - user
     type: object
   http.DataSourceEnvResp:
     properties:
@@ -163,6 +191,11 @@ definitions:
         type: integer
       id:
         type: integer
+    required:
+    - datasource_id
+    - env
+    - gateway_id
+    - id
     type: object
   http.DataSourceListResp:
     properties:
@@ -172,6 +205,9 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
     type: object
   http.DataSourceResp:
     properties:
@@ -185,12 +221,22 @@ definitions:
         type: integer
       is_dual:
         type: boolean
+      is_platform:
+        type: boolean
       name:
         type: string
       tenant_id:
         type: integer
       type:
         type: string
+    required:
+    - created_at
+    - id
+    - is_dual
+    - is_platform
+    - name
+    - tenant_id
+    - type
     type: object
   http.EndpointReleaseListResp:
     properties:
@@ -200,6 +246,9 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
     type: object
   http.EndpointReleaseResp:
     properties:
@@ -223,6 +272,16 @@ definitions:
         type: integer
       version:
         type: integer
+    required:
+    - endpoint_id
+    - id
+    - is_active
+    - is_draft
+    - note
+    - published_at
+    - published_by
+    - tenant_id
+    - version
     type: object
   http.GatewayListResp:
     properties:
@@ -232,6 +291,9 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
     type: object
   http.GatewayResp:
     properties:
@@ -253,6 +315,14 @@ definitions:
         type: string
       version:
         type: string
+    required:
+    - id
+    - ip
+    - is_platform
+    - last_seen
+    - name
+    - status
+    - version
     type: object
   http.PaginationInfo:
     properties:
@@ -264,6 +334,11 @@ definitions:
         type: integer
       total:
         type: integer
+    required:
+    - is_pager
+    - page
+    - size
+    - total
     type: object
   http.ParamDefResp:
     properties:
@@ -277,11 +352,17 @@ definitions:
         type: boolean
       type:
         type: string
+    required:
+    - name
+    - required
+    - type
     type: object
   http.PlatformSettingsResp:
     properties:
       allow_self_register:
         type: boolean
+    required:
+    - allow_self_register
     type: object
   http.ProjectListResp:
     properties:
@@ -291,6 +372,9 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
     type: object
   http.ProjectResp:
     properties:
@@ -306,6 +390,13 @@ definitions:
         type: string
       tenant_id:
         type: integer
+    required:
+    - created_at
+    - description
+    - id
+    - name
+    - slug
+    - tenant_id
     type: object
   http.R:
     properties:
@@ -323,6 +414,10 @@ definitions:
         $ref: '#/definitions/http.APIEndpointResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RAPIEndpointList:
     properties:
@@ -332,6 +427,10 @@ definitions:
         $ref: '#/definitions/http.APIEndpointListResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RAPIGroup:
     properties:
@@ -341,6 +440,10 @@ definitions:
         $ref: '#/definitions/http.APIGroupResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RAPIGroupList:
     properties:
@@ -350,6 +453,10 @@ definitions:
         $ref: '#/definitions/http.APIGroupListResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RAuth:
     properties:
@@ -359,6 +466,10 @@ definitions:
         $ref: '#/definitions/http.AuthResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RDataSource:
     properties:
@@ -368,6 +479,10 @@ definitions:
         $ref: '#/definitions/http.DataSourceResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RDataSourceList:
     properties:
@@ -377,6 +492,10 @@ definitions:
         $ref: '#/definitions/http.DataSourceListResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.REndpointRelease:
     properties:
@@ -386,6 +505,10 @@ definitions:
         $ref: '#/definitions/http.EndpointReleaseResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.REndpointReleaseList:
     properties:
@@ -395,6 +518,10 @@ definitions:
         $ref: '#/definitions/http.EndpointReleaseListResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RGateway:
     properties:
@@ -404,6 +531,10 @@ definitions:
         $ref: '#/definitions/http.GatewayResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RGatewayList:
     properties:
@@ -413,6 +544,10 @@ definitions:
         $ref: '#/definitions/http.GatewayListResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RPlatformSettings:
     properties:
@@ -422,6 +557,10 @@ definitions:
         $ref: '#/definitions/http.PlatformSettingsResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RProject:
     properties:
@@ -431,6 +570,10 @@ definitions:
         $ref: '#/definitions/http.ProjectResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RProjectList:
     properties:
@@ -440,6 +583,10 @@ definitions:
         $ref: '#/definitions/http.ProjectListResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RScript:
     properties:
@@ -449,6 +596,10 @@ definitions:
         $ref: '#/definitions/http.ScriptResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RScriptList:
     properties:
@@ -458,6 +609,10 @@ definitions:
         $ref: '#/definitions/http.ScriptListResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RTenant:
     properties:
@@ -467,6 +622,10 @@ definitions:
         $ref: '#/definitions/http.TenantResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RTenantList:
     properties:
@@ -476,6 +635,10 @@ definitions:
         $ref: '#/definitions/http.TenantListResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.RTenantUserList:
     properties:
@@ -485,6 +648,10 @@ definitions:
         $ref: '#/definitions/http.TenantUserListResp'
       msg:
         type: string
+    required:
+    - code
+    - data
+    - msg
     type: object
   http.ScriptListResp:
     properties:
@@ -494,6 +661,9 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
     type: object
   http.ScriptResp:
     properties:
@@ -513,6 +683,13 @@ definitions:
         type: integer
       type:
         type: string
+    required:
+    - code
+    - created_at
+    - id
+    - is_platform
+    - name
+    - type
     type: object
   http.TenantListResp:
     properties:
@@ -522,6 +699,9 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
     type: object
   http.TenantResp:
     properties:
@@ -541,6 +721,15 @@ definitions:
         type: string
       updated_at:
         type: string
+    required:
+    - created_at
+    - id
+    - max_release_versions
+    - name
+    - plan
+    - slug
+    - status
+    - updated_at
     type: object
   http.TenantUserListResp:
     properties:
@@ -550,6 +739,9 @@ definitions:
         type: array
       pagination:
         $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
     type: object
   http.TenantUserResp:
     properties:
@@ -563,6 +755,11 @@ definitions:
         $ref: '#/definitions/http.UserResp'
       user_id:
         type: integer
+    required:
+    - joined_at
+    - role
+    - tenant_id
+    - user_id
     type: object
   http.UserResp:
     properties:
@@ -578,6 +775,13 @@ definitions:
         type: string
       updated_at:
         type: string
+    required:
+    - created_at
+    - email
+    - id
+    - is_superadmin
+    - name
+    - updated_at
     type: object
   http.createDataSourceReq:
     properties:
@@ -644,7 +848,7 @@ info:
   contact: {}
   description: 企业级 SQL to API 智能网关平台管理接口
   title: OwlApi Control Plane
-  version: 0.1.6
+  version: 0.1.7
 paths:
   /gw/{tenantSlug}/{projectSlug}/{path}:
     delete:

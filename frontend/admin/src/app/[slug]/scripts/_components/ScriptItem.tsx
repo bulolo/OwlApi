@@ -27,7 +27,7 @@ export function ScriptItem({ script, active, onSelect, onDelete }: ScriptItemPro
             {script.name}
           </span>
           {script.is_platform && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-500 border border-purple-100">
+            <span className="shrink-0 inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 border border-zinc-200">
               <Lock className="w-2 h-2" /> 内置
             </span>
           )}

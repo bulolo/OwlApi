@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import type { DataSource } from "@/lib/api-client"
-import type { SchemaTable, SchemaColumn } from "@/lib/api/data-sources"
+import type { SchemaTable, SchemaColumn } from "@/lib/api-client"
 import { useDataSourceSchema, useDataSourcePreview } from "@/hooks"
 import { DB_TYPES } from "@/lib/constants"
 import { cn } from "@/lib/utils"
@@ -95,8 +95,8 @@ function TableSidebar({
     "w-full text-left px-3 py-1.5 text-[11px] transition-colors flex items-center gap-2",
     selected === name ? "bg-blue-600 text-white" : "text-zinc-600 hover:bg-zinc-100",
   )
-  const iconCls = (name: string) => cn("w-3 h-3 shrink-0", selected === name ? "text-blue-200" : "text-zinc-400")
-  const countCls = (name: string) => cn("text-[10px] shrink-0 tabular-nums", selected === name ? "text-blue-200" : "text-zinc-400")
+  const iconCls = (name: string) => cn("w-3 h-3 shrink-0", selected === name ? "text-white/70" : "text-zinc-400")
+  const countCls = (name: string) => cn("text-[10px] shrink-0 tabular-nums", selected === name ? "text-white/70" : "text-zinc-400")
 
   const renderFlatList = (items: SchemaTable[], indent = false) =>
     items.map(t => {

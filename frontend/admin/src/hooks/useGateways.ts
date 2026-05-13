@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiListGateways, apiDeleteGateway, apiGetGateway, apiCreateGateway, type ListQuery } from "@/lib/api-client"
-import { useApiMutation } from "./useApiMutation"
+import { useAdminMutation } from "./useAdminMutation"
 import { usePaginatedQuery } from "./usePaginatedQuery"
 
 export function useGateways(slug: string, q: ListQuery = {}) {
@@ -13,9 +13,9 @@ export function useGateway(slug: string, id: number) {
 }
 
 export function useCreateGateway(slug: string) {
-  return useApiMutation((name: string) => apiCreateGateway(slug, { name }), { successMessage: "网关创建成功", invalidateKeys: [["gateways", slug]] })
+  return useAdminMutation({ mutationFn: (name: string) => apiCreateGateway(slug, { name }), successMsg: "网关创建成功", invalidateKeys: [["gateways", slug]] })
 }
 
 export function useDeleteGateway(slug: string) {
-  return useApiMutation((id: number) => apiDeleteGateway(slug, id), { successMessage: "网关已删除", invalidateKeys: [["gateways", slug]] })
+  return useAdminMutation({ mutationFn: (id: number) => apiDeleteGateway(slug, id), successMsg: "网关已删除", invalidateKeys: [["gateways", slug]] })
 }

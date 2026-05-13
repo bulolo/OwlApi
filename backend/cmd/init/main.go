@@ -103,7 +103,7 @@ func ensureUser(ctx context.Context, r *repos, email, name, pwd string, isSuperA
 
 func ensureTenant(ctx context.Context, r *repos, slug, name string) *domain.Tenant {
 	now := time.Now()
-	t := &domain.Tenant{Name: name, Slug: slug, Plan: domain.PlanFree, Status: domain.TenantActive, CreatedAt: now, UpdatedAt: now}
+	t := &domain.Tenant{Name: name, Slug: slug, Plan: domain.PlanFree, Status: domain.TenantActive, MaxReleaseVersions: 5, CreatedAt: now, UpdatedAt: now}
 	if existing, _ := r.tenants.GetBySlug(ctx, slug); existing != nil {
 		slog.Info("Tenant already exists", "slug", slug)
 		return existing
@@ -146,13 +146,13 @@ func ensureGateway(ctx context.Context, r *repos, tenantID int64, name, token st
 	return gw
 }
 
-func ensureDataSource(ctx context.Context, r *repos, tenantID, gatewayID int64, name, dsType, dsn string) *domain.DataSource {
+func ensureDataSource(ctx context.Context, r *repos, tenantID, gatewayID int64, name, dsType, dsn string, isPlatform bool) *domain.DataSource {
 	if existing, err := r.dataSources.GetByName(ctx, tenantID, name); err == nil && existing != nil {
 		slog.Info("DataSource already exists", "name", name)
 		return existing
 	}
 	ds := &domain.DataSource{
-		TenantID: tenantID, Name: name, Type: dsType,
+		TenantID: tenantID, Name: name, Type: dsType, IsPlatform: isPlatform,
 		Envs: []*domain.DataSourceEnv{{Env: "prod", DSN: dsn, GatewayID: gatewayID}},
 	}
 	if err := r.dataSources.Create(ctx, ds); err != nil {
@@ -334,7 +334,7 @@ func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain
 	tenant := ensureTenant(ctx, r, "default", "研发中心")
 	admin := ensureUser(ctx, r, "admin@owlapi.cn", "Admin", "admin123", false)
 	ensureTenantUser(ctx, r, tenant.ID, admin.ID, domain.RoleAdmin)
-	ds := ensureDataSource(ctx, r, tenant.ID, gw.ID, "内置 SQLite (电商)", "sqlite", "/data/owlapi_ecommerce_demo.db")
+	ds := ensureDataSource(ctx, r, tenant.ID, gw.ID, "内置 SQLite (电商)", "sqlite", "/data/owlapi_ecommerce_demo.db", true)
 	proj := ensureProject(ctx, r, tenant.ID, "ecommerce", "电商平台 API", "经典电商场景演示：用户、商品、订单的完整 CRUD 接口")
 
 	t, p, d := tenant.ID, proj.ID, ds.ID
@@ -473,7 +473,7 @@ func seedCMS(ctx context.Context, r *repos, ps platformScripts, sharedGW *domain
 	editor := ensureUser(ctx, r, "editor@owlapi.cn", "Editor", "editor123", false)
 	ensureTenantUser(ctx, r, tenant.ID, editor.ID, domain.RoleAdmin)
 	gw := sharedGW
-	ds := ensureDataSource(ctx, r, tenant.ID, gw.ID, "内置 SQLite (内容)", "sqlite", "/data/owlapi_cms_demo.db")
+	ds := ensureDataSource(ctx, r, tenant.ID, gw.ID, "内置 SQLite (内容)", "sqlite", "/data/owlapi_cms_demo.db", true)
 	proj := ensureProject(ctx, r, tenant.ID, "cms", "内容管理 API", "文章、分类、标签与评论的完整内容管理接口")
 
 	t, p, d := tenant.ID, proj.ID, ds.ID

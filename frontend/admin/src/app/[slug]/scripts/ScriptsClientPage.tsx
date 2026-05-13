@@ -7,7 +7,7 @@ import type { Script } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, FileCode2, Search, ChevronDown } from "lucide-react"
+import { Plus, FileCode2, Search, ChevronDown, RefreshCw } from "lucide-react"
 import { Pager } from "@/components/ui/pager"
 import { showConfirm } from "@/store/useConfirmStore"
 import { ScriptItem } from "./_components/ScriptItem"
@@ -62,7 +62,7 @@ export default function ScriptsClientPage() {
   const [keyword, setKeyword] = useState("")
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(20)
-  const { scripts, pagination, isLoading: loading } = useScripts(activeTenant, { page, size, keyword })
+  const { scripts, pagination, isLoading: loading, refetch } = useScripts(activeTenant, { page, size, keyword })
   const createMutation = useCreateScript(activeTenant)
   const updateMutation = useUpdateScript(activeTenant)
   const deleteMutation = useDeleteScript(activeTenant)
@@ -129,12 +129,16 @@ export default function ScriptsClientPage() {
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">脚本库</h1>
           <p className="text-sm text-zinc-500 mt-1 font-medium">管理可复用的前置/后置 JavaScript 脚本，挂载到接口上实现参数处理和数据转换</p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
-              <Plus className="w-4 h-4 mr-1.5" /> 新建脚本 <ChevronDown className="w-3 h-3 ml-1.5 opacity-70" />
-            </Button>
-          </DropdownMenuTrigger>
+        <div className="flex gap-2">
+          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100" onClick={() => refetch()}>
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> 刷新
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
+                <Plus className="w-4 h-4 mr-1.5" /> 新建 <ChevronDown className="w-3 h-3 ml-1.5 opacity-70" />
+              </Button>
+            </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[120px]">
             <DropdownMenuItem className="text-xs font-medium cursor-pointer" onClick={() => handleNew("pre")}>
               <span className="inline-block w-2 h-2 rounded-full bg-amber-400 mr-2 shrink-0" /> 前置脚本
@@ -143,7 +147,8 @@ export default function ScriptsClientPage() {
               <span className="inline-block w-2 h-2 rounded-full bg-blue-400 mr-2 shrink-0" /> 后置脚本
             </DropdownMenuItem>
           </DropdownMenuContent>
-        </DropdownMenu>
+          </DropdownMenu>
+        </div>
       </div>
 
       <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[500px]">

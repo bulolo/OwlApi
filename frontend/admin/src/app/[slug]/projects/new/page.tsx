@@ -14,6 +14,8 @@ import { useProject, useCreateProject, useUpdateProject } from "@/hooks"
 import type { Project } from "@/lib/api-client"
 import { toast } from "sonner"
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "")
+
 function toSlug(name: string) {
   return name
     .toLowerCase()
@@ -106,7 +108,7 @@ function ProjectForm({
             className="h-9 text-sm font-mono"
             required
           />
-          <p className="text-xs text-zinc-400">用于接口 URL 路径，仅支持小写字母、数字和连字符。发布后的接口地址：<code className="bg-zinc-100 px-1 rounded text-zinc-600">/&#123;租户slug&#125;/{formData.slug || "project-slug"}/&#123;path&#125;</code></p>
+          <p className="text-xs text-zinc-400">用于接口 URL 路径，仅支持小写字母、数字和连字符。发布后的访问地址：<code className="bg-zinc-100 px-1 rounded text-zinc-600">{API_BASE}/{slug}/{formData.slug || "project-slug"}/&#123;path&#125;</code></p>
         </div>
         <div className="space-y-2">
           <Label className="text-xs font-bold text-zinc-500 uppercase">项目描述</Label>

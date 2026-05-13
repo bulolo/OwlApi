@@ -40,141 +40,142 @@ export type ParamDef = {
 };
 
 export type ApiEndpointListResp = {
-    list?: Array<ApiEndpointResp>;
-    pagination?: PaginationInfo;
+    list: Array<ApiEndpointResp>;
+    pagination: PaginationInfo;
 };
 
 export type ApiEndpointResp = {
-    created_at?: string;
-    datasource_id?: number;
+    created_at: string;
+    datasource_id: number;
     description?: string;
-    group_id?: number;
+    group_id: number;
     has_draft?: boolean;
-    id?: number;
-    methods?: Array<string>;
+    id: number;
+    methods: Array<string>;
     param_defs?: Array<ParamDefResp>;
-    params?: Array<string>;
-    path?: string;
+    params: Array<string>;
+    path: string;
     post_script_id?: number;
     pre_script_id?: number;
-    project_id?: number;
+    project_id: number;
     published_release_id?: number;
-    sql?: string;
-    status?: string;
-    summary?: string;
-    tenant_id?: number;
+    sql: string;
+    status: string;
+    summary: string;
+    tenant_id: number;
 };
 
 export type ApiGroupListResp = {
-    list?: Array<ApiGroupResp>;
-    pagination?: PaginationInfo;
+    list: Array<ApiGroupResp>;
+    pagination: PaginationInfo;
 };
 
 export type ApiGroupResp = {
-    created_at?: string;
+    created_at: string;
     description?: string;
-    id?: number;
-    name?: string;
-    project_id?: number;
-    tenant_id?: number;
+    id: number;
+    name: string;
+    project_id: number;
+    tenant_id: number;
 };
 
 export type AuthResp = {
     tenant?: TenantResp;
     tenants?: Array<TenantResp>;
-    token?: string;
-    user?: UserResp;
+    token: string;
+    user: UserResp;
 };
 
 export type DataSourceEnvResp = {
-    datasource_id?: number;
+    datasource_id: number;
     dsn?: string;
-    env?: string;
-    gateway_id?: number;
-    id?: number;
+    env: string;
+    gateway_id: number;
+    id: number;
 };
 
 export type DataSourceListResp = {
-    list?: Array<DataSourceResp>;
-    pagination?: PaginationInfo;
+    list: Array<DataSourceResp>;
+    pagination: PaginationInfo;
 };
 
 export type DataSourceResp = {
-    created_at?: string;
+    created_at: string;
     envs?: Array<DataSourceEnvResp>;
-    id?: number;
-    is_dual?: boolean;
-    name?: string;
-    tenant_id?: number;
-    type?: string;
+    id: number;
+    is_dual: boolean;
+    is_platform: boolean;
+    name: string;
+    tenant_id: number;
+    type: string;
 };
 
 export type EndpointReleaseListResp = {
-    list?: Array<EndpointReleaseResp>;
-    pagination?: PaginationInfo;
+    list: Array<EndpointReleaseResp>;
+    pagination: PaginationInfo;
 };
 
 export type EndpointReleaseResp = {
-    endpoint_id?: number;
-    id?: number;
-    is_active?: boolean;
-    is_draft?: boolean;
-    note?: string;
-    published_at?: string;
-    published_by?: number;
+    endpoint_id: number;
+    id: number;
+    is_active: boolean;
+    is_draft: boolean;
+    note: string;
+    published_at: string;
+    published_by: number;
     snapshot?: ApiEndpoint;
-    tenant_id?: number;
-    version?: number;
+    tenant_id: number;
+    version: number;
 };
 
 export type GatewayListResp = {
-    list?: Array<GatewayResp>;
-    pagination?: PaginationInfo;
+    list: Array<GatewayResp>;
+    pagination: PaginationInfo;
 };
 
 export type GatewayResp = {
-    id?: number;
-    ip?: string;
-    is_platform?: boolean;
-    last_seen?: string;
-    name?: string;
-    status?: string;
+    id: number;
+    ip: string;
+    is_platform: boolean;
+    last_seen: string;
+    name: string;
+    status: string;
     tenant_id?: number;
     token?: string;
-    version?: string;
+    version: string;
 };
 
 export type PaginationInfo = {
-    is_pager?: number;
-    page?: number;
-    size?: number;
-    total?: number;
+    is_pager: number;
+    page: number;
+    size: number;
+    total: number;
 };
 
 export type ParamDefResp = {
     default?: string;
     desc?: string;
-    name?: string;
-    required?: boolean;
-    type?: string;
+    name: string;
+    required: boolean;
+    type: string;
 };
 
 export type PlatformSettingsResp = {
-    allow_self_register?: boolean;
+    allow_self_register: boolean;
 };
 
 export type ProjectListResp = {
-    list?: Array<ProjectResp>;
-    pagination?: PaginationInfo;
+    list: Array<ProjectResp>;
+    pagination: PaginationInfo;
 };
 
 export type ProjectResp = {
-    created_at?: string;
-    description?: string;
-    id?: number;
-    name?: string;
-    slug?: string;
-    tenant_id?: number;
+    created_at: string;
+    description: string;
+    id: number;
+    name: string;
+    slug: string;
+    tenant_id: number;
 };
 
 export type R = {
@@ -184,171 +185,171 @@ export type R = {
 };
 
 export type RapiEndpoint = {
-    code?: number;
-    data?: ApiEndpointResp;
-    msg?: string;
+    code: number;
+    data: ApiEndpointResp;
+    msg: string;
 };
 
 export type RapiEndpointList = {
-    code?: number;
-    data?: ApiEndpointListResp;
-    msg?: string;
+    code: number;
+    data: ApiEndpointListResp;
+    msg: string;
 };
 
 export type RapiGroup = {
-    code?: number;
-    data?: ApiGroupResp;
-    msg?: string;
+    code: number;
+    data: ApiGroupResp;
+    msg: string;
 };
 
 export type RapiGroupList = {
-    code?: number;
-    data?: ApiGroupListResp;
-    msg?: string;
+    code: number;
+    data: ApiGroupListResp;
+    msg: string;
 };
 
 export type RAuth = {
-    code?: number;
-    data?: AuthResp;
-    msg?: string;
+    code: number;
+    data: AuthResp;
+    msg: string;
 };
 
 export type RDataSource = {
-    code?: number;
-    data?: DataSourceResp;
-    msg?: string;
+    code: number;
+    data: DataSourceResp;
+    msg: string;
 };
 
 export type RDataSourceList = {
-    code?: number;
-    data?: DataSourceListResp;
-    msg?: string;
+    code: number;
+    data: DataSourceListResp;
+    msg: string;
 };
 
 export type REndpointRelease = {
-    code?: number;
-    data?: EndpointReleaseResp;
-    msg?: string;
+    code: number;
+    data: EndpointReleaseResp;
+    msg: string;
 };
 
 export type REndpointReleaseList = {
-    code?: number;
-    data?: EndpointReleaseListResp;
-    msg?: string;
+    code: number;
+    data: EndpointReleaseListResp;
+    msg: string;
 };
 
 export type RGateway = {
-    code?: number;
-    data?: GatewayResp;
-    msg?: string;
+    code: number;
+    data: GatewayResp;
+    msg: string;
 };
 
 export type RGatewayList = {
-    code?: number;
-    data?: GatewayListResp;
-    msg?: string;
+    code: number;
+    data: GatewayListResp;
+    msg: string;
 };
 
 export type RPlatformSettings = {
-    code?: number;
-    data?: PlatformSettingsResp;
-    msg?: string;
+    code: number;
+    data: PlatformSettingsResp;
+    msg: string;
 };
 
 export type RProject = {
-    code?: number;
-    data?: ProjectResp;
-    msg?: string;
+    code: number;
+    data: ProjectResp;
+    msg: string;
 };
 
 export type RProjectList = {
-    code?: number;
-    data?: ProjectListResp;
-    msg?: string;
+    code: number;
+    data: ProjectListResp;
+    msg: string;
 };
 
 export type RScript = {
-    code?: number;
-    data?: ScriptResp;
-    msg?: string;
+    code: number;
+    data: ScriptResp;
+    msg: string;
 };
 
 export type RScriptList = {
-    code?: number;
-    data?: ScriptListResp;
-    msg?: string;
+    code: number;
+    data: ScriptListResp;
+    msg: string;
 };
 
 export type RTenant = {
-    code?: number;
-    data?: TenantResp;
-    msg?: string;
+    code: number;
+    data: TenantResp;
+    msg: string;
 };
 
 export type RTenantList = {
-    code?: number;
-    data?: TenantListResp;
-    msg?: string;
+    code: number;
+    data: TenantListResp;
+    msg: string;
 };
 
 export type RTenantUserList = {
-    code?: number;
-    data?: TenantUserListResp;
-    msg?: string;
+    code: number;
+    data: TenantUserListResp;
+    msg: string;
 };
 
 export type ScriptListResp = {
-    list?: Array<ScriptResp>;
-    pagination?: PaginationInfo;
+    list: Array<ScriptResp>;
+    pagination: PaginationInfo;
 };
 
 export type ScriptResp = {
-    code?: string;
-    created_at?: string;
+    code: string;
+    created_at: string;
     description?: string;
-    id?: number;
-    is_platform?: boolean;
-    name?: string;
+    id: number;
+    is_platform: boolean;
+    name: string;
     tenant_id?: number;
-    type?: string;
+    type: string;
 };
 
 export type TenantListResp = {
-    list?: Array<TenantResp>;
-    pagination?: PaginationInfo;
+    list: Array<TenantResp>;
+    pagination: PaginationInfo;
 };
 
 export type TenantResp = {
-    created_at?: string;
-    id?: number;
-    max_release_versions?: number;
-    name?: string;
-    plan?: string;
-    slug?: string;
-    status?: string;
-    updated_at?: string;
+    created_at: string;
+    id: number;
+    max_release_versions: number;
+    name: string;
+    plan: string;
+    slug: string;
+    status: string;
+    updated_at: string;
 };
 
 export type TenantUserListResp = {
-    list?: Array<TenantUserResp>;
-    pagination?: PaginationInfo;
+    list: Array<TenantUserResp>;
+    pagination: PaginationInfo;
 };
 
 export type TenantUserResp = {
-    joined_at?: string;
-    role?: string;
-    tenant_id?: number;
+    joined_at: string;
+    role: string;
+    tenant_id: number;
     user?: UserResp;
-    user_id?: number;
+    user_id: number;
 };
 
 export type UserResp = {
-    created_at?: string;
-    email?: string;
-    id?: number;
-    is_superadmin?: boolean;
-    name?: string;
-    updated_at?: string;
+    created_at: string;
+    email: string;
+    id: number;
+    is_superadmin: boolean;
+    name: string;
+    updated_at: string;
 };
 
 export type CreateDataSourceReq = {

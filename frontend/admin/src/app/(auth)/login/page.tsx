@@ -53,6 +53,11 @@ function LoginForm() {
     }
   }, [])
 
+  const fillDemo = () => {
+    setEmail("admin@owlapi.cn")
+    setPassword("admin123")
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -158,6 +163,14 @@ function LoginForm() {
                 </div>
               )}
             </Button>
+
+            <button
+              type="button"
+              onClick={fillDemo}
+              className="w-full text-center text-[10px] text-zinc-300 hover:text-zinc-500 transition-colors font-mono"
+            >
+              演示: admin@owlapi.cn · admin123
+            </button>
           </form>
 
           <div className="pt-6 border-t border-zinc-100 space-y-3">

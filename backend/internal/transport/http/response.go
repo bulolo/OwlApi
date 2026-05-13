@@ -16,10 +16,10 @@ type R struct {
 }
 
 type PaginationInfo struct {
-	IsPager int `json:"is_pager"`
-	Page    int `json:"page"`
-	Size    int `json:"size"`
-	Total   int `json:"total"`
+	IsPager int `json:"is_pager" validate:"required"`
+	Page    int `json:"page"     validate:"required"`
+	Size    int `json:"size"     validate:"required"`
+	Total   int `json:"total"    validate:"required"`
 }
 
 type PaginatedData struct {

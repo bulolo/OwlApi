@@ -9,6 +9,14 @@ export function getErrorMessage(error: unknown): string {
   return "未知错误"
 }
 
+/** 开发环境错误日志 — 用 console.warn 避免触发 Next.js 全屏错误遮罩 */
+export function logError(context: string, error: unknown): void {
+  if (process.env.NODE_ENV === 'development') {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(`[${context}]`, message)
+  }
+}
+
 /** API 业务错误 */
 export class ApiError extends Error {
   public code?: number

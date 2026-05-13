@@ -21,7 +21,7 @@ English | [简体中文](./README.md)
   </a>
 </p>
 
-**If this project helps you, please give us a ⭐ Star! It's the best encouragement for developers!**
+**If this project helps you, please give us a ⭐ Star — it's the best encouragement for the team!**
 
 </div>
 
@@ -30,15 +30,15 @@ English | [简体中文](./README.md)
 ## 🚀 Recent Updates
 
 ### 2026-05-13 🗄️ Full Multi-Database Support
-- 🔌 **Six Database Types**: Added full support for MySQL, PostgreSQL, SQL Server, SQLite, StarRocks, and Apache Doris — all drivers integrated, ready out of the box.
-- 🖥️ **Data Browser**: Visually browse remote database table schemas and preview table data without any external tools.
-- 📋 **Structured Connection Form**: Datasource setup no longer requires hand-writing DSNs — fill in Host, Port, Username, Password, and Database as separate fields.
+- 🔌 **Six Database Types**: Added full support for MySQL, PostgreSQL, SQL Server, SQLite, StarRocks, and Apache Doris — all drivers integrated out of the box.
+- 🖥️ **Data Browser**: Visually browse remote database schemas and table data without any external tools.
+- 📋 **Structured Connection Form**: Datasource setup no longer requires hand-writing DSNs — fill in fields like Host, Port, and Credentials through a guided form.
 
 ### 2026-04-01 🌐 Gateway Executor Evolution
-- 🛡️ **Hybrid Cloud Architecture**: Released a major architectural update. Gateway can now operate inside deep internal networks, establishing gRPC reverse tunnel communication, eliminating the need for public IPs and complex firewall rules.
-- ⚙️ **Multi-tenancy Isolation**: Launched the RBAC system (SuperAdmin / Admin / Viewer) with strict permission isolation across data sources and projects.
-- 📦 **Parameter Inference**: Supports dynamic detection of `:variables` in SQL, automatically mapping them to HTTP Query or Body parameters.
-- 📚 **Website Upgrade**: [owlapi.cn](https://owlapi.cn) fully redesigned with an enterprise-grade UI.
+- 🛡️ **Hybrid Cloud Architecture**: Released a major architectural update. The Gateway can now be deployed directly inside deep internal networks and proactively establishes a gRPC reverse tunnel to the Control Plane — eliminating the need for public IPs and complex firewall rules.
+- ⚙️ **Multi-tenancy Isolation**: Launched a full RBAC system (SuperAdmin / Admin / Viewer) with strict permission isolation across data sources and projects.
+- 📦 **Parameter Inference**: Dynamically detects `:variables` in SQL at write time and maps them to standard HTTP Query or Body parameters in one step.
+- 📚 **Website Redesign**: [owlapi.cn](https://owlapi.cn) fully refreshed with an enterprise-grade UI.
 
 ---
 
@@ -48,18 +48,18 @@ English | [简体中文](./README.md)
 |------|------|
 | 🏢 **Internal Data Exposure** | Safely expose databases behind ERP, MES, or WMS systems as standard REST APIs for frontend or third-party consumption — no changes to existing systems required. |
 | 📊 **Reporting & Query APIs** | Business and data teams write SQL to generate query APIs directly, removing backend dependency and delivering data in minutes. |
-| 🔗 **Cross-system Data Integration** | Unify heterogeneous databases (MySQL, SQL Server, PostgreSQL, etc.) under a single API layer, hiding the complexity of different backends. |
-| 🚀 **Rapid Prototyping & MVP** | Skip backend development entirely — generate CRUD APIs from an existing database to validate ideas fast. |
+| 🔗 **Cross-system Data Integration** | Unify heterogeneous databases (MySQL, SQL Server, PostgreSQL, etc.) under a single API layer, abstracting away backend differences and simplifying integration. |
+| 🚀 **Rapid Prototyping & MVP** | Skip backend development entirely — generate CRUD APIs directly from an existing database to validate ideas fast. |
 | 🛡️ **Database Access Gateway** | Replace direct DB connections with an API gateway for unified auth, parameter validation, and access auditing — no more exposing database credentials to applications. |
 
 ---
 
 ## 🎯 Project Highlights
 
-- ✅ **Out-of-the-Box**: `make dev-up` launches the full stack (Control Plane + Gateway + Database + Admin Console + Docs, 6 containers) in one command.
-- ✅ **Physical Decoupling**: Control Plane and Gateway run as separate processes, ensuring the control layer and data execution layer are independently secured.
+- ✅ **Out-of-the-Box**: `make dev-up` launches the full stack (Control Plane + Gateway + Database + Admin Console + Docs — 6 containers) in one command.
+- ✅ **Physical Decoupling**: Control Plane and Gateway run as separate services, ensuring the control layer and data execution layer are independently secured.
 - ✅ **Full Database Compatibility**: Native support for MySQL, PostgreSQL, SQL Server, SQLite, StarRocks, and Apache Doris — six database types, all drivers integrated.
-- ✅ **Edge-Ready**: Built with Go 1.25, single-binary packaging and minimal memory footprint make it deployable on Raspberry Pi or embedded devices.
+- ✅ **Edge-Ready**: The Gateway is built with Go 1.25 — single binary, minimal memory footprint — and runs reliably on resource-constrained edge devices like Raspberry Pi, NAS boxes, or soft routers.
 - ✅ **Enterprise-Friendly UI**: Admin console built on Next.js 16 App Router with Tailwind CSS, delivering a smooth desktop-grade management experience.
 
 ---
@@ -79,11 +79,11 @@ English | [简体中文](./README.md)
 
 ### 🎯 Control Plane (Admin Console)
 - **📝 Visual API Orchestration**: SQL-based rapid API creation with automatic inference of Query, Body, and Path parameters.
-- **👥 RBAC Permission System**: Strict role management across SuperAdmin, Admin, and Viewer levels.
-- **🌐 Project Isolation**: Organize APIs into Projects by function or business domain, ensuring complete endpoint isolation.
+- **👥 RBAC Permission Management**: Three built-in role tiers — SuperAdmin, Admin, and Viewer — with fine-grained control over resource access per tenant.
+- **🌐 Project Isolation**: Organize APIs into Projects by business domain. Each project's endpoints and credentials are fully independent and do not interfere with one another.
 
 ### 🌐 Gateway (Executor)
-- **🚀 Zero-Intrusion Deployment**: No firewall ports needed for databases. The Gateway initiates an outbound gRPC long connection to the Control Plane, eliminating public exposure risk.
+- **🚀 Zero-Intrusion Deployment**: No database firewall ports need to be opened. The Gateway initiates an outbound gRPC long connection to the Control Plane, eliminating any public exposure risk.
 - **⚡ High Concurrency**: Goroutine-based execution with connection pool reuse handles high-density HTTP-to-SQL workloads at low latency.
 - **🔒 Data Stays Local**: Query instructions are dispatched by the Control Plane, but actual data flows only between the Gateway and the database — sensitive data never passes through the control layer.
 
@@ -116,11 +116,11 @@ owlapi/
 │   │   ├── gateway/                # Gateway (executor entry)
 │   │   └── init/                   # Data seeding tool
 │   ├── internal/
-│   │   ├── domain/                 # Core domain models & contracts
+│   │   ├── domain/                 # Core domain models & interface definitions
 │   │   ├── service/                # Business logic orchestration
-│   │   ├── repo/postgres/          # DB repository implementation
-│   │   ├── transport/              # Communication layer (Gin / gRPC)
-│   │   └── gateway/                # ★ Gateway engine & lifecycle
+│   │   ├── repo/postgres/          # Database access layer
+│   │   ├── transport/              # External communication layer (Gin HTTP / gRPC)
+│   │   └── gateway/                # ★ Gateway connection management & lifecycle
 │   └── proto/                      # gRPC Protobuf definitions
 │
 ├── frontend/
@@ -138,8 +138,8 @@ owlapi/
 | Directory | Responsibility | Tech |
 |------|------|--------|
 | `backend/cmd/server/` | Control Plane — tenant management, API orchestration, auth, and gateway dispatch | Go + Gin |
-| `backend/cmd/gateway/` | Lightweight executor in internal networks, runs SQL payloads received via gRPC | Go + DB Drivers |
-| `frontend/admin/` | Engineer console for managing the full multi-tenant lifecycle | Next.js 16 |
+| `backend/cmd/gateway/` | Lightweight executor node in internal networks — receives SQL instructions via gRPC and runs them against the local database | Go + DB Drivers |
+| `frontend/admin/` | Admin console covering tenant management, API orchestration, gateway configuration, and more | Next.js 16 |
 
 ---
 
@@ -149,8 +149,8 @@ owlapi/
 
 - **Docker** >= 20.10 & **Docker Compose** V2
 - **Make**
-- **Go** >= 1.25+ (for local development)
-- **Node.js** >= 22 (for frontend builds)
+- **Go** >= 1.25 (for local native development)
+- **Node.js** >= 22 (for local frontend builds)
 
 ---
 
@@ -164,7 +164,7 @@ cd owlapi
 
 ### 2. Start the development environment
 
-Supports hot-reload and real-time logs:
+Runs all containers in the foreground with aggregated logs. Press Ctrl+C to stop:
 ```bash
 make dev-up
 ```
@@ -172,42 +172,42 @@ make dev-up
 Services will be available at:
 - 🎯 **Admin Console**: http://localhost:8001 `(admin@owlapi.cn / admin123)`
 - 📚 **Documentation**: http://localhost:8003
-- 🌐 **RESTful API**: http://localhost:3000
+- 🚀 **RESTful API**: http://localhost:3000
 - 🐘 **PostgreSQL**: localhost:5433
 
 ---
 
 ## 🏗️ Project Management (Makefile)
 
-The root `Makefile` abstracts complex operations into simple commands.
+The root `Makefile` wraps common build, start, and cleanup operations into single commands, reducing day-to-day development overhead.
 
 ### Core Commands
 
 | Command | Action |
 |------|------|
-| `make dev-up` | **Start all services** in foreground via docker-compose.dev. Data is preserved on Ctrl+C. |
-| `make dev-down` | **Stop services** without destroying volumes or database state. |
-| `make dev-clean` | **Deep clean**: destroys all volumes including `postgres_data`. ⚠️ Data is unrecoverable. |
+| `make dev-up` | **Start all services** — launches all dev containers in the foreground with aggregated logs. Ctrl+C stops them but preserves data. |
+| `make dev-down` | **Stop services** — stops and removes all containers while keeping volumes intact for the next run. |
+| `make dev-clean` | **Full reset** — deletes all containers and volumes including `postgres_data`. Use to completely reset the dev environment. ⚠️ All data will be lost. |
 
 ---
 
 ## ❓ FAQ
 
 > [!TIP]
-> **Troubleshooting**: When facing environment or dependency issues, `make dev-clean` followed by `make dev-up` resolves 99.9% of problems.
+> When something goes wrong with your environment, running `make dev-clean` followed by `make dev-up` resolves the vast majority of issues.
 
 **Q: Seeing `Connection timeout / gRPC failed` when executing SQL?**
-A: Check Gateway logs to confirm it can reach your internal database and that the Control Plane IP is correctly set in its environment variables.
+A: Check the Gateway container logs to confirm it can reach your internal database, and verify that the Control Plane address in its startup configuration is correct.
 
 **Q: Want to add support for a new database?**
-A: Add DSN recognition logic in `resolveDriver` inside `backend/internal/gateway/executor.go` and import the corresponding driver package.
+A: Add DSN recognition logic in the `resolveDriver` function inside `backend/internal/gateway/executor.go` and import the corresponding driver package.
 
 ---
 
 ## 📚 Documentation
 
-- 📖 [Architecture Guide](./frontend/docs/docs/guide/architecture.md)
-- 🚀 [RBAC & Multi-tenancy](./frontend/docs/docs/guide/multi-tenancy.md)
+- 📖 [Deployment Guide](./frontend/docs/docs/guide/architecture.md)
+- 🚀 [Multi-tenancy & RBAC](./frontend/docs/docs/guide/multi-tenancy.md)
 - 🔌 [REST API Reference](./frontend/docs/docs/api/rest.md)
 - 🎯 [gRPC Tunnel Protocol](./frontend/docs/docs/api/grpc.md)
 
@@ -215,17 +215,20 @@ A: Add DSN recognition logic in `resolveDriver` inside `backend/internal/gateway
 
 ## 📄 License & Commercial Use
 
-This project is licensed under the **OwlApi Open Source License (based on Apache 2.0)**. Additional terms are included to protect the project brand and commercial interests.
+This project is licensed under the **OwlApi Open Source License (based on Apache 2.0)**. Additional terms are included to protect the project brand and commercial interests while keeping it open for personal and internal use.
 
 ### 📌 Core Principles
 1. **Personal / Internal Use**: Completely free, no authorization required.
-2. **Mandatory Branding**: You **must not** remove or modify "OwlApi" branding in the UI, console, or API response headers under any circumstance.
-3. **No Unauthorized SaaS**: Using this source code to provide commercial multi-tenant SaaS services (e.g., hosted API gateways, SQL-to-API platforms) without official written authorization is strictly prohibited.
+2. **Mandatory Branding**: You **must not** remove or modify the "OwlApi" branding in the UI, console, or API response headers under any circumstance.
+3. **No Unauthorized SaaS**: Using this source code to provide commercial multi-tenant SaaS services (e.g., hosted API gateways, SQL-to-API subscription platforms) without official written authorization is strictly prohibited.
 
 ### ⚠️ Why these restrictions?
-We want to contribute to the open-source community while preventing de-branded commercial exploitation. For commercial licensing inquiries, contact: [owlapi.cn](https://owlapi.cn).
+We want to contribute to the open-source community while preventing de-branded commercial exploitation. For commercial licensing inquiries or partnership opportunities, contact us at: [owlapi.cn](https://owlapi.cn).
 
 See [LICENSE](LICENSE) for the full text.
+
+### 🤔 Why this license model?
+We drew inspiration from established open-source commercial licensing approaches, aiming to be more enterprise-friendly than AGPL-3.0 while using the multi-tenant SaaS restriction to protect the project's core assets and brand identity.
 
 ---
 
@@ -240,6 +243,8 @@ See [LICENSE](LICENSE) for the full text.
 <img src="./frontend/docs/docs/public/images/wechat.jpg" width="160" alt="WeChat QR Code">
 <br>
 <sub>Scan to join the community (Note: OwlApi)</sub>
+
+</div>
 
 </div>
 

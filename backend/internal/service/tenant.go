@@ -22,7 +22,7 @@ type TenantService interface {
 	List(ctx context.Context, p domain.ListParams) ([]*domain.Tenant, int, error)
 	GetBySlug(ctx context.Context, slug string) (*domain.Tenant, error)
 	Update(ctx context.Context, slug string, name, plan, status string) (*domain.Tenant, error)
-	UpdateSettings(ctx context.Context, slug string, maxReleaseVersions int) (*domain.Tenant, error)
+	UpdateSettings(ctx context.Context, slug string, maxReleaseVersions int, avatar string) (*domain.Tenant, error)
 	Delete(ctx context.Context, slug string) error
 	ListByUser(ctx context.Context, userID int64, p domain.ListParams) ([]*domain.Tenant, int, error)
 }
@@ -51,6 +51,9 @@ func (s *tenantService) Create(ctx context.Context, tenant *domain.Tenant, creat
 	}
 	if tenant.Plan == "" {
 		tenant.Plan = domain.PlanFree
+	}
+	if tenant.MaxReleaseVersions == 0 {
+		tenant.MaxReleaseVersions = 5
 	}
 	if err := s.tenants.Create(ctx, tenant); err != nil {
 		return err
@@ -97,7 +100,7 @@ func (s *tenantService) Update(ctx context.Context, slug string, name, plan, sta
 	return t, nil
 }
 
-func (s *tenantService) UpdateSettings(ctx context.Context, slug string, maxReleaseVersions int) (*domain.Tenant, error) {
+func (s *tenantService) UpdateSettings(ctx context.Context, slug string, maxReleaseVersions int, avatar string) (*domain.Tenant, error) {
 	t, err := s.tenants.GetBySlug(ctx, slug)
 	if err != nil {
 		return nil, err
@@ -106,6 +109,9 @@ func (s *tenantService) UpdateSettings(ctx context.Context, slug string, maxRele
 		maxReleaseVersions = 0
 	}
 	t.MaxReleaseVersions = maxReleaseVersions
+	if avatar != "" {
+		t.Avatar = avatar
+	}
 	t.UpdatedAt = time.Now()
 	if err := s.tenants.Update(ctx, t); err != nil {
 		return nil, err

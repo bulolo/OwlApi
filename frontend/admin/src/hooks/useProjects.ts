@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiListProjects, apiGetProject, apiCreateProject, apiUpdateProject, apiDeleteProject, type ListQuery, type CreateProjectRequest, type UpdateProjectRequest } from "@/lib/api-client"
-import { useApiMutation } from "./useApiMutation"
+import { useAdminMutation } from "./useAdminMutation"
 import { usePaginatedQuery } from "./usePaginatedQuery"
 
 export function useProjects(slug: string, q: ListQuery = {}) {
@@ -13,13 +13,13 @@ export function useProject(slug: string, projectId: number) {
 }
 
 export function useCreateProject(slug: string) {
-  return useApiMutation((req: CreateProjectRequest) => apiCreateProject(slug, req), { successMessage: "项目创建成功", invalidateKeys: [["projects", slug]] })
+  return useAdminMutation({ mutationFn: (req: CreateProjectRequest) => apiCreateProject(slug, req), successMsg: "项目创建成功", invalidateKeys: [["projects", slug]] })
 }
 
 export function useUpdateProject(slug: string, projectId: number) {
-  return useApiMutation((req: UpdateProjectRequest) => apiUpdateProject(slug, projectId, req), { successMessage: "项目已更新", invalidateKeys: [["projects", slug]] })
+  return useAdminMutation({ mutationFn: (req: UpdateProjectRequest) => apiUpdateProject(slug, projectId, req), successMsg: "项目已更新", invalidateKeys: [["projects", slug]] })
 }
 
 export function useDeleteProject(slug: string) {
-  return useApiMutation((id: number) => apiDeleteProject(slug, id), { successMessage: "项目已删除", invalidateKeys: [["projects", slug]] })
+  return useAdminMutation({ mutationFn: (id: number) => apiDeleteProject(slug, id), successMsg: "项目已删除", invalidateKeys: [["projects", slug]] })
 }

@@ -2920,6 +2920,10 @@ const docTemplate = `{
         },
         "http.APIEndpointListResp": {
             "type": "object",
+            "required": [
+                "list",
+                "pagination"
+            ],
             "properties": {
                 "list": {
                     "type": "array",
@@ -2934,6 +2938,20 @@ const docTemplate = `{
         },
         "http.APIEndpointResp": {
             "type": "object",
+            "required": [
+                "created_at",
+                "datasource_id",
+                "group_id",
+                "id",
+                "methods",
+                "params",
+                "path",
+                "project_id",
+                "sql",
+                "status",
+                "summary",
+                "tenant_id"
+            ],
             "properties": {
                 "created_at": {
                     "type": "string"
@@ -3002,6 +3020,10 @@ const docTemplate = `{
         },
         "http.APIGroupListResp": {
             "type": "object",
+            "required": [
+                "list",
+                "pagination"
+            ],
             "properties": {
                 "list": {
                     "type": "array",
@@ -3016,6 +3038,13 @@ const docTemplate = `{
         },
         "http.APIGroupResp": {
             "type": "object",
+            "required": [
+                "created_at",
+                "id",
+                "name",
+                "project_id",
+                "tenant_id"
+            ],
             "properties": {
                 "created_at": {
                     "type": "string"
@@ -3039,6 +3068,10 @@ const docTemplate = `{
         },
         "http.AuthResp": {
             "type": "object",
+            "required": [
+                "token",
+                "user"
+            ],
             "properties": {
                 "tenant": {
                     "$ref": "#/definitions/http.TenantResp"
@@ -3059,6 +3092,12 @@ const docTemplate = `{
         },
         "http.DataSourceEnvResp": {
             "type": "object",
+            "required": [
+                "datasource_id",
+                "env",
+                "gateway_id",
+                "id"
+            ],
             "properties": {
                 "datasource_id": {
                     "type": "integer"
@@ -3079,6 +3118,10 @@ const docTemplate = `{
         },
         "http.DataSourceListResp": {
             "type": "object",
+            "required": [
+                "list",
+                "pagination"
+            ],
             "properties": {
                 "list": {
                     "type": "array",
@@ -3093,6 +3136,15 @@ const docTemplate = `{
         },
         "http.DataSourceResp": {
             "type": "object",
+            "required": [
+                "created_at",
+                "id",
+                "is_dual",
+                "is_platform",
+                "name",
+                "tenant_id",
+                "type"
+            ],
             "properties": {
                 "created_at": {
                     "type": "string"
@@ -3109,6 +3161,9 @@ const docTemplate = `{
                 "is_dual": {
                     "type": "boolean"
                 },
+                "is_platform": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -3122,6 +3177,10 @@ const docTemplate = `{
         },
         "http.EndpointReleaseListResp": {
             "type": "object",
+            "required": [
+                "list",
+                "pagination"
+            ],
             "properties": {
                 "list": {
                     "type": "array",
@@ -3136,6 +3195,17 @@ const docTemplate = `{
         },
         "http.EndpointReleaseResp": {
             "type": "object",
+            "required": [
+                "endpoint_id",
+                "id",
+                "is_active",
+                "is_draft",
+                "note",
+                "published_at",
+                "published_by",
+                "tenant_id",
+                "version"
+            ],
             "properties": {
                 "endpoint_id": {
                     "type": "integer"
@@ -3171,6 +3241,10 @@ const docTemplate = `{
         },
         "http.GatewayListResp": {
             "type": "object",
+            "required": [
+                "list",
+                "pagination"
+            ],
             "properties": {
                 "list": {
                     "type": "array",
@@ -3185,6 +3259,15 @@ const docTemplate = `{
         },
         "http.GatewayResp": {
             "type": "object",
+            "required": [
+                "id",
+                "ip",
+                "is_platform",
+                "last_seen",
+                "name",
+                "status",
+                "version"
+            ],
             "properties": {
                 "id": {
                     "type": "integer"
@@ -3217,6 +3300,12 @@ const docTemplate = `{
         },
         "http.PaginationInfo": {
             "type": "object",
+            "required": [
+                "is_pager",
+                "page",
+                "size",
+                "total"
+            ],
             "properties": {
                 "is_pager": {
                     "type": "integer"
@@ -3234,6 +3323,11 @@ const docTemplate = `{
         },
         "http.ParamDefResp": {
             "type": "object",
+            "required": [
+                "name",
+                "required",
+                "type"
+            ],
             "properties": {
                 "default": {
                     "type": "string"
@@ -3254,6 +3348,9 @@ const docTemplate = `{
         },
         "http.PlatformSettingsResp": {
             "type": "object",
+            "required": [
+                "allow_self_register"
+            ],
             "properties": {
                 "allow_self_register": {
                     "type": "boolean"
@@ -3262,6 +3359,10 @@ const docTemplate = `{
         },
         "http.ProjectListResp": {
             "type": "object",
+            "required": [
+                "list",
+                "pagination"
+            ],
             "properties": {
                 "list": {
                     "type": "array",
@@ -3276,6 +3377,14 @@ const docTemplate = `{
         },
         "http.ProjectResp": {
             "type": "object",
+            "required": [
+                "created_at",
+                "description",
+                "id",
+                "name",
+                "slug",
+                "tenant_id"
+            ],
             "properties": {
                 "created_at": {
                     "type": "string"
@@ -3311,6 +3420,11 @@ const docTemplate = `{
         },
         "http.RAPIEndpoint": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3325,6 +3439,11 @@ const docTemplate = `{
         },
         "http.RAPIEndpointList": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3339,6 +3458,11 @@ const docTemplate = `{
         },
         "http.RAPIGroup": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3353,6 +3477,11 @@ const docTemplate = `{
         },
         "http.RAPIGroupList": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3367,6 +3496,11 @@ const docTemplate = `{
         },
         "http.RAuth": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3381,6 +3515,11 @@ const docTemplate = `{
         },
         "http.RDataSource": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3395,6 +3534,11 @@ const docTemplate = `{
         },
         "http.RDataSourceList": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3409,6 +3553,11 @@ const docTemplate = `{
         },
         "http.REndpointRelease": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3423,6 +3572,11 @@ const docTemplate = `{
         },
         "http.REndpointReleaseList": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3437,6 +3591,11 @@ const docTemplate = `{
         },
         "http.RGateway": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3451,6 +3610,11 @@ const docTemplate = `{
         },
         "http.RGatewayList": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3465,6 +3629,11 @@ const docTemplate = `{
         },
         "http.RPlatformSettings": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3479,6 +3648,11 @@ const docTemplate = `{
         },
         "http.RProject": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3493,6 +3667,11 @@ const docTemplate = `{
         },
         "http.RProjectList": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3507,6 +3686,11 @@ const docTemplate = `{
         },
         "http.RScript": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3521,6 +3705,11 @@ const docTemplate = `{
         },
         "http.RScriptList": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3535,6 +3724,11 @@ const docTemplate = `{
         },
         "http.RTenant": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3549,6 +3743,11 @@ const docTemplate = `{
         },
         "http.RTenantList": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3563,6 +3762,11 @@ const docTemplate = `{
         },
         "http.RTenantUserList": {
             "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
             "properties": {
                 "code": {
                     "type": "integer"
@@ -3577,6 +3781,10 @@ const docTemplate = `{
         },
         "http.ScriptListResp": {
             "type": "object",
+            "required": [
+                "list",
+                "pagination"
+            ],
             "properties": {
                 "list": {
                     "type": "array",
@@ -3591,6 +3799,14 @@ const docTemplate = `{
         },
         "http.ScriptResp": {
             "type": "object",
+            "required": [
+                "code",
+                "created_at",
+                "id",
+                "is_platform",
+                "name",
+                "type"
+            ],
             "properties": {
                 "code": {
                     "type": "string"
@@ -3620,6 +3836,10 @@ const docTemplate = `{
         },
         "http.TenantListResp": {
             "type": "object",
+            "required": [
+                "list",
+                "pagination"
+            ],
             "properties": {
                 "list": {
                     "type": "array",
@@ -3634,6 +3854,16 @@ const docTemplate = `{
         },
         "http.TenantResp": {
             "type": "object",
+            "required": [
+                "created_at",
+                "id",
+                "max_release_versions",
+                "name",
+                "plan",
+                "slug",
+                "status",
+                "updated_at"
+            ],
             "properties": {
                 "created_at": {
                     "type": "string"
@@ -3663,6 +3893,10 @@ const docTemplate = `{
         },
         "http.TenantUserListResp": {
             "type": "object",
+            "required": [
+                "list",
+                "pagination"
+            ],
             "properties": {
                 "list": {
                     "type": "array",
@@ -3677,6 +3911,12 @@ const docTemplate = `{
         },
         "http.TenantUserResp": {
             "type": "object",
+            "required": [
+                "joined_at",
+                "role",
+                "tenant_id",
+                "user_id"
+            ],
             "properties": {
                 "joined_at": {
                     "type": "string"
@@ -3697,6 +3937,14 @@ const docTemplate = `{
         },
         "http.UserResp": {
             "type": "object",
+            "required": [
+                "created_at",
+                "email",
+                "id",
+                "is_superadmin",
+                "name",
+                "updated_at"
+            ],
             "properties": {
                 "created_at": {
                     "type": "string"
@@ -3815,7 +4063,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.1.6",
+	Version:          "0.1.7",
 	Host:             "localhost:3000",
 	BasePath:         "/",
 	Schemes:          []string{},

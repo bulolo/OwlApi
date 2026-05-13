@@ -1,16 +1,12 @@
 import { testQuery, exportOpenApi } from '@/lib/sdk'
-
-// ── SDK wrappers ─────────────────────────────────────────────────────────────
-// The generated SDK functions return typed data inside an opaque response
-// object. We unwrap with `as` only at this boundary so the rest of the app
-// stays type-safe.
+import { wrapResponse } from './token'
 
 export const apiRun = (slug: string, endpointId: number, params: Record<string, string>, ignoreScripts = false) =>
-  testQuery({ path: { slug }, body: { endpoint_id: endpointId, params, ignore_scripts: ignoreScripts } }) as unknown as Promise<Record<string, unknown>>
+  wrapResponse<Record<string, unknown>>(testQuery({ path: { slug }, body: { endpoint_id: endpointId, params, ignore_scripts: ignoreScripts } }))
 
 export const apiExportOpenAPI = async (slug: string, projectId: number): Promise<void> => {
   if (typeof window === 'undefined') return
-  const spec = await (exportOpenApi({ path: { slug, projectId } }) as unknown as Promise<Record<string, unknown>>)
+  const spec = await wrapResponse<Record<string, unknown>>(exportOpenApi({ path: { slug, projectId } }))
   const blob = new Blob([JSON.stringify(spec, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

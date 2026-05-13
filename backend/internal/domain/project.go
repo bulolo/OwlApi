@@ -11,6 +11,7 @@ type Project struct {
 	Slug        string    `json:"slug"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+	Avatar      string    `json:"avatar"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 

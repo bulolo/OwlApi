@@ -10,7 +10,7 @@ import {
   type SchemaTable,
 } from "@/lib/api-client"
 import type { ListQuery, CreateDataSourceRequest, UpdateDataSourceRequest } from "@/lib/api-client"
-import { useApiMutation } from "./useApiMutation"
+import { useAdminMutation } from "./useAdminMutation"
 import { usePaginatedQuery } from "./usePaginatedQuery"
 
 export function useDataSources(slug: string, q: ListQuery = {}) {
@@ -50,22 +50,25 @@ export function useDataSourcePreview(
 }
 
 export function useCreateDataSource(slug: string) {
-  return useApiMutation(
-    (req: CreateDataSourceRequest) => apiCreateDataSource(slug, req),
-    { successMessage: "数据源创建成功", invalidateKeys: [["datasources", slug]] },
-  )
+  return useAdminMutation({
+    mutationFn: (req: CreateDataSourceRequest) => apiCreateDataSource(slug, req),
+    successMsg: "数据源创建成功",
+    invalidateKeys: [["datasources", slug]],
+  })
 }
 
 export function useUpdateDataSource(slug: string, id: number) {
-  return useApiMutation(
-    (req: UpdateDataSourceRequest) => apiUpdateDataSource(slug, id, req),
-    { successMessage: "数据源已更新", invalidateKeys: [["datasources", slug]] },
-  )
+  return useAdminMutation({
+    mutationFn: (req: UpdateDataSourceRequest) => apiUpdateDataSource(slug, id, req),
+    successMsg: "数据源已更新",
+    invalidateKeys: [["datasources", slug]],
+  })
 }
 
 export function useDeleteDataSource(slug: string) {
-  return useApiMutation(
-    (id: number) => apiDeleteDataSource(slug, id),
-    { successMessage: "数据源已删除", invalidateKeys: [["datasources", slug]] },
-  )
+  return useAdminMutation({
+    mutationFn: (id: number) => apiDeleteDataSource(slug, id),
+    successMsg: "数据源已删除",
+    invalidateKeys: [["datasources", slug]],
+  })
 }

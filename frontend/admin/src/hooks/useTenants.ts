@@ -1,5 +1,5 @@
 import { apiListTenants, apiCreateTenant, type ListQuery, type CreateTenantRequest } from "@/lib/api-client"
-import { useApiMutation } from "./useApiMutation"
+import { useAdminMutation } from "./useAdminMutation"
 import { usePaginatedQuery } from "./usePaginatedQuery"
 
 export function useTenants(q: ListQuery = {}) {
@@ -8,5 +8,5 @@ export function useTenants(q: ListQuery = {}) {
 }
 
 export function useCreateTenant() {
-  return useApiMutation((req: CreateTenantRequest) => apiCreateTenant(req), { successMessage: "组织创建成功", invalidateKeys: [["tenants"]] })
+  return useAdminMutation({ mutationFn: (req: CreateTenantRequest) => apiCreateTenant(req), successMsg: "组织创建成功", invalidateKeys: [["tenants"]] })
 }

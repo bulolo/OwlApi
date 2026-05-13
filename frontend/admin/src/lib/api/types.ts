@@ -7,23 +7,25 @@ import type {
   ApiGroupResp,
   ScriptResp,
   UserResp, ParamDefResp, PaginationInfo,
+  AuthResp,
 } from '@/lib/sdk'
 
-// ── Domain Types ──
-// Derived from SDK generated types — update these when regenerating the SDK.
+// ── Domain Types — direct re-exports from SDK ──
+// Fields are non-optional because the backend DTOs are annotated with validate:"required".
+// Do not add manual Required<> wrappers here; fix the source (dto.go) instead.
 
-export type User = Required<UserResp>
-export type Tenant = Required<Omit<TenantResp, 'max_release_versions'>> & { max_release_versions: number }
-export type TenantUser = Required<Omit<TenantUserResp, 'user'>> & { user?: User }
-export type Gateway = Required<Omit<GatewayResp, 'token'>> & { token?: string }
-export type DataSourceEnv = Required<Omit<DataSourceEnvResp, 'dsn'>> & { dsn?: string }
-export type DataSource = Required<Omit<DataSourceResp, 'envs'>> & { envs?: DataSourceEnv[] }
-export type Project = Required<ProjectResp>
-export type ParamDef = Required<Omit<ParamDefResp, 'default' | 'desc'>> & { default?: string; desc?: string }
-export type ApiEndpoint = Required<Omit<ApiEndpointResp, 'description' | 'param_defs' | 'pre_script_id' | 'post_script_id' | 'published_release_id' | 'has_draft'>> & { description?: string; param_defs?: ParamDef[]; pre_script_id?: number; post_script_id?: number; published_release_id?: number; has_draft?: boolean }
-export type ApiGroup = Required<Omit<ApiGroupResp, 'description'>> & { description?: string }
-export type Script = Required<Omit<ScriptResp, 'description'>> & { description?: string }
-export type AuthResponse = { user: User; token: string; tenant?: Tenant; tenants?: Tenant[] }
+export type User = UserResp
+export type Tenant = TenantResp
+export type TenantUser = TenantUserResp
+export type Gateway = GatewayResp
+export type DataSourceEnv = DataSourceEnvResp
+export type DataSource = DataSourceResp
+export type Project = ProjectResp
+export type ParamDef = ParamDefResp
+export type ApiEndpoint = ApiEndpointResp
+export type ApiGroup = ApiGroupResp
+export type Script = ScriptResp
+export type AuthResponse = AuthResp
 export type { PaginationInfo }
 
 // ── Shared Types ──

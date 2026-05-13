@@ -11,6 +11,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   FileCode2,
+  Github,
+  BookOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/store/useUIStore"
@@ -64,7 +66,7 @@ export function Sidebar({ slug }: { slug?: string }) {
       </div>
 
       {/* Navigation */}
-      <nav className={cn("flex-1 space-y-6 overflow-y-auto overflow-x-hidden pt-1 pb-12 custom-scrollbar", collapsed ? "px-2" : "px-4")}>
+      <nav className={cn("flex-1 space-y-6 overflow-y-auto overflow-x-hidden pt-1 pb-4 custom-scrollbar", collapsed ? "px-2" : "px-4")}>
         {MENUS.map((group, idx) => (
           <div key={idx} className="space-y-1.5">
             {!collapsed && (
@@ -81,16 +83,72 @@ export function Sidebar({ slug }: { slug?: string }) {
         ))}
       </nav>
 
-      {/* Footer with collapse toggle */}
-      <div className={cn("py-3 border-t border-zinc-100 flex items-center", collapsed ? "px-3 justify-center" : "px-5 justify-between")}>
-        {!collapsed && <span className="text-[10px] font-bold text-zinc-300 tracking-widest">v{pkg.version}</span>}
-        <button
-          onClick={() => setSidebarCollapsed(!collapsed)}
-          className="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
-        >
-          {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-        </button>
-      </div>
+      {/* Footer */}
+      {collapsed ? (
+        <div className="mt-auto px-2 py-4 flex flex-col items-center gap-3">
+          <Link
+            href="https://github.com/bulolo/owlapi"
+            target="_blank"
+            title="GitHub"
+            className="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
+          >
+            <Github className="w-4 h-4" />
+          </Link>
+          <span className="px-1.5 py-0.5 bg-blue-50 text-blue-500 rounded-full text-[9px] font-bold border border-blue-100">
+            v{pkg.version}
+          </span>
+          <button
+            onClick={() => setSidebarCollapsed(false)}
+            className="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+          >
+            <PanelLeftOpen className="w-4 h-4" />
+          </button>
+        </div>
+      ) : (
+        <div className="mt-auto px-4 py-5 space-y-5">
+          <div className="space-y-1">
+            <Link
+              href="https://github.com/bulolo/owlapi"
+              target="_blank"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-all group"
+            >
+              <Github className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
+              <span className="font-medium">GitHub</span>
+            </Link>
+            <Link
+              href="https://github.com/bulolo/owlapi/wiki"
+              target="_blank"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-all group"
+            >
+              <BookOpen className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
+              <span className="font-medium">文档</span>
+            </Link>
+          </div>
+
+          <div className="space-y-3 pt-2 border-t border-zinc-100/80">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[10px] font-bold tracking-wider text-zinc-300 uppercase">OwlAPI</span>
+              <div className="flex items-center gap-1.5">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm bg-zinc-50 text-zinc-400 border-zinc-100">
+                  CE
+                </span>
+                <span className="px-2 py-0.5 bg-blue-50/80 text-blue-500 rounded-full text-[10px] font-bold border border-blue-100 shadow-sm">
+                  v{pkg.version}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex-1 text-center text-[10px] text-zinc-300/70 font-medium">© 2026 OwlAPI</span>
+              <button
+                onClick={() => setSidebarCollapsed(true)}
+                className="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+              >
+                <PanelLeftClose className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   )
 }

@@ -50,9 +50,9 @@ export function ScriptEditor({
             {formType === "pre" ? "前置" : "后置"}
           </Badge>
           {isPlatformSelected && (
-            <Badge variant="secondary" className="text-[10px] h-5 px-2 rounded-md bg-purple-50 text-purple-600 gap-1 flex items-center">
-              <Lock className="w-2.5 h-2.5" /> 平台内置
-            </Badge>
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 border border-zinc-200">
+              <Lock className="w-2.5 h-2.5" /> 内置
+            </span>
           )}
         </div>
         <div className="flex items-center gap-2">

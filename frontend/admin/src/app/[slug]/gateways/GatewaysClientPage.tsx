@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Server, Plus, Search } from "lucide-react"
+import { Server, Plus, Search, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useTenant } from "@/providers/TenantProvider"
@@ -58,13 +58,13 @@ export default function GatewaysClientPage() {
           <p className="text-sm text-zinc-500 mt-1 font-medium">网关节点部署于数据库所在机器，提供安全的内网数据索引能力。</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="h-9 px-4 rounded-lg border-zinc-200 text-xs font-bold shadow-sm" onClick={() => refetch()}>
-            刷新
+          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100" onClick={() => refetch()}>
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> 刷新
           </Button>
           <Link href={`/${activeTenant}/gateways/new`}>
             <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
               <Plus className="w-4 h-4 mr-2" />
-              安装新节点
+              新建
             </Button>
           </Link>
         </div>
@@ -80,7 +80,7 @@ export default function GatewaysClientPage() {
       {isLoading ? (
         <ListSkeleton rows={3} />
       ) : gateways.length === 0 ? (
-        <EmptyState icon={Server} title={keyword ? "无匹配节点" : "暂无网关节点"} description={keyword ? "尝试其他关键词" : "点击「安装新节点」创建第一个网关"} />
+        <EmptyState icon={Server} title={keyword ? "无匹配节点" : "暂无网关节点"} description={keyword ? "尝试其他关键词" : "点击「新建」添加第一个网关节点"} />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {gateways.map((gw) => (

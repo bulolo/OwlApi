@@ -29,13 +29,14 @@ func (t DbType) IsValid() bool {
 // DataSource is a tenant-scoped database connection configuration that may
 // carry separate dev and prod environments.
 type DataSource struct {
-	ID        int64            `json:"id"`
-	TenantID  int64            `json:"tenant_id"`
-	Name      string           `json:"name"`
-	IsDual    bool             `json:"is_dual"`
-	Type      string           `json:"type"`
-	Envs      []*DataSourceEnv `json:"envs,omitempty"`
-	CreatedAt time.Time        `json:"created_at"`
+	ID         int64            `json:"id"`
+	TenantID   int64            `json:"tenant_id"`
+	Name       string           `json:"name"`
+	IsDual     bool             `json:"is_dual"`
+	IsPlatform bool             `json:"is_platform"`
+	Type       string           `json:"type"`
+	Envs       []*DataSourceEnv `json:"envs,omitempty"`
+	CreatedAt  time.Time        `json:"created_at"`
 }
 
 // MaskEnvs returns a shallow copy of ds with all DSN passwords replaced by

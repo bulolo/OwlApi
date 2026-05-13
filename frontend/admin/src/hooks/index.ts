@@ -4,6 +4,7 @@ export { useDataSources, useDataSource, useDataSourceSchema, useDataSourcePrevie
 export { useUsers, useAddUser, useRemoveUser, useUpdateUserRole } from './useUsers'
 export { useScripts, useCreateScript, useUpdateScript, useDeleteScript } from './useScripts'
 export { useTenants, useCreateTenant } from './useTenants'
-export { useApiMutation } from './useApiMutation'
+export { useAdminMutation } from './useAdminMutation'
+export { useIsClient } from './useIsClient'
 export { usePaginatedQuery } from './usePaginatedQuery'
 export { useReleases, usePublishEndpoint, useUnpublishEndpoint, useActivateRelease } from './useReleases'

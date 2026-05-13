@@ -5,7 +5,7 @@ import { useTenant } from "@/providers/TenantProvider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, FolderGit2, Database, Pencil, Trash2, Search } from "lucide-react"
+import { Plus, FolderGit2, Database, Pencil, Trash2, Search, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useProjects, useDeleteProject } from "@/hooks"
@@ -21,7 +21,7 @@ export default function ProjectsPage() {
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(12)
   const [keyword, setKeyword] = useState("")
-  const { projects, pagination, isLoading } = useProjects(activeTenant, { page, size, keyword })
+  const { projects, pagination, isLoading, refetch } = useProjects(activeTenant, { page, size, keyword })
   const deleteMutation = useDeleteProject(activeTenant)
 
   const handleDelete = async (e: React.MouseEvent, p: Project) => {
@@ -44,11 +44,16 @@ export default function ProjectsPage() {
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">项目</h1>
           <p className="text-sm text-zinc-500 mt-1 font-medium">管理您的 API 项目，编写 SQL 即可生成 RESTful 接口</p>
         </div>
-        <Link href={`/${activeTenant}/projects/new`}>
-          <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
-            <Plus className="w-4 h-4 mr-2" /> 创建项目
+        <div className="flex gap-2">
+          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100" onClick={() => refetch()}>
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> 刷新
           </Button>
-        </Link>
+          <Link href={`/${activeTenant}/projects/new`}>
+            <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
+              <Plus className="w-4 h-4 mr-2" /> 新建
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white border border-zinc-100 rounded-lg p-3 shadow-sm">
@@ -61,7 +66,7 @@ export default function ProjectsPage() {
       {isLoading ? (
         <CardSkeleton count={3} />
       ) : projects.length === 0 ? (
-        <EmptyState icon={FolderGit2} title={keyword ? "无匹配项目" : "暂无项目"} description={keyword ? "尝试其他关键词" : "点击「创建项目」开始"} />
+        <EmptyState icon={FolderGit2} title={keyword ? "无匹配项目" : "暂无项目"} description={keyword ? "尝试其他关键词" : "点击「新建」创建第一个项目"} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {projects.map((project) => (
@@ -106,7 +111,7 @@ export default function ProjectsPage() {
               <div className="w-12 h-12 rounded-lg border border-zinc-100 flex items-center justify-center mb-4 bg-white shadow-sm group-hover:scale-110 group-hover:bg-blue-600 group-hover:border-blue-600 transition-all duration-300">
                 <Plus className="w-6 h-6 text-zinc-300 group-hover:text-white" />
               </div>
-              <p className="text-sm font-bold text-zinc-400 uppercase tracking-wide">创建项目</p>
+              <p className="text-sm font-bold text-zinc-400 uppercase tracking-wide">新建</p>
             </div>
           </Link>
         </div>

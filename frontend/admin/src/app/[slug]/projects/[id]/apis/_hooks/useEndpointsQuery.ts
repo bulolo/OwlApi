@@ -1,5 +1,5 @@
 import { usePaginatedQuery } from "@/hooks/usePaginatedQuery"
-import { useApiMutation } from "@/hooks/useApiMutation"
+import { useAdminMutation } from "@/hooks/useAdminMutation"
 import {
   apiListEndpoints,
   apiDeleteEndpoint,
@@ -18,44 +18,38 @@ export function useEndpointsQuery(slug: string, projectId: string) {
 }
 
 export function useDeleteEndpoint(slug: string, projectId: string) {
-  return useApiMutation(
-    (endpointId: number) => apiDeleteEndpoint(slug, Number(projectId), endpointId),
-    {
-      successMessage: "接口已删除",
-      invalidateKeys: [["endpoints", slug, projectId]],
-    },
-  )
+  return useAdminMutation({
+    mutationFn: (endpointId: number) => apiDeleteEndpoint(slug, Number(projectId), endpointId),
+    successMsg: "接口已删除",
+    invalidateKeys: [["endpoints", slug, projectId]],
+  })
 }
 
 export function usePublishEndpointMutation(slug: string, projectId: string, endpointId: number) {
-  return useApiMutation(
-    () => apiPublishEndpoint(slug, Number(projectId), endpointId),
-    {
-      successMessage: "接口已上线",
-      invalidateKeys: [
-        ["endpoints", slug, projectId],
-        ["releases", slug, Number(projectId), endpointId],
-      ],
-    },
-  )
+  return useAdminMutation({
+    mutationFn: () => apiPublishEndpoint(slug, Number(projectId), endpointId),
+    successMsg: "接口已上线",
+    invalidateKeys: [
+      ["endpoints", slug, projectId],
+      ["releases", slug, Number(projectId), endpointId],
+    ],
+  })
 }
 
 export function useUnpublishEndpointMutation(slug: string, projectId: string, endpointId: number) {
-  return useApiMutation<void, void>(
-    () => apiUnpublishEndpoint(slug, Number(projectId), endpointId),
-    {
-      successMessage: "接口已下线",
-      invalidateKeys: [
-        ["endpoints", slug, projectId],
-        ["releases", slug, Number(projectId), endpointId],
-      ],
-    },
-  )
+  return useAdminMutation<void, Error, void>({
+    mutationFn: () => apiUnpublishEndpoint(slug, Number(projectId), endpointId),
+    successMsg: "接口已下线",
+    invalidateKeys: [
+      ["endpoints", slug, projectId],
+      ["releases", slug, Number(projectId), endpointId],
+    ],
+  })
 }
 
 export function useUpdateEndpointGroup(slug: string, projectId: string) {
-  return useApiMutation(
-    ({ ep, groupId }: { ep: ApiEndpoint; groupId: number }) =>
+  return useAdminMutation({
+    mutationFn: ({ ep, groupId }: { ep: ApiEndpoint; groupId: number }) =>
       apiUpdateEndpoint(slug, Number(projectId), ep.id!, {
         path: ep.path ?? "",
         methods: (ep.methods ?? []) as string[],
@@ -66,6 +60,6 @@ export function useUpdateEndpointGroup(slug: string, projectId: string) {
         param_defs: ep.param_defs ?? [],
         group_id: groupId,
       }),
-    { invalidateKeys: [["endpoints", slug, projectId]] },
-  )
+    invalidateKeys: [["endpoints", slug, projectId]],
+  })
 }

@@ -8,8 +8,11 @@ import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { ArrowLeft, ShieldCheck, CheckCircle2 } from "lucide-react"
 import { useTenant } from "@/providers/TenantProvider"
+import { useIsClient } from "@/hooks/useIsClient"
 
 export default function RegisterTenantPage() {
+  const isClient = useIsClient()
+  const appHost = isClient ? window.location.host : ''
   const activeTenant = useTenant()
   const router = useRouter()
   const [step, setStep] = useState(1)
@@ -83,7 +86,7 @@ export default function RegisterTenantPage() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-zinc-400">专属访问路径</Label>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-zinc-400">owlapi.cn/</span>
+                    <span className="text-sm font-bold text-zinc-400">{appHost}/</span>
                     <Input 
                       placeholder="aliyun" 
                       value={formData.slug}
@@ -170,7 +173,7 @@ export default function RegisterTenantPage() {
                 <div className="p-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-200 text-left">
                    <div className="flex items-center justify-between text-xs mb-2">
                       <span className="text-zinc-400">专属访问 URL:</span>
-                      <span className="font-mono font-bold text-blue-600">owlapi.cn/{formData.slug}</span>
+                      <span className="font-mono font-bold text-blue-600">{appHost}/{formData.slug}</span>
                    </div>
                    <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-400">组织识别码 (Tenant ID):</span>

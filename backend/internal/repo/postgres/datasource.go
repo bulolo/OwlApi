@@ -19,8 +19,8 @@ func (r *DataSourceRepo) Create(ctx context.Context, ds *domain.DataSource) erro
 	defer tx.Rollback(ctx)
 
 	err = tx.QueryRow(ctx,
-		`INSERT INTO datasources (tenant_id, name, is_dual, type) VALUES ($1,$2,$3,$4) RETURNING id`,
-		ds.TenantID, ds.Name, ds.IsDual, ds.Type).Scan(&ds.ID)
+		`INSERT INTO datasources (tenant_id, name, is_dual, is_platform, type) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+		ds.TenantID, ds.Name, ds.IsDual, ds.IsPlatform, ds.Type).Scan(&ds.ID)
 	if err != nil {
 		return err
 	}
@@ -39,8 +39,8 @@ func (r *DataSourceRepo) Create(ctx context.Context, ds *domain.DataSource) erro
 func (r *DataSourceRepo) GetByID(ctx context.Context, tenantID, id int64) (*domain.DataSource, error) {
 	var ds domain.DataSource
 	err := r.DB.Pool.QueryRow(ctx,
-		`SELECT id, tenant_id, name, is_dual, type, created_at FROM datasources WHERE tenant_id=$1 AND id=$2`,
-		tenantID, id).Scan(&ds.ID, &ds.TenantID, &ds.Name, &ds.IsDual, &ds.Type, &ds.CreatedAt)
+		`SELECT id, tenant_id, name, is_dual, is_platform, type, created_at FROM datasources WHERE tenant_id=$1 AND id=$2`,
+		tenantID, id).Scan(&ds.ID, &ds.TenantID, &ds.Name, &ds.IsDual, &ds.IsPlatform, &ds.Type, &ds.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -50,8 +50,8 @@ func (r *DataSourceRepo) GetByID(ctx context.Context, tenantID, id int64) (*doma
 func (r *DataSourceRepo) GetByName(ctx context.Context, tenantID int64, name string) (*domain.DataSource, error) {
 	var ds domain.DataSource
 	err := r.DB.Pool.QueryRow(ctx,
-		`SELECT id, tenant_id, name, is_dual, type, created_at FROM datasources WHERE tenant_id=$1 AND name=$2`,
-		tenantID, name).Scan(&ds.ID, &ds.TenantID, &ds.Name, &ds.IsDual, &ds.Type, &ds.CreatedAt)
+		`SELECT id, tenant_id, name, is_dual, is_platform, type, created_at FROM datasources WHERE tenant_id=$1 AND name=$2`,
+		tenantID, name).Scan(&ds.ID, &ds.TenantID, &ds.Name, &ds.IsDual, &ds.IsPlatform, &ds.Type, &ds.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (r *DataSourceRepo) List(ctx context.Context, tenantID int64, p domain.List
 	}
 	pgSuffix, pgArgs := appendPagination(p, argN, args)
 	rows, err := r.DB.Pool.Query(ctx,
-		fmt.Sprintf(`SELECT id, tenant_id, name, is_dual, type, created_at FROM datasources %s ORDER BY id%s`, where, pgSuffix),
+		fmt.Sprintf(`SELECT id, tenant_id, name, is_dual, is_platform, type, created_at FROM datasources %s ORDER BY id%s`, where, pgSuffix),
 		pgArgs...)
 	if err != nil {
 		return nil, 0, err
@@ -85,7 +85,7 @@ func (r *DataSourceRepo) List(ctx context.Context, tenantID int64, p domain.List
 	var list []*domain.DataSource
 	for rows.Next() {
 		var ds domain.DataSource
-		if err := rows.Scan(&ds.ID, &ds.TenantID, &ds.Name, &ds.IsDual, &ds.Type, &ds.CreatedAt); err != nil {
+		if err := rows.Scan(&ds.ID, &ds.TenantID, &ds.Name, &ds.IsDual, &ds.IsPlatform, &ds.Type, &ds.CreatedAt); err != nil {
 			return nil, 0, err
 		}
 		list = append(list, &ds)

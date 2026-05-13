@@ -4,8 +4,7 @@ import { useTenant } from "@/providers/TenantProvider"
 import { Box, ArrowLeft, Download, ChevronRight, Layers } from "lucide-react"
 import { useProject } from "@/hooks"
 import { apiExportOpenAPI } from "@/lib/api-client"
-import { listEndpoints } from "@/lib/sdk"
-import { useQuery } from "@tanstack/react-query"
+import { useEndpointsQuery } from "./apis/_hooks/useEndpointsQuery"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
@@ -20,14 +19,7 @@ export default function ProjectLayoutContent({
 }) {
   const activeTenant = useTenant()
   const { data: project } = useProject(activeTenant, Number(projectId))
-  const { data: epData } = useQuery({
-    queryKey: ["endpoints", activeTenant, projectId],
-    queryFn: async () => {
-      const res = await listEndpoints({ path: { slug: activeTenant, projectId: Number(projectId) } })
-      return res as unknown as { list?: unknown[] } | undefined
-    },
-    enabled: !!activeTenant && !!projectId,
-  })
+  const { data: epData } = useEndpointsQuery(activeTenant, projectId)
   const endpointCount = epData?.list?.length ?? 0
 
   const handleExport = async () => {

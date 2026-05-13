@@ -127,31 +127,31 @@ func (h *EndpointReleaseHandler) HandleUnpublish(c *gin.Context) {
 // ---- Swagger response types ----
 
 type EndpointReleaseResp struct {
-	ID          int64               `json:"id"`
-	TenantID    int64               `json:"tenant_id"`
-	EndpointID  int64               `json:"endpoint_id"`
-	Version     int                 `json:"version"`
-	Note        string              `json:"note"`
+	ID          int64               `json:"id"           validate:"required"`
+	TenantID    int64               `json:"tenant_id"    validate:"required"`
+	EndpointID  int64               `json:"endpoint_id"  validate:"required"`
+	Version     int                 `json:"version"      validate:"required"`
+	Note        string              `json:"note"         validate:"required"`
 	Snapshot    *domain.APIEndpoint `json:"snapshot"`
-	PublishedBy int64               `json:"published_by"`
-	PublishedAt string              `json:"published_at"`
-	IsActive    bool                `json:"is_active"`
-	IsDraft     bool                `json:"is_draft"`
+	PublishedBy int64               `json:"published_by" validate:"required"`
+	PublishedAt string              `json:"published_at" validate:"required"`
+	IsActive    bool                `json:"is_active"    validate:"required"`
+	IsDraft     bool                `json:"is_draft"     validate:"required"`
 }
 
 type EndpointReleaseListResp struct {
-	List       []EndpointReleaseResp `json:"list"`
-	Pagination PaginationInfo        `json:"pagination"`
+	List       []EndpointReleaseResp `json:"list"       validate:"required"`
+	Pagination PaginationInfo        `json:"pagination" validate:"required"`
 }
 
 type REndpointRelease struct {
-	Code int                 `json:"code"`
-	Msg  string              `json:"msg"`
-	Data EndpointReleaseResp `json:"data"`
+	Code int                 `json:"code" validate:"required"`
+	Msg  string              `json:"msg"  validate:"required"`
+	Data EndpointReleaseResp `json:"data" validate:"required"`
 }
 
 type REndpointReleaseList struct {
-	Code int                     `json:"code"`
-	Msg  string                  `json:"msg"`
-	Data EndpointReleaseListResp `json:"data"`
+	Code int                     `json:"code" validate:"required"`
+	Msg  string                  `json:"msg"  validate:"required"`
+	Data EndpointReleaseListResp `json:"data" validate:"required"`
 }

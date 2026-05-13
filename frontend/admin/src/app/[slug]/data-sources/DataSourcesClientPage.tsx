@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Plus, Search, Trash2, Server, Pencil, Table2, PlugZap } from "lucide-react"
+import { Plus, Search, Trash2, Server, Pencil, Table2, PlugZap, Lock, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -74,7 +74,7 @@ export default function DataSourcesClientPage() {
   const [page, setPage] = useState(1)
   const [size, setSize] = useState(10)
   const [keyword, setKeyword] = useState("")
-  const { dataSources, pagination, isLoading } = useDataSources(activeTenant, { page, size, keyword })
+  const { dataSources, pagination, isLoading, refetch } = useDataSources(activeTenant, { page, size, keyword })
   const { gateways } = useGateways(activeTenant, { is_pager: 0 })
   const deleteMutation = useDeleteDataSource(activeTenant)
   const [browseDS, setBrowseDS] = useState<DataSource | null>(null)
@@ -93,11 +93,16 @@ export default function DataSourcesClientPage() {
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">数据源管理</h1>
           <p className="text-sm text-zinc-500 mt-1 font-medium">通过网关节点实现跨网络数据库安全接入</p>
         </div>
-        <Link href={`/${activeTenant}/data-sources/new`}>
-          <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
-            <Plus className="w-4 h-4 mr-2" /> 接入新数据源
+        <div className="flex gap-2">
+          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100" onClick={() => refetch()}>
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> 刷新
           </Button>
-        </Link>
+          <Link href={`/${activeTenant}/data-sources/new`}>
+            <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
+              <Plus className="w-4 h-4 mr-2" /> 新建
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white border border-zinc-100 rounded-lg p-3 shadow-sm">
@@ -115,7 +120,7 @@ export default function DataSourcesClientPage() {
       {isLoading ? (
         <CardSkeleton count={3} />
       ) : dataSources.length === 0 && !keyword ? (
-        <EmptyState icon={PlugZap} title="暂无数据源" description="点击「接入新数据源」创建第一个数据源" />
+        <EmptyState icon={PlugZap} title="暂无数据源" description="点击「新建」接入第一个数据源" />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {dataSources.map(ds => {
@@ -134,6 +139,11 @@ export default function DataSourcesClientPage() {
                   <div className="flex items-start justify-between mb-4">
                     <DbTypeIcon type={ds.type} />
                     <div className="flex items-center gap-1.5">
+                      {ds.is_platform && (
+                        <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-zinc-100 border border-zinc-200 rounded text-[10px] font-bold text-zinc-500">
+                          <Lock className="w-2.5 h-2.5" /> 内置
+                        </span>
+                      )}
                       {isDual && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-violet-50 text-violet-600 border-violet-100 uppercase tracking-tight">
                           双环境
@@ -190,19 +200,23 @@ export default function DataSourcesClientPage() {
                     >
                       <Table2 className="w-3.5 h-3.5" />
                     </Button>
-                    <Link href={`/${activeTenant}/data-sources/edit/${ds.id}`}>
-                      <Button variant="ghost" size="icon" className="w-7 h-7 rounded-lg hover:bg-blue-50 hover:text-blue-600">
-                        <Pencil className="w-3.5 h-3.5" />
+                    {!ds.is_platform && (
+                      <Link href={`/${activeTenant}/data-sources/edit/${ds.id}`}>
+                        <Button variant="ghost" size="icon" className="w-7 h-7 rounded-lg hover:bg-blue-50 hover:text-blue-600">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    )}
+                    {!ds.is_platform && (
+                      <Button
+                        variant="ghost" size="icon"
+                        className="w-7 h-7 rounded-lg hover:bg-red-50 hover:text-red-500"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => handleDelete(ds)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
-                    </Link>
-                    <Button
-                      variant="ghost" size="icon"
-                      className="w-7 h-7 rounded-lg hover:bg-red-50 hover:text-red-500"
-                      disabled={deleteMutation.isPending}
-                      onClick={() => handleDelete(ds)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -214,7 +228,7 @@ export default function DataSourcesClientPage() {
               <div className="w-11 h-11 rounded-xl border border-zinc-100 flex items-center justify-center mb-4 bg-white shadow-sm group-hover:scale-110 group-hover:bg-blue-600 group-hover:border-blue-600 transition-all duration-300">
                 <Plus className="w-5 h-5 text-zinc-300 group-hover:text-white" />
               </div>
-              <p className="text-sm font-bold text-zinc-400 uppercase tracking-wide">接入新数据源</p>
+              <p className="text-sm font-bold text-zinc-400 uppercase tracking-wide">新建</p>
             </div>
           </Link>
         </div>

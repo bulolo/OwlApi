@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 import { useParams } from "next/navigation"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { useQuery } from "@tanstack/react-query"
+import { useAdminMutation } from "@/hooks"
 import { Globe, GitBranch, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,7 +17,6 @@ export default function SettingsClientPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("general")
   const params = useParams()
   const slug = params.slug as string
-  const qc = useQueryClient()
 
   const { data: tenant } = useQuery({
     queryKey: ["tenant", slug],
@@ -28,13 +27,10 @@ export default function SettingsClientPage() {
   const [localMaxVersions, setLocalMaxVersions] = useState<number | null>(null)
   const maxVersions = localMaxVersions ?? tenant?.max_release_versions ?? 10
 
-  const saveSettings = useMutation({
+  const saveSettings = useAdminMutation({
     mutationFn: () => apiUpdateTenantSettings(slug, localMaxVersions ?? tenant?.max_release_versions ?? 10),
-    onSuccess: () => {
-      toast.success("配置已保存")
-      qc.invalidateQueries({ queryKey: ["tenant", slug] })
-    },
-    onError: (e: Error) => toast.error(e.message || "保存失败"),
+    successMsg: "配置已保存",
+    invalidateKeys: [["tenant", slug]],
   })
 
   return (
@@ -47,7 +43,7 @@ export default function SettingsClientPage() {
         {activeTab === "general" && (
           <Button
             className="h-9 px-6 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm"
-            onClick={() => saveSettings.mutate()}
+            onClick={() => saveSettings.mutate(undefined)}
             disabled={saveSettings.isPending}
           >
             {saveSettings.isPending ? "保存中..." : "保存更改"}

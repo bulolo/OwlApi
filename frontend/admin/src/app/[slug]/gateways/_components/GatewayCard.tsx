@@ -27,7 +27,7 @@ export function GatewayCard({ gateway: gw, formatTime, onViewDeploy, onDelete }:
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-zinc-900 group-hover:text-blue-600 transition-colors tracking-tight">{gw.name}</h3>
               {gw.is_platform && (
-                <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-50 border border-purple-100 rounded text-[10px] font-bold text-purple-600">
+                <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-zinc-100 border border-zinc-200 rounded text-[10px] font-bold text-zinc-500">
                   <Lock className="w-2.5 h-2.5" /> 内置
                 </span>
               )}

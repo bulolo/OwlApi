@@ -22,6 +22,7 @@ type Tenant struct {
 	Plan               TenantPlan   `json:"plan"`
 	Status             TenantStatus `json:"status"`
 	MaxReleaseVersions int          `json:"max_release_versions"`
+	Avatar             string       `json:"avatar"`
 	CreatedAt          time.Time    `json:"created_at"`
 	UpdatedAt          time.Time    `json:"updated_at"`
 }

@@ -51,12 +51,13 @@ func (h *ProjectHandler) HandleCreate(c *gin.Context) {
 		Slug        string `json:"slug" binding:"required"`
 		Name        string `json:"name" binding:"required"`
 		Description string `json:"description"`
+		Avatar      string `json:"avatar"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	p := &domain.Project{TenantID: tenant.ID, Slug: req.Slug, Name: req.Name, Description: req.Description}
+	p := &domain.Project{TenantID: tenant.ID, Slug: req.Slug, Name: req.Name, Description: req.Description, Avatar: req.Avatar}
 	if err := h.projects.Create(c.Request.Context(), p); err != nil {
 		FailErr(c, err)
 		return
@@ -115,6 +116,7 @@ func (h *ProjectHandler) HandleUpdate(c *gin.Context) {
 		Slug        string `json:"slug"`
 		Name        string `json:"name"`
 		Description string `json:"description"`
+		Avatar      string `json:"avatar"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
@@ -128,6 +130,9 @@ func (h *ProjectHandler) HandleUpdate(c *gin.Context) {
 	}
 	if req.Description != "" {
 		p.Description = req.Description
+	}
+	if req.Avatar != "" {
+		p.Avatar = req.Avatar
 	}
 	if err := h.projects.Update(c.Request.Context(), p); err != nil {
 		FailErr(c, err)

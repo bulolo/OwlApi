@@ -38,10 +38,24 @@ func (s *dataSourceService) Create(ctx context.Context, ds *domain.DataSource) e
 }
 
 func (s *dataSourceService) Update(ctx context.Context, ds *domain.DataSource) error {
+	existing, err := s.repo.GetByID(ctx, ds.TenantID, ds.ID)
+	if err != nil {
+		return err
+	}
+	if existing.IsPlatform {
+		return domain.ErrForbidden("内置数据源不可编辑")
+	}
 	return s.repo.Update(ctx, ds)
 }
 
 func (s *dataSourceService) Delete(ctx context.Context, tenantID, id int64) error {
+	existing, err := s.repo.GetByID(ctx, tenantID, id)
+	if err != nil {
+		return err
+	}
+	if existing.IsPlatform {
+		return domain.ErrForbidden("内置数据源不可删除")
+	}
 	return s.repo.Delete(ctx, tenantID, id)
 }
 

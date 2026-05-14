@@ -2,7 +2,6 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useIsClient } from "@/hooks/useIsClient"
 import { LogOut, Settings, ShieldCheck } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import PlatformSettingsModal from "./PlatformSettingsModal"
 import TenantSettingsModal from "./TenantSettingsModal"
 import {
@@ -26,7 +25,7 @@ export function Header({ slug }: { slug?: string }) {
   const initials = name.slice(0, 2).toUpperCase()
 
   return (
-    <header className="glass-header h-20 flex items-center justify-between px-8 border-b border-zinc-100">
+    <header className="glass-header h-20 flex items-center justify-between px-8 border-b border-border-subtle">
       <div className="flex items-center gap-4">
         <TenantSwitcher slug={slug} />
       </div>
@@ -48,7 +47,7 @@ export function Header({ slug }: { slug?: string }) {
 
             {/* 2. Tenant Settings (all users) */}
             <button
-              className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-xl transition-all"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-zinc-50 rounded-xl transition-all"
               onClick={() => setOpenTenantSettings(true)}
               title="系统设置"
             >
@@ -60,20 +59,20 @@ export function Header({ slug }: { slug?: string }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2.5 p-1 pr-2 rounded-lg hover:bg-zinc-50 transition-all group">
-                  <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center text-[10px] font-black text-white group-hover:bg-blue-600 transition-colors shadow-sm">
+                  <div className="w-8 h-8 rounded-lg bg-zinc-900 flex items-center justify-center text-2xs font-black text-white group-hover:bg-primary transition-colors shadow-sm">
                     {initials}
                   </div>
                   <div className="hidden sm:flex flex-col items-start">
-                    <span className="text-xs font-bold text-zinc-900 leading-none group-hover:text-blue-600 transition-colors">{name}</span>
-                    {user?.is_superadmin && <span className="text-[10px] text-amber-600 font-bold uppercase tracking-widest mt-1">超级管理员</span>}
-                    {!user?.is_superadmin && <span className="text-[10px] text-zinc-400 font-bold tracking-widest mt-1">组织用户</span>}
+                    <span className="text-xs font-bold text-foreground leading-none group-hover:text-primary transition-colors">{name}</span>
+                    {user?.is_superadmin && <span className="text-2xs text-amber-600 font-bold uppercase tracking-widest mt-1">超级管理员</span>}
+                    {!user?.is_superadmin && <span className="text-2xs text-muted-foreground font-bold tracking-widest mt-1">组织用户</span>}
                   </div>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-2 rounded-lg shadow-sm border-zinc-100/80 backdrop-blur-xl bg-white/90">
+              <DropdownMenuContent align="end" className="w-56 p-2 rounded-lg shadow-card border-border-subtle/80 backdrop-blur-xl bg-white/90">
                 <div className="px-3 py-3 border-b border-zinc-50 mb-1">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 opacity-60">Account</p>
-                  <p className="text-xs font-bold text-zinc-900 truncate">{email}</p>
+                  <p className="text-2xs font-bold text-muted-foreground uppercase tracking-widest mb-1 opacity-60">Account</p>
+                  <p className="text-xs font-bold text-foreground truncate">{email}</p>
                 </div>
                 <DropdownMenuItem 
                   className="rounded-lg py-2 px-3 focus:bg-red-50 cursor-pointer text-sm font-bold text-red-500 flex items-center gap-3"

@@ -3386,6 +3386,9 @@ const docTemplate = `{
                 "tenant_id"
             ],
             "properties": {
+                "avatar": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -3865,6 +3868,9 @@ const docTemplate = `{
                 "updated_at"
             ],
             "properties": {
+                "avatar": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -4063,7 +4069,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.1.7",
+	Version:          "0.1.8",
 	Host:             "localhost:3000",
 	BasePath:         "/",
 	Schemes:          []string{},

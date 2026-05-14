@@ -6,6 +6,11 @@ import (
 	"github.com/bulolo/owlapi/internal/domain"
 )
 
+// likeWrap wraps a keyword with SQL LIKE wildcard characters.
+func likeWrap(keyword string) string {
+	return "%" + keyword + "%"
+}
+
 // appendPagination adds LIMIT/OFFSET to a query if pagination is enabled.
 // Returns the updated SQL suffix and args.
 func appendPagination(p domain.ListParams, argN int, args []interface{}) (string, []interface{}) {

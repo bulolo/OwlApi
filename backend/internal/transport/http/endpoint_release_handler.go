@@ -1,6 +1,8 @@
 package http
 
 import (
+	"net/http"
+
 	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/bulolo/owlapi/internal/service"
 	"github.com/gin-gonic/gin"
@@ -33,7 +35,10 @@ func (h *EndpointReleaseHandler) HandlePublish(c *gin.Context) {
 	var req struct {
 		Note string `json:"note"`
 	}
-	_ = c.ShouldBindJSON(&req)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	rel, err := h.releases.Publish(c.Request.Context(), tenant.ID, epID, claims.UserID, req.Note, tenant.MaxReleaseVersions)
 	if err != nil {

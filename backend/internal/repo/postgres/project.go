@@ -56,7 +56,7 @@ func (r *ProjectRepo) List(ctx context.Context, tenantID int64, p domain.ListPar
 	argN := 2
 	if p.Keyword != "" {
 		where += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d)", argN, argN)
-		args = append(args, "%"+p.Keyword+"%")
+		args = append(args, likeWrap(p.Keyword))
 		argN++
 	}
 

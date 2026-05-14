@@ -33,11 +33,11 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
     return (
       <Button 
         variant="outline" 
-        className="w-[200px] justify-between h-9 bg-zinc-50/50 border-zinc-200 text-zinc-600 font-normal px-3 pointer-events-none"
+        className="w-[200px] justify-between h-9 bg-zinc-50/50 border-border text-zinc-600 font-normal px-3 pointer-events-none"
       >
         <span className="flex items-center gap-2 truncate">
-          <span className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center shrink-0">
-             <Building2 className="w-3 h-3 text-blue-600" />
+          <span className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center shrink-0">
+             <Building2 className="w-3 h-3 text-primary" />
           </span>
           <span className="truncate text-xs font-bold">{currentTenantObj?.name || '正在加载...'}</span>
         </span>
@@ -50,10 +50,10 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
   if (!isSuperAdmin) {
     return (
       <div className="flex items-center gap-2 px-3 h-9">
-        <span className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center shrink-0">
-          <Building2 className="w-3 h-3 text-blue-600" />
+        <span className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center shrink-0">
+          <Building2 className="w-3 h-3 text-primary" />
         </span>
-        <span className="text-xs font-bold text-zinc-900">{slug || activeTenant}</span>
+        <span className="text-xs font-bold text-foreground">{slug || activeTenant}</span>
       </div>
     )
   }
@@ -64,11 +64,11 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
         <Button 
           variant="outline" 
           role="combobox"
-          className="w-[200px] justify-between h-9 bg-zinc-50/50 border-zinc-200 hover:bg-white hover:text-zinc-900 text-zinc-600 font-normal px-3"
+          className="w-[200px] justify-between h-9 bg-zinc-50/50 border-border hover:bg-white hover:text-foreground text-zinc-600 font-normal px-3"
         >
           <span className="flex items-center gap-2 truncate">
-            <span className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center shrink-0">
-               <Building2 className="w-3 h-3 text-blue-600" />
+            <span className="w-5 h-5 rounded bg-primary/20 flex items-center justify-center shrink-0">
+               <Building2 className="w-3 h-3 text-primary" />
             </span>
             <span className="truncate text-xs font-bold">{currentTenantObj?.name || '选择组织'}</span>
           </span>
@@ -76,11 +76,11 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-[200px] p-0" align="start">
-        <DropdownMenuLabel className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-3 py-2">
+        <DropdownMenuLabel className="text-2xs font-black text-muted-foreground uppercase tracking-widest px-3 py-2">
           切换组织
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="my-0" />
-        <div className="max-h-[300px] overflow-y-auto p-1">
+        <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-1">
           {tenants.map((tenant) => (
             <DropdownMenuItem
               key={tenant.id}
@@ -92,7 +92,7 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
               <div className="flex items-center gap-2 w-full">
                 <div className={cn(
                   "w-6 h-6 rounded flex items-center justify-center shrink-0",
-                  activeTenant === tenant.slug ? "bg-blue-600 text-white" : "bg-zinc-100 text-zinc-400"
+                  activeTenant === tenant.slug ? "bg-primary text-white" : "bg-zinc-100 text-muted-foreground"
                 )}>
                   {activeTenant === tenant.slug ? (
                     <Check className="w-3.5 h-3.5" />
@@ -100,7 +100,7 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
                     <Building2 className="w-3.5 h-3.5" />
                   )}
                 </div>
-                <span className={cn("truncate flex-1", activeTenant === tenant.slug && "text-blue-600")}>
+                <span className={cn("truncate flex-1", activeTenant === tenant.slug && "text-primary")}>
                   {tenant.name}
                 </span>
               </div>

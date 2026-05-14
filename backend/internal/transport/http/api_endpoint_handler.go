@@ -1,6 +1,7 @@
 package http
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/bulolo/owlapi/internal/domain"
@@ -154,7 +155,9 @@ func (h *APIEndpointHandler) HandleUpdate(c *gin.Context) {
 		return
 	}
 	claims := GetClaims(c)
-	_ = h.releases.UpsertDraft(c.Request.Context(), tenant.ID, epID, claims.UserID)
+	if err := h.releases.UpsertDraft(c.Request.Context(), tenant.ID, epID, claims.UserID); err != nil {
+		slog.Warn("upsert draft failed", "endpoint_id", epID, "err", err)
+	}
 	OK(c, ep)
 }
 

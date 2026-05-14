@@ -36,8 +36,8 @@ export default function OverviewPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">概览</h1>
-        <p className="text-sm text-zinc-500 mt-1 font-medium">查看当前组织的 API 资产运行状态、流量统计及最新动态。</p>
+        <h1 className="text-2xl font-bold text-foreground tracking-tight">概览</h1>
+        <p className="text-sm text-muted-foreground mt-1 font-medium">查看当前组织的 API 资产运行状态、流量统计及最新动态。</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -48,21 +48,21 @@ export default function OverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-lg border border-zinc-100 shadow-sm p-6">
+        <div className="lg:col-span-2 bg-white rounded-lg border border-border-subtle shadow-card p-6">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-base font-bold text-zinc-900">流量趋势</h3>
-              <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tight mt-0.5">{RANGE_LABELS[range]}</p>
+              <h3 className="text-lg font-bold text-foreground">流量趋势</h3>
+              <p className="text-2xs text-muted-foreground font-bold uppercase tracking-tight mt-0.5">{RANGE_LABELS[range]}</p>
             </div>
-            <div className="flex gap-1 bg-zinc-50 p-1 rounded-lg border border-zinc-100">
+            <div className="flex gap-1 bg-zinc-50 p-1 rounded-lg border border-border-subtle">
               {(["24H", "7D", "30D"] as const).map((r) => (
                 <button
                   key={r}
                   onClick={() => setRange(r)}
-                  className={`text-[10px] px-3 py-1 rounded-lg font-black tracking-tighter uppercase transition-all ${
+                  className={`text-2xs px-3 py-1 rounded-lg font-black tracking-tight uppercase transition-all ${
                     range === r
-                      ? "bg-white shadow-sm border border-zinc-200 text-zinc-900"
-                      : "text-zinc-400 hover:bg-white/50 border border-transparent"
+                      ? "bg-white shadow-sm border border-border text-foreground"
+                      : "text-muted-foreground hover:bg-white/50 border border-transparent"
                   }`}
                 >
                   {r}
@@ -78,16 +78,16 @@ export default function OverviewPage() {
           <div className="mt-6 flex items-center justify-between pt-4 border-t border-zinc-50 border-dashed">
             <div className="flex gap-6">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-primary/80 shadow-glow" />
                 <span className="text-xs font-bold text-zinc-600">正常请求</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
-                <span className="text-xs font-bold text-zinc-400">平均负载</span>
+                <span className="text-xs font-bold text-muted-foreground">平均负载</span>
               </div>
             </div>
-            <div className="text-xs text-zinc-400 font-medium">
-              峰值数据: <span className="text-zinc-900 font-black">
+            <div className="text-xs text-muted-foreground font-medium">
+              峰值数据: <span className="text-foreground font-black">
                 {range === "24H"
                   ? `${Math.max(...TRAFFIC_DATA[range])} req/min`
                   : `${(Math.max(...TRAFFIC_DATA[range]) / 1000).toFixed(1)}k req/day`}
@@ -96,25 +96,25 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-zinc-100 shadow-sm p-6">
-          <h3 className="text-base font-bold text-zinc-900 mb-4">最近动态</h3>
+        <div className="bg-white rounded-lg border border-border-subtle shadow-card p-6">
+          <h3 className="text-lg font-bold text-foreground mb-4">最近动态</h3>
           <div className="space-y-6 relative before:absolute before:left-[15px] before:top-2 before:h-full before:w-[2px] before:bg-zinc-100">
             {[
-              { type: "API", title: "User_Profile_Query", desc: "SQL 接口发布至生产环境", time: "3 分钟前", color: "bg-blue-500" },
+              { type: "API", title: "User_Profile_Query", desc: "SQL 接口发布至生产环境", time: "3 分钟前", color: "bg-primary/80" },
               { type: "GATEWAY", title: "HK-Edge-01", desc: "远程网关节点已上线", time: "12 分钟前", color: "bg-emerald-500" },
               { type: "SQL", title: "Slow Query Alert", desc: "检测到 5 笔慢查询请求 (Sales_Data)", time: "42 分钟前", color: "bg-amber-500" },
               { type: "AUTH", title: "Security Warning", desc: "产生 5 次未授权的 API 访问尝试", time: "5 小时前", color: "bg-red-500" },
             ].map((item, i) => (
               <div key={i} className="relative flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-white border-2 border-zinc-100 flex items-center justify-center shrink-0 z-10 transition-transform hover:scale-110">
+                <div className="w-8 h-8 rounded-full bg-white border-2 border-border-subtle flex items-center justify-center shrink-0 z-10 transition-transform hover:scale-110">
                   <div className={`w-2.5 h-2.5 rounded-full ${item.color} shadow-sm`} />
                 </div>
                 <div>
-                  <p className="text-sm text-zinc-800 font-medium">
-                    <span className="text-zinc-400 mr-1">[{item.type}]</span> {item.title}
+                  <p className="text-sm text-foreground font-medium">
+                    <span className="text-muted-foreground mr-1">[{item.type}]</span> {item.title}
                   </p>
-                  <p className="text-xs text-zinc-500 mt-0.5">{item.desc}</p>
-                  <p className="text-[10px] text-zinc-400 mt-1 font-bold uppercase tracking-tighter">{item.time}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                  <p className="text-2xs text-muted-foreground mt-1 font-bold uppercase tracking-tight">{item.time}</p>
                 </div>
               </div>
             ))}
@@ -150,24 +150,24 @@ function TrafficChart({ data, rangeType }: { data: number[], rangeType: string }
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
         <defs>
           <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
           </linearGradient>
         </defs>
         {[0, 1, 2, 3].map((i) => (
-          <line key={i} x1="0" y1={(i / 3) * height * 0.8} x2={width} y2={(i / 3) * height * 0.8} stroke="#f4f4f5" strokeWidth="1" />
+          <line key={i} x1="0" y1={(i / 3) * height * 0.8} x2={width} y2={(i / 3) * height * 0.8} stroke="hsl(var(--border))" strokeWidth="1" />
         ))}
         <g key={rangeType}>
           <path d={areaD} fill="url(#chartGradient)" />
-          <path d={pathD} fill="none" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
+          <path d={pathD} fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round" />
           {points.map((p, i) => {
             const show = (rangeType === "24H" && i % 4 === 0) || rangeType === "7D" || (rangeType === "30D" && i % 2 === 0)
             if (!show) return null
             const label = rangeType === "24H" ? `${i}:00` : rangeType === "7D" ? `Day ${i + 1}` : `Day ${i * 3 + 1}`
             return (
               <g key={i}>
-                <circle cx={p.x} cy={p.y} r="4" fill="#3b82f6" stroke="white" strokeWidth="2" />
-                <text x={p.x} y={height + 20} textAnchor="middle" className="text-[10px] fill-zinc-400 font-bold uppercase tracking-tighter">{label}</text>
+                <circle cx={p.x} cy={p.y} r="4" fill="hsl(var(--primary))" stroke="white" strokeWidth="2" />
+                <text x={p.x} y={height + 20} textAnchor="middle" className="text-2xs fill-zinc-400 font-bold uppercase tracking-tight">{label}</text>
               </g>
             )
           })}
@@ -182,13 +182,13 @@ function StatCard({ title, value, change, trend, icon: Icon, color }: {
   icon: React.ComponentType<{ className?: string }>; color: string
 }) {
   const colorMap: Record<string, string> = {
-    blue: "text-blue-600 bg-blue-50",
+    blue: "text-primary bg-primary/10",
     indigo: "text-indigo-600 bg-indigo-50",
     amber: "text-amber-600 bg-amber-50",
     emerald: "text-emerald-600 bg-emerald-50",
   }
   return (
-    <div className="bg-white rounded-lg border border-zinc-100 p-5 shadow-sm hover:shadow-sm transition-all">
+    <div className="bg-white rounded-lg border border-border-subtle p-5 shadow-sm hover:shadow-sm transition-all">
       <div className="flex justify-between items-start mb-4">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorMap[color]}`}>
           <Icon className="w-5 h-5" />
@@ -199,8 +199,8 @@ function StatCard({ title, value, change, trend, icon: Icon, color }: {
         </div>
       </div>
       <div>
-        <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{title}</p>
-        <h3 className="text-2xl font-bold text-zinc-900 mt-1 tracking-tight">{value}</h3>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
+        <h3 className="text-2xl font-bold text-foreground mt-1 tracking-tight">{value}</h3>
       </div>
     </div>
   )

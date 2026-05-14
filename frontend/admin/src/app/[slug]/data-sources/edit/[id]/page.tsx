@@ -1,9 +1,10 @@
-"use client"
+import DataSourceEditor from "../../_components/DataSourceEditor"
 
-import { use } from "react"
-import NewDataSourceClientPage from "../../new/NewDataSourceClientPage"
+export const metadata = {
+  title: "编辑数据源 | OwlAPI",
+}
 
-export default function EditDataSourcePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
-  return <NewDataSourceClientPage datasourceId={Number(id)} />
+export default async function EditDataSourcePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  return <DataSourceEditor datasourceId={Number(id)} />
 }

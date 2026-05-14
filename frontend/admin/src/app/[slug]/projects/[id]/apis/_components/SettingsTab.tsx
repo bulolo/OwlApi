@@ -18,17 +18,17 @@ export function SettingsTab() {
 
   return (
     <div className="p-6 space-y-6 animate-in fade-in duration-300">
-      <Card className="border-zinc-200/60 shadow-sm overflow-hidden rounded-lg">
-        <CardHeader className="pb-3 pt-5 px-6 bg-white border-b border-zinc-100">
-          <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
-            <Settings2 className="w-4 h-4 text-zinc-500" /> 脚本配置
+      <Card className="border-border/60 shadow-card overflow-hidden rounded-lg">
+        <CardHeader className="pb-3 pt-5 px-6 bg-white border-b border-border-subtle">
+          <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-muted-foreground" /> 脚本配置
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-6 py-6 border-b border-zinc-100 bg-zinc-50/10">
+        <CardContent className="px-6 py-6 border-b border-border-subtle bg-zinc-50/10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
             <div className="space-y-2.5">
               <Label className="text-xs font-bold text-zinc-600">前置脚本（Pre-script）</Label>
-              <p className="text-xs text-zinc-400 font-medium leading-relaxed mb-3">
+              <p className="text-xs text-muted-foreground font-medium leading-relaxed mb-3">
                 在执行核心 SQL 操作之前允许您通过自定义脚本处理特定的鉴权验证、入参变换或是设置特定的环境变量。
               </p>
               <Select value={String(preScriptId)} onValueChange={v => setFormField("preScriptId", Number(v))}>
@@ -43,7 +43,7 @@ export function SettingsTab() {
             </div>
             <div className="space-y-2.5">
               <Label className="text-xs font-bold text-zinc-600">后置脚本（Post-script）</Label>
-              <p className="text-xs text-zinc-400 font-medium leading-relaxed mb-3">
+              <p className="text-xs text-muted-foreground font-medium leading-relaxed mb-3">
                 在得到 SQL 执行结果且返回到客户端之前执行，您可以用来对返回字段进行脱敏、转换嵌套结构或者注入额外业务字段。
               </p>
               <Select value={String(postScriptId)} onValueChange={v => setFormField("postScriptId", Number(v))}>

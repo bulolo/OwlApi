@@ -10,7 +10,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.7}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.8}
     container_name: owlapi_backend
     restart: unless-stopped
     ports:
@@ -52,7 +52,7 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:${DOCKER_IMAGE_TAG:-v0.1.7}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:${DOCKER_IMAGE_TAG:-v0.1.8}
     container_name: owlapi_admin
     restart: unless-stopped
     ports:
@@ -106,7 +106,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile.gateway
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.1.7}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.1.8}
     container_name: owlapi_gateway
     restart: unless-stopped
     environment:
@@ -136,7 +136,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.7}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.8}
     container_name: owlapi_init
     command: ["./init"]
     environment:

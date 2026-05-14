@@ -5,7 +5,7 @@ import { Server, Plus, Search, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useTenant } from "@/providers/TenantProvider"
-import { useGateways, useDeleteGateway } from "@/hooks"
+import { useGateways, useDeleteGateway, usePaginationState } from "@/hooks"
 import { apiGetGateway, type Gateway } from "@/lib/api-client"
 import { Input } from "@/components/ui/input"
 import { ListSkeleton } from "@/components/ui/skeletons"
@@ -15,12 +15,11 @@ import { toast } from "sonner"
 import { showConfirm } from "@/store/useConfirmStore"
 import { GatewayCard } from "./_components/GatewayCard"
 import { GatewayDeployPanel } from "./_components/GatewayDeployPanel"
+import { formatRelativeTime } from "@/lib/database-helpers"
 
-export default function GatewaysClientPage() {
+export default function Gateways() {
   const activeTenant = useTenant()
-  const [page, setPage] = useState(1)
-  const [size, setSize] = useState(10)
-  const [keyword, setKeyword] = useState("")
+  const { page, size, keyword, setPage, setSize, onSearch } = usePaginationState(10)
   const { gateways, pagination, isLoading, refetch } = useGateways(activeTenant, { page, size, keyword })
   const deleteMutation = useDeleteGateway(activeTenant)
   const [detail, setDetail] = useState<Gateway | null>(null)
@@ -39,30 +38,19 @@ export default function GatewaysClientPage() {
     }
   }
 
-  const formatTime = (ts: string) => {
-    if (!ts) return "-"
-    const d = new Date(ts)
-    const now = new Date()
-    const diff = Math.floor((now.getTime() - d.getTime()) / 1000)
-    if (diff < 60) return `${diff} 秒前`
-    if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`
-    if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`
-    return d.toLocaleDateString()
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">网关节点管理</h1>
-          <p className="text-sm text-zinc-500 mt-1 font-medium">网关节点部署于数据库所在机器，提供安全的内网数据索引能力。</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">网关节点管理</h1>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">网关节点部署于数据库所在机器，提供安全的内网数据索引能力。</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100" onClick={() => refetch()}>
+          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-100" onClick={() => refetch()}>
             <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> 刷新
           </Button>
           <Link href={`/${activeTenant}/gateways/new`}>
-            <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
+            <Button className="h-9 px-4 text-xs font-bold shadow-sm">
               <Plus className="w-4 h-4 mr-2" />
               新建
             </Button>
@@ -70,10 +58,10 @@ export default function GatewaysClientPage() {
         </div>
       </div>
 
-      <div className="bg-white border border-zinc-100 rounded-lg p-3 shadow-sm">
+      <div className="bg-white border border-border-subtle rounded-lg p-3 shadow-card">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          <Input placeholder="搜索网关节点..." className="pl-9 h-9 text-xs bg-zinc-50 border-zinc-100 rounded-lg" value={keyword} onChange={(e) => { setKeyword(e.target.value); setPage(1) }} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="搜索网关节点..." className="pl-9 h-9 text-xs bg-zinc-50 border-border-subtle rounded-lg" value={keyword} onChange={(e) => onSearch(e.target.value)} />
         </div>
       </div>
 
@@ -87,7 +75,7 @@ export default function GatewaysClientPage() {
             <GatewayCard
               key={gw.id}
               gateway={gw}
-              formatTime={formatTime}
+              formatTime={formatRelativeTime}
               onViewDeploy={handleViewDeploy}
               onDelete={handleDelete}
             />

@@ -1,10 +1,10 @@
 
-import TenantsClientPage from "./TenantsClientPage"
+import Tenants from "./Tenants"
 
 export const metadata = {
   title: "组织管理 | OwlAPI",
 }
 
 export default function TenantsPage() {
-  return <TenantsClientPage />
+  return <Tenants />
 }

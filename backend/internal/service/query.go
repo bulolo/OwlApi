@@ -15,9 +15,7 @@ import (
 )
 
 var (
-	ErrGatewayNotConnected = errors.New("gateway not connected")
-	ErrDatasourceNotFound  = errors.New("datasource env not found")
-	ErrQueryTimeout        = errors.New("query execution timeout")
+	ErrQueryTimeout = errors.New("query execution timeout")
 )
 
 type QueryService interface {
@@ -53,27 +51,27 @@ func generateRequestID() string {
 func (s *queryService) Execute(ctx context.Context, tenantID string, endpoint *domain.APIEndpoint, params map[string]string) (*pb.QueryResult, error) {
 	dsEnv, err := s.dataSources.GetEnv(ctx, endpoint.TenantID, endpoint.DataSourceID, "prod")
 	if err != nil {
-		return nil, fmt.Errorf("%w: datasource %d: %v", ErrDatasourceNotFound, endpoint.DataSourceID, err)
+		return nil, domain.ErrNotFoundf("datasource %d not found", endpoint.DataSourceID)
 	}
 
 	gatewayID := strconv.FormatInt(dsEnv.GatewayID, 10)
 	stream := s.gateways.GetStream(gatewayID)
 	if stream == nil {
-		return nil, fmt.Errorf("%w: gateway %s", ErrGatewayNotConnected, gatewayID)
+		return nil, domain.ErrUnavailablef("gateway %s not connected", gatewayID)
 	}
 
 	var preScript, postScript string
 	if endpoint.PreScriptID > 0 {
 		sc, err := s.scripts.GetByID(ctx, endpoint.TenantID, endpoint.PreScriptID)
 		if err != nil {
-			return nil, fmt.Errorf("pre_script %d lookup failed: %w", endpoint.PreScriptID, err)
+			return nil, domain.ErrInternalf("pre_script %d lookup failed: %v", endpoint.PreScriptID, err)
 		}
 		preScript = sc.Code
 	}
 	if endpoint.PostScriptID > 0 {
 		sc, err := s.scripts.GetByID(ctx, endpoint.TenantID, endpoint.PostScriptID)
 		if err != nil {
-			return nil, fmt.Errorf("post_script %d lookup failed: %w", endpoint.PostScriptID, err)
+			return nil, domain.ErrInternalf("post_script %d lookup failed: %v", endpoint.PostScriptID, err)
 		}
 		postScript = sc.Code
 	}
@@ -118,7 +116,7 @@ func (s *queryService) Execute(ctx context.Context, tenantID string, endpoint *d
 func (s *queryService) ExecuteDirect(ctx context.Context, tenantID, gatewayID, dsn, sqlStr string) (*pb.QueryResult, error) {
 	stream := s.gateways.GetStream(gatewayID)
 	if stream == nil {
-		return nil, fmt.Errorf("%w: gateway %s", ErrGatewayNotConnected, gatewayID)
+		return nil, domain.ErrUnavailablef("gateway %s not connected", gatewayID)
 	}
 
 	requestID := generateRequestID()

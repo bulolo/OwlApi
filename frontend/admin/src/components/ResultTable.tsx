@@ -17,7 +17,7 @@ interface ResultTableProps {
 export function ResultTable({ data }: ResultTableProps) {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-xs text-zinc-400">
+      <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
         暂无数据
       </div>
     )
@@ -26,7 +26,7 @@ export function ResultTable({ data }: ResultTableProps) {
   const firstRole = data[0]
   if (!firstRole || typeof firstRole !== 'object') {
      return (
-      <div className="h-full w-full rounded-lg border border-zinc-200 bg-white p-4 font-mono text-xs text-zinc-600 overflow-auto">
+      <div className="h-full w-full rounded-lg border border-border bg-white p-4 font-mono text-xs text-zinc-600 overflow-auto">
         <pre>{JSON.stringify(data, null, 2)}</pre>
       </div>
     )
@@ -36,7 +36,7 @@ export function ResultTable({ data }: ResultTableProps) {
   const columns = Object.keys(firstRole)
 
   return (
-    <div className="h-full w-full rounded-lg border border-zinc-200 bg-white">
+    <div className="h-full w-full rounded-lg border border-border bg-white">
       <ScrollArea className="h-full w-full">
         <Table>
           <TableHeader>
@@ -44,7 +44,7 @@ export function ResultTable({ data }: ResultTableProps) {
               {columns.map((col) => (
                 <TableHead 
                   key={col} 
-                  className="h-8 px-4 text-xs font-bold text-zinc-500 uppercase whitespace-nowrap"
+                  className="h-8 px-4 text-xs font-bold text-muted-foreground uppercase whitespace-nowrap"
                 >
                   {col}
                 </TableHead>
@@ -53,7 +53,7 @@ export function ResultTable({ data }: ResultTableProps) {
           </TableHeader>
           <TableBody>
             {data.map((row, i) => (
-              <TableRow key={i} className="hover:bg-zinc-50 border-zinc-100">
+              <TableRow key={i} className="hover:bg-zinc-50 border-border-subtle">
                 {columns.map((col) => (
                   <TableCell 
                     key={`${i}-${col}`} 

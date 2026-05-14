@@ -18,8 +18,8 @@ export function ConfirmDialog() {
     <Dialog open={open} onOpenChange={(v) => { if (!v) reject() }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-sm font-bold text-zinc-900">{title}</DialogTitle>
-          <DialogDescription className="text-sm text-zinc-500 leading-relaxed">{message}</DialogDescription>
+          <DialogTitle className="text-sm font-bold text-foreground">{title}</DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground leading-relaxed">{message}</DialogDescription>
         </DialogHeader>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={reject} className="h-9 text-xs font-bold">取消</Button>

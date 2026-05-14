@@ -3,7 +3,7 @@
 /**
  * useParamSync — SQL 参数提取 + 脚本参数合并 + paramDefs 自动同步
  *
- * 将 ApisClientPage 中散落的 extractedParams、preScript 解析、
+ * 将 Apis 中散落的 extractedParams、preScript 解析、
  * paramDefs 自动补全等逻辑统一收拢。
  */
 import { useMemo, useEffect } from "react"

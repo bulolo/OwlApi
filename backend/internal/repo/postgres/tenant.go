@@ -50,7 +50,7 @@ func (r *TenantRepo) List(ctx context.Context, p domain.ListParams) ([]*domain.T
 	argN := 1
 	if p.Keyword != "" {
 		where += fmt.Sprintf(" AND (name ILIKE $%d OR slug ILIKE $%d)", argN, argN)
-		args = append(args, "%"+p.Keyword+"%")
+		args = append(args, likeWrap(p.Keyword))
 		argN++
 	}
 
@@ -90,7 +90,7 @@ func (r *TenantRepo) ListByIDs(ctx context.Context, ids []int64, p domain.ListPa
 	argN := 2
 	if p.Keyword != "" {
 		where += fmt.Sprintf(" AND (name ILIKE $%d OR slug ILIKE $%d)", argN, argN)
-		args = append(args, "%"+p.Keyword+"%")
+		args = append(args, likeWrap(p.Keyword))
 		argN++
 	}
 

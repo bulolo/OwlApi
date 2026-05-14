@@ -170,6 +170,7 @@ export type ProjectListResp = {
 };
 
 export type ProjectResp = {
+    avatar?: string;
     created_at: string;
     description: string;
     id: number;
@@ -320,6 +321,7 @@ export type TenantListResp = {
 };
 
 export type TenantResp = {
+    avatar?: string;
     created_at: string;
     id: number;
     max_release_versions: number;

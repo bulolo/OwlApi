@@ -29,7 +29,7 @@ const TABS = [
   { value: "releases" as const, icon: History, label: "版本历史" },
 ]
 
-export default function ApisPage() {
+export default function Apis() {
   const { activeTenant, projectId } = useTenantProject()
 
   // UI store
@@ -81,7 +81,7 @@ export default function ApisPage() {
   const showEditor = isNew || selectedId !== null
 
   return (
-    <div className="flex gap-0 h-[calc(100vh-200px)] min-h-[600px] bg-white border border-zinc-100 rounded-lg shadow-sm overflow-hidden">
+    <div className="flex gap-0 h-[calc(100vh-200px)] min-h-[600px] bg-white border border-border-subtle rounded-lg shadow-card overflow-hidden">
       <ApiSidebar onSelectEndpoint={handleSelectEndpoint} onCreateNew={handleCreateNew} />
 
       <div className="flex-1 min-w-0 bg-white">
@@ -92,13 +92,13 @@ export default function ApisPage() {
               onValueChange={v => setActiveTab(v as ActiveTab)}
               className="flex-1 flex flex-col min-h-0"
             >
-              <div className="px-6 border-b border-zinc-100 bg-white shrink-0">
+              <div className="px-6 border-b border-border-subtle bg-white shrink-0">
                 <TabsList className="h-11 bg-transparent p-0 gap-1">
                   {TABS.map(tab => (
                     <TabsTrigger
                       key={tab.value}
                       value={tab.value}
-                      className="h-11 rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none text-zinc-400 data-[state=active]:text-blue-600 font-semibold px-3 text-xs tracking-wide transition-all"
+                      className="h-11 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground data-[state=active]:text-primary font-bold px-3 text-xs tracking-wide transition-all"
                     >
                       <tab.icon className="w-3.5 h-3.5 mr-1.5" /> {tab.label}
                     </TabsTrigger>
@@ -106,7 +106,7 @@ export default function ApisPage() {
                 </TabsList>
               </div>
 
-              <div className="flex-1 overflow-auto bg-[#fafbfc]">
+              <div className="flex-1 overflow-auto bg-zinc-50/60">
                 <TabsContent value="design" className="m-0"><DesignTab /></TabsContent>
                 <TabsContent value="run" className="m-0"><DebugTab /></TabsContent>
                 <TabsContent value="doc" className="m-0"><DocTab /></TabsContent>

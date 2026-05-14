@@ -1,9 +1,9 @@
-import PlatformSettingsClientPage from "./PlatformSettingsClientPage"
+import PlatformSettings from "./PlatformSettings"
 
 export const metadata = {
   title: "平台设置 | OwlAPI",
 }
 
 export default function PlatformSettingsPage() {
-  return <PlatformSettingsClientPage />
+  return <PlatformSettings />
 }

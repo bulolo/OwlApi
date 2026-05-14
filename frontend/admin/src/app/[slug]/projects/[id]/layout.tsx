@@ -1,6 +1,6 @@
-import ProjectLayoutContent from "./ProjectLayoutContent"
+import ProjectLayout from "./ProjectLayout"
 
-export default async function ProjectLayout({
+export default async function ProjectLayoutWrapper({
   children,
   params,
 }: {
@@ -10,8 +10,8 @@ export default async function ProjectLayout({
   const { id } = await params
 
   return (
-    <ProjectLayoutContent projectId={id}>
+    <ProjectLayout projectId={id}>
       {children}
-    </ProjectLayoutContent>
+    </ProjectLayout>
   )
 }

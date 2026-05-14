@@ -16,7 +16,7 @@ export function FeedbackBanner() {
         <Trash2 className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold">执行失败</p>
+        <p className="text-sm font-bold">执行失败</p>
         <p className="text-xs opacity-70 truncate">{(designExecResult as { error: string }).error}</p>
       </div>
       <Button variant="ghost" size="sm" onClick={() => setDesignExecResult(null)} className="hover:bg-red-100 text-red-500 rounded-lg h-7 text-xs">

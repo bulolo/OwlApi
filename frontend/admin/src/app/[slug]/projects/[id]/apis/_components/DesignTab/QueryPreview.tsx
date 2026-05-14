@@ -13,18 +13,18 @@ export function QueryPreview() {
   const setDesignExecResult = useEndpointFormStore(s => s.setDesignExecResult)
 
   return (
-    <div className="h-48 bg-white border-t border-zinc-100 flex flex-col animate-in slide-in-from-bottom-2 duration-300">
+    <div className="h-48 bg-white border-t border-border-subtle flex flex-col animate-in slide-in-from-bottom-2 duration-300">
       <div className="px-4 py-2 border-b border-zinc-50 flex items-center justify-between bg-zinc-50/30">
-        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+        <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
           <ScrollText className="w-3.5 h-3.5" /> 查询预览
         </span>
-        <button onClick={() => setDesignExecResult(null)} className="text-zinc-400 hover:text-zinc-600">
+        <button onClick={() => setDesignExecResult(null)} className="text-muted-foreground hover:text-zinc-600">
           <Trash2 className="w-3 h-3" />
         </button>
       </div>
       <div className="flex-1 overflow-auto custom-scrollbar">
         {!designExecResult ? (
-          <div className="p-4 text-xs text-zinc-500 font-mono italic">等待查询...</div>
+          <div className="p-4 text-xs text-muted-foreground font-mono italic">等待查询...</div>
         ) : isError(designExecResult) ? (
           <div className="p-4 text-xs text-red-500 font-mono italic">{designExecResult.error}</div>
         ) : (
@@ -84,16 +84,16 @@ function ResultRenderer({ data }: { data: unknown }) {
   if (result.type === 'table') {
     return (
       <table className="w-full text-left border-collapse">
-        <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
+        <thead className="sticky top-0 bg-white z-10 border-b border-border-subtle">
           <tr>
             {result.keys.map(key => (
-              <th key={key} className="px-3 py-2 text-[10px] font-black text-zinc-400 uppercase bg-zinc-50/50">
+              <th key={key} className="px-3 py-2 text-2xs font-black text-muted-foreground uppercase bg-zinc-50/50">
                 {key}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-zinc-50">
+        <tbody className="divide-y divide-border-subtle">
           {result.arr.map((row, i) => (
             <tr key={i} className="hover:bg-zinc-50 transition-colors">
               {Object.values(row as Record<string, unknown>).map((val, j) => (

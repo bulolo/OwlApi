@@ -28,7 +28,7 @@ type TagColor = "green" | "blue" | "amber"
 
 const colorMap: Record<TagColor, { tag: string; bar: string }> = {
   green: { tag: "bg-emerald-50 text-emerald-600 border-emerald-200", bar: "bg-emerald-500" },
-  blue:  { tag: "bg-blue-50 text-blue-600 border-blue-200",          bar: "bg-blue-500"    },
+  blue:  { tag: "bg-primary/10 text-primary border-primary/30",          bar: "bg-primary/80"    },
   amber: { tag: "bg-amber-50 text-amber-600 border-amber-200",       bar: "bg-amber-500"   },
 }
 
@@ -113,21 +113,21 @@ export function DebugTab() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
         {/* ── Left: param inputs ── */}
-        <Card className="border-zinc-200/60 shadow-sm bg-white overflow-hidden flex flex-col rounded-lg">
-          <CardHeader className="pb-3 pt-4 px-5 border-b border-zinc-100">
-            <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-blue-500" /> 请求参数
+        <Card className="border-border/60 shadow-card bg-white overflow-hidden flex flex-col rounded-lg">
+          <CardHeader className="pb-3 pt-4 px-5 border-b border-border-subtle">
+            <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-primary/80" /> 请求参数
             </CardTitle>
           </CardHeader>
 
           <CardContent className="p-0 flex flex-col">
             {/* Auth token */}
-            <div className="p-4 space-y-2 border-b border-zinc-100">
-              <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+            <div className="p-4 space-y-2 border-b border-border-subtle">
+              <Label className="text-2xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <Key className="w-3 h-3" /> Auth Token
               </Label>
               <Input
-                className="h-8 text-xs font-mono border-zinc-200/80 bg-zinc-50/50 rounded-lg"
+                className="h-8 text-xs font-mono border-border/80 bg-zinc-50/50 rounded-lg"
                 placeholder="Bearer eyJhbGciOiJI..."
                 value={authToken}
                 onChange={e => setAuthToken(e.target.value)}
@@ -137,7 +137,7 @@ export function DebugTab() {
             {/* Param groups */}
             <div className="p-4 space-y-5">
               {paramDefs.length === 0 && (
-                <p className="text-xs text-zinc-400 italic text-center py-4">该接口无请求参数</p>
+                <p className="text-xs text-muted-foreground italic text-center py-4">该接口无请求参数</p>
               )}
 
               {/* Path */}
@@ -180,11 +180,11 @@ export function DebugTab() {
             </div>
           </CardContent>
 
-          <div className="p-4 border-t border-zinc-100 bg-white">
+          <div className="p-4 border-t border-border-subtle bg-white">
             <Button
               onClick={handleRun}
               disabled={executing}
-              className="w-full h-9 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95 rounded-lg"
+              className="w-full h-9 font-bold text-xs shadow-sm rounded-lg"
             >
               <Send className={cn("w-3.5 h-3.5 mr-2", executing && "animate-pulse")} />
               {executing ? "正在处理..." : "发送请求"}
@@ -193,22 +193,22 @@ export function DebugTab() {
         </Card>
 
         {/* ── Right: response ── */}
-        <Card className="lg:col-span-2 border-zinc-200/60 shadow-sm bg-white overflow-hidden flex flex-col h-[500px] rounded-lg">
-          <CardHeader className="pb-3 pt-4 px-5 border-b border-zinc-100">
+        <Card className="lg:col-span-2 border-border/60 shadow-card bg-white overflow-hidden flex flex-col h-[500px] rounded-lg">
+          <CardHeader className="pb-3 pt-4 px-5 border-b border-border-subtle">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
+              <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
                 <ScrollText className="w-4 h-4 text-emerald-500" /> 响应结果
               </CardTitle>
               {execResult && !("error" in execResult) && (
-                <Badge className="bg-emerald-50 text-emerald-600 border-emerald-200 text-[10px] font-bold">HTTP 200 OK</Badge>
+                <Badge className="bg-emerald-50 text-emerald-600 border-emerald-200 text-2xs font-bold">HTTP 200 OK</Badge>
               )}
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-1 relative bg-white">
             {executing ? (
               <div className="flex flex-col items-center justify-center h-full space-y-3">
-                <div className="w-10 h-10 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider animate-pulse">正在请求...</p>
+                <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-2xs font-bold text-muted-foreground uppercase tracking-wider animate-pulse">正在请求...</p>
               </div>
             ) : execResult ? (
               "error" in execResult ? (
@@ -238,11 +238,11 @@ export function DebugTab() {
               )
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                <div className="w-14 h-14 bg-zinc-50 rounded-xl border border-zinc-100 flex items-center justify-center mb-5">
+                <div className="w-14 h-14 bg-zinc-50 rounded-xl border border-border-subtle flex items-center justify-center mb-5">
                   <Play className="w-6 h-6 text-zinc-300" />
                 </div>
                 <h4 className="text-sm font-bold text-zinc-600">等待执行</h4>
-                <p className="text-xs text-zinc-400 mt-2 max-w-[220px] leading-relaxed">
+                <p className="text-xs text-muted-foreground mt-2 max-w-[220px] leading-relaxed">
                   填写参数后点击「发送请求」，结果将在此展示。
                 </p>
               </div>
@@ -268,7 +268,7 @@ function ParamSection({
       <div className="flex items-center gap-2">
         <div className={cn("w-1 h-3.5 rounded-full shrink-0", c.bar)} />
         <span className="text-xs font-bold text-zinc-700">{label}</span>
-        <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded border", c.tag)}>{tag}</span>
+        <span className={cn("text-2xs font-bold px-1.5 py-0.5 rounded border", c.tag)}>{tag}</span>
       </div>
       <div className="space-y-2">{children}</div>
     </div>
@@ -300,15 +300,15 @@ function ParamRow({
       {/* Name + type */}
       <div className="w-24 shrink-0 min-w-0">
         <div className="flex items-center gap-1 truncate">
-          <span className="text-xs font-mono font-semibold text-zinc-700 truncate">{def.name}</span>
-          {def.required && <span className="text-red-500 text-[10px] font-black shrink-0">*</span>}
+          <span className="text-xs font-mono font-bold text-zinc-700 truncate">{def.name}</span>
+          {def.required && <span className="text-red-500 text-2xs font-black shrink-0">*</span>}
         </div>
-        <span className="text-[10px] text-zinc-400">{def.type || "string"}</span>
+        <span className="text-2xs text-muted-foreground">{def.type || "string"}</span>
       </div>
 
       {/* Input */}
       <Input
-        className="h-8 text-xs font-mono border-zinc-200/80 bg-zinc-50/50 rounded-lg flex-1 min-w-0"
+        className="h-8 text-xs font-mono border-border/80 bg-zinc-50/50 rounded-lg flex-1 min-w-0"
         placeholder={def.default || def.name}
         value={value}
         disabled={!enabled}

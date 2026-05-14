@@ -77,30 +77,30 @@ function ProjectForm({
         <div className="flex items-center gap-4">
           <Link href={`/${slug}/projects`}>
             <Button variant="ghost" size="icon" className="rounded-lg hover:bg-zinc-100">
-              <ArrowLeft className="w-5 h-5 text-zinc-500" />
+              <ArrowLeft className="w-5 h-5 text-muted-foreground" />
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">{isEdit ? "编辑项目" : "创建项目"}</h1>
-            <p className="text-sm text-zinc-500 mt-1 font-medium">{isEdit ? "修改项目配置" : "创建一个新的 API 项目，即可开始编写 SQL 接口。"}</p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">{isEdit ? "编辑项目" : "创建项目"}</h1>
+            <p className="text-sm text-muted-foreground mt-1 font-medium">{isEdit ? "修改项目配置" : "创建一个新的 API 项目，即可开始编写 SQL 接口。"}</p>
           </div>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => router.back()} className="h-9 px-6 text-xs font-bold text-zinc-600">取消</Button>
-          <Button onClick={handleSave} disabled={saving} className="h-9 px-8 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm">
+          <Button variant="outline" onClick={() => router.back()} className="h-9 px-4 text-xs font-bold text-zinc-600">取消</Button>
+          <Button onClick={handleSave} disabled={saving} className="h-9 px-4 text-xs font-bold shadow-sm">
             <Save className="w-4 h-4 mr-2" />
             {saving ? "保存中..." : isEdit ? "保存修改" : "创建项目"}
           </Button>
         </div>
       </div>
 
-      <Card className="p-8 border-zinc-100 shadow-sm space-y-6">
+      <Card className="p-8 border-border-subtle shadow-card space-y-6">
         <div className="space-y-2">
-          <Label className="text-xs font-bold text-zinc-500 uppercase">项目名称 <span className="text-red-500">*</span></Label>
+          <Label className="text-xs font-bold text-muted-foreground uppercase">项目名称 <span className="text-red-500">*</span></Label>
           <Input placeholder="例如：电商核心业务" value={formData.name} onChange={(e) => handleNameChange(e.target.value)} className="h-9 text-sm" required />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs font-bold text-zinc-500 uppercase">项目 Slug <span className="text-red-500">*</span></Label>
+          <Label className="text-xs font-bold text-muted-foreground uppercase">项目 Slug <span className="text-red-500">*</span></Label>
           <Input
             placeholder="例如：ecommerce"
             value={formData.slug}
@@ -108,10 +108,10 @@ function ProjectForm({
             className="h-9 text-sm font-mono"
             required
           />
-          <p className="text-xs text-zinc-400">用于接口 URL 路径，仅支持小写字母、数字和连字符。发布后的访问地址：<code className="bg-zinc-100 px-1 rounded text-zinc-600">{API_BASE}/{slug}/{formData.slug || "project-slug"}/&#123;path&#125;</code></p>
+          <p className="text-xs text-muted-foreground">用于接口 URL 路径，仅支持小写字母、数字和连字符。发布后的访问地址：<code className="bg-zinc-100 px-1 rounded text-zinc-600">{API_BASE}/{slug}/{formData.slug || "project-slug"}/&#123;path&#125;</code></p>
         </div>
         <div className="space-y-2">
-          <Label className="text-xs font-bold text-zinc-500 uppercase">项目描述</Label>
+          <Label className="text-xs font-bold text-muted-foreground uppercase">项目描述</Label>
           <Textarea placeholder="简述该项目的主要功能" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="min-h-[80px] text-sm resize-none" />
         </div>
       </Card>
@@ -126,7 +126,7 @@ export default function ProjectFormPage({ projectId }: { projectId?: number }) {
   if (projectId && isLoading) {
     return (
       <div className="max-w-3xl mx-auto py-8 px-4 flex items-center justify-center min-h-[300px]">
-        <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }

@@ -49,7 +49,7 @@ export function Sidebar({ slug }: { slug?: string }) {
 
   return (
     <aside className={cn(
-      "bg-white border-r border-zinc-100 fixed h-full z-40 hidden lg:flex flex-col shadow-[1px_0_0_0_rgba(0,0,0,0.02)] transition-all duration-300",
+      "bg-white border-r border-border-subtle fixed h-full z-40 hidden lg:flex flex-col transition-all duration-300",
       collapsed ? "w-[60px]" : "w-56"
     )}>
       {/* Brand */}
@@ -58,8 +58,8 @@ export function Sidebar({ slug }: { slug?: string }) {
           <Image src="/logo.svg" alt="OwlApi" width={36} height={36} className="shrink-0" />
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-base font-bold text-zinc-900 tracking-tight leading-none group-hover:text-blue-600 transition-colors">OwlAPI</span>
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1.5">API网关平台</span>
+              <span className="text-lg font-bold text-foreground tracking-tight leading-none group-hover:text-primary transition-colors">OwlAPI</span>
+              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-widest mt-1.5">API网关平台</span>
             </div>
           )}
         </Link>
@@ -70,7 +70,7 @@ export function Sidebar({ slug }: { slug?: string }) {
         {MENUS.map((group, idx) => (
           <div key={idx} className="space-y-1.5">
             {!collapsed && (
-              <h3 className="px-3 text-[10px] font-bold text-zinc-400 uppercase tracking-[0.15em]">
+              <h3 className="px-3 text-2xs font-bold text-muted-foreground uppercase tracking-[0.15em]">
                 {group.group}
               </h3>
             )}
@@ -90,16 +90,16 @@ export function Sidebar({ slug }: { slug?: string }) {
             href="https://github.com/bulolo/owlapi"
             target="_blank"
             title="GitHub"
-            className="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-zinc-700 hover:bg-zinc-50 transition-colors"
           >
             <Github className="w-4 h-4" />
           </Link>
-          <span className="px-1.5 py-0.5 bg-blue-50 text-blue-500 rounded-full text-[9px] font-bold border border-blue-100">
+          <span className="px-1.5 py-0.5 bg-primary/10 text-primary/80 rounded-full text-2xs font-bold border border-primary/20">
             v{pkg.version}
           </span>
           <button
             onClick={() => setSidebarCollapsed(false)}
-            className="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
           >
             <PanelLeftOpen className="w-4 h-4" />
           </button>
@@ -110,7 +110,7 @@ export function Sidebar({ slug }: { slug?: string }) {
             <Link
               href="https://github.com/bulolo/owlapi"
               target="_blank"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-all group"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-zinc-700 hover:bg-zinc-50 transition-all group"
             >
               <Github className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
               <span className="font-medium">GitHub</span>
@@ -118,30 +118,30 @@ export function Sidebar({ slug }: { slug?: string }) {
             <Link
               href="https://github.com/bulolo/owlapi/wiki"
               target="_blank"
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 transition-all group"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-zinc-700 hover:bg-zinc-50 transition-all group"
             >
               <BookOpen className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
               <span className="font-medium">文档</span>
             </Link>
           </div>
 
-          <div className="space-y-3 pt-2 border-t border-zinc-100/80">
+          <div className="space-y-3 pt-2 border-t border-border-subtle/80">
             <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] font-bold tracking-wider text-zinc-300 uppercase">OwlAPI</span>
+              <span className="text-2xs font-bold tracking-wider text-zinc-300 uppercase">OwlAPI</span>
               <div className="flex items-center gap-1.5">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-sm bg-zinc-50 text-zinc-400 border-zinc-100">
+                <span className="px-2 py-0.5 rounded-full text-2xs font-bold tracking-wide border shadow-sm bg-zinc-50 text-muted-foreground border-border-subtle">
                   CE
                 </span>
-                <span className="px-2 py-0.5 bg-blue-50/80 text-blue-500 rounded-full text-[10px] font-bold border border-blue-100 shadow-sm">
+                <span className="px-2 py-0.5 bg-primary/10 text-primary/80 rounded-full text-2xs font-bold border border-primary/20 shadow-sm">
                   v{pkg.version}
                 </span>
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="flex-1 text-center text-[10px] text-zinc-300/70 font-medium">© 2026 OwlAPI</span>
+              <span className="flex-1 text-center text-2xs text-zinc-300/70 font-medium">© 2026 OwlAPI</span>
               <button
                 onClick={() => setSidebarCollapsed(true)}
-                className="w-7 h-7 flex items-center justify-center rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
               >
                 <PanelLeftClose className="w-4 h-4" />
               </button>
@@ -163,8 +163,8 @@ function NavItem({ href, icon: Icon, label, collapsed }: { href: string; icon: R
         "flex items-center gap-3 rounded-lg transition-all duration-300 relative",
         collapsed ? "px-2 py-2 justify-center" : "px-3 py-2",
         isActive
-          ? "bg-blue-50/50 text-blue-600 shadow-sm"
-          : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50"
+          ? "bg-primary/10 text-primary shadow-sm"
+          : "text-muted-foreground hover:text-foreground hover:bg-zinc-50"
       )}>
         <div className={cn(
           "flex items-center justify-center w-6 h-6 shrink-0 rounded-lg transition-all duration-300",
@@ -172,19 +172,19 @@ function NavItem({ href, icon: Icon, label, collapsed }: { href: string; icon: R
         )}>
           <Icon className={cn(
             "w-[18px] h-[18px] transition-all",
-            isActive ? "text-blue-600 scale-110" : "text-zinc-400 group-hover:text-zinc-900 group-hover:scale-105"
+            isActive ? "text-primary scale-110" : "text-muted-foreground group-hover:text-foreground group-hover:scale-105"
           )} />
         </div>
         {!collapsed && (
           <span className={cn(
             "text-xs font-medium tracking-tight transition-all duration-200",
-            isActive ? "text-blue-600 font-bold translate-x-0.5" : "text-zinc-600 group-hover:translate-x-0.5"
+            isActive ? "text-primary font-bold translate-x-0.5" : "text-zinc-600 group-hover:translate-x-0.5"
           )}>
             {label}
           </span>
         )}
         {isActive && !collapsed && (
-          <div className="absolute -left-2 w-1.5 h-6 bg-blue-600 rounded-full shadow-[2px_0_12px_rgba(37,99,235,0.4)]" />
+          <div className="absolute -left-2 w-1.5 h-6 bg-primary rounded-full shadow-glow" />
         )}
       </div>
     </Link>

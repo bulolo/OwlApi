@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { useTenant } from "@/providers/TenantProvider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Plus, FolderGit2, Database, Pencil, Trash2, Search, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useProjects, useDeleteProject } from "@/hooks"
+import { useProjects, useDeleteProject, usePaginationState } from "@/hooks"
 import type { Project } from "@/lib/api-client"
 import { CardSkeleton } from "@/components/ui/skeletons"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -18,9 +17,7 @@ import { showConfirm } from "@/store/useConfirmStore"
 export default function ProjectsPage() {
   const activeTenant = useTenant()
   const router = useRouter()
-  const [page, setPage] = useState(1)
-  const [size, setSize] = useState(12)
-  const [keyword, setKeyword] = useState("")
+  const { page, size, keyword, setPage, setSize, onSearch } = usePaginationState(12)
   const { projects, pagination, isLoading, refetch } = useProjects(activeTenant, { page, size, keyword })
   const deleteMutation = useDeleteProject(activeTenant)
 
@@ -41,25 +38,25 @@ export default function ProjectsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">项目</h1>
-          <p className="text-sm text-zinc-500 mt-1 font-medium">管理您的 API 项目，编写 SQL 即可生成 RESTful 接口</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">项目</h1>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">管理您的 API 项目，编写 SQL 即可生成 RESTful 接口</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100" onClick={() => refetch()}>
+          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-100" onClick={() => refetch()}>
             <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> 刷新
           </Button>
           <Link href={`/${activeTenant}/projects/new`}>
-            <Button className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-95">
+            <Button className="h-9 px-4 text-xs font-bold shadow-sm">
               <Plus className="w-4 h-4 mr-2" /> 新建
             </Button>
           </Link>
         </div>
       </div>
 
-      <div className="bg-white border border-zinc-100 rounded-lg p-3 shadow-sm">
+      <div className="bg-white border border-border-subtle rounded-lg p-3 shadow-card">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-          <Input placeholder="搜索项目..." className="pl-9 h-9 text-xs bg-zinc-50 border-zinc-100 rounded-lg" value={keyword} onChange={(e) => { setKeyword(e.target.value); setPage(1) }} />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="搜索项目..." className="pl-9 h-9 text-xs bg-zinc-50 border-border-subtle rounded-lg" value={keyword} onChange={(e) => onSearch(e.target.value)} />
         </div>
       </div>
 
@@ -71,33 +68,33 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {projects.map((project) => (
             <Link key={project.id} href={`/${activeTenant}/projects/${project.id}/apis`}>
-              <Card className="bg-white border-zinc-100 rounded-lg shadow-sm hover:shadow-md hover:border-blue-600/30 transition-all duration-300 flex flex-col h-full overflow-hidden group">
+              <Card className="bg-white border-border-subtle rounded-xl shadow-card hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 flex flex-col h-full overflow-hidden group">
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center border shadow-sm text-blue-600 border-blue-100 bg-blue-50/30 group-hover:scale-105 transition-transform">
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center border shadow-sm text-primary border-primary/20 bg-primary/10 group-hover:scale-105 transition-transform">
                       <FolderGit2 className="w-6 h-6" />
                     </div>
                     <div className="flex gap-1.5">
-                      <div className="px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-tight bg-zinc-50 text-zinc-500 border-zinc-100">
+                      <div className="px-2 py-0.5 rounded-full text-2xs font-bold border uppercase tracking-tight bg-zinc-50 text-muted-foreground border-border-subtle">
                         Project
                       </div>
                     </div>
                   </div>
-                  <h3 className="text-lg font-bold text-zinc-900 group-hover:text-blue-600 transition-colors tracking-tight">{project.name}</h3>
-                  <p className="text-xs text-zinc-500 line-clamp-2 mt-1.5 min-h-[32px]">{project.description || "暂无描述"}</p>
+                  <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors tracking-tight">{project.name}</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5 min-h-[32px]">{project.description || "暂无描述"}</p>
                 </div>
-                <div className="mt-auto px-6 py-4 border-t border-zinc-100 bg-zinc-50/10 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400">
-                    <span className="flex items-center gap-1"><Database className="w-3 h-3 text-blue-400" /> SQL to API</span>
+                <div className="mt-auto px-6 py-4 border-t border-border-subtle bg-zinc-50/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-2xs font-bold text-muted-foreground">
+                    <span className="flex items-center gap-1"><Database className="w-3 h-3 text-primary/60" /> SQL to API</span>
                     <span className="text-zinc-200">·</span>
                     <span className="font-mono">ID:{project.id}</span>
                     {project.slug && <><span className="text-zinc-200">·</span><span className="font-mono">{project.slug}</span></>}
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="w-7 h-7 rounded-lg hover:bg-blue-50 hover:text-blue-600" onClick={(e) => handleEdit(e, project)}>
+                    <Button variant="ghost" size="icon-xs" className="rounded-lg hover:bg-primary/10 hover:text-primary" onClick={(e) => handleEdit(e, project)}>
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="w-7 h-7 rounded-lg hover:bg-red-50 hover:text-red-500" onClick={(e) => handleDelete(e, project)}>
+                    <Button variant="ghost" size="icon-xs" className="rounded-lg hover:bg-red-50 hover:text-red-500" onClick={(e) => handleDelete(e, project)}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -107,11 +104,11 @@ export default function ProjectsPage() {
           ))}
 
           <Link href={`/${activeTenant}/projects/new`} className="group">
-            <div className="border-2 border-dashed border-zinc-200 rounded-lg flex flex-col items-center justify-center p-6 bg-zinc-50/20 hover:bg-white hover:border-blue-600/30 hover:shadow-sm transition-all cursor-pointer h-full min-h-[220px]">
-              <div className="w-12 h-12 rounded-lg border border-zinc-100 flex items-center justify-center mb-4 bg-white shadow-sm group-hover:scale-110 group-hover:bg-blue-600 group-hover:border-blue-600 transition-all duration-300">
+            <div className="border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center p-6 bg-zinc-50/20 hover:bg-white hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer h-full min-h-[220px]">
+              <div className="w-12 h-12 rounded-lg border border-border-subtle flex items-center justify-center mb-4 bg-white shadow-sm group-hover:scale-110 group-hover:bg-primary group-hover:border-primary transition-all duration-300">
                 <Plus className="w-6 h-6 text-zinc-300 group-hover:text-white" />
               </div>
-              <p className="text-sm font-bold text-zinc-400 uppercase tracking-wide">新建</p>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-wide">新建</p>
             </div>
           </Link>
         </div>

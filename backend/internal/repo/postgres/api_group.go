@@ -35,7 +35,7 @@ func (r *APIGroupRepo) List(ctx context.Context, tenantID, projectID int64, p do
 	argN := 3
 	if p.Keyword != "" {
 		where += fmt.Sprintf(" AND name ILIKE $%d", argN)
-		args = append(args, "%"+p.Keyword+"%")
+		args = append(args, likeWrap(p.Keyword))
 		argN++
 	}
 

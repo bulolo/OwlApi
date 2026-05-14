@@ -23,46 +23,50 @@ interface AddUserFormProps {
 
 export function AddUserForm({ form, addError, isPending, onFormChange, onAdd, onClose }: AddUserFormProps) {
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-5 shadow-sm space-y-4">
+    <div className="rounded-xl border border-primary/20 bg-primary/10 p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-zinc-900">添加成员</h3>
-        <Button variant="ghost" size="icon" className="w-7 h-7" onClick={onClose}>
-          <X className="w-4 h-4" />
-        </Button>
+        <p className="text-xs font-bold text-foreground">添加成员</p>
+        <button
+          onClick={onClose}
+          className="w-5 h-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-zinc-100 transition-colors"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase">邮箱</label>
+          <label className="text-2xs font-bold text-muted-foreground uppercase tracking-wide">邮箱</label>
           <Input
             placeholder="user@company.com"
             value={form.email}
             onChange={(e) => onFormChange({ ...form, email: e.target.value })}
-            className="h-9 text-xs"
+            className="h-8 text-xs"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase">姓名</label>
+          <label className="text-2xs font-bold text-muted-foreground uppercase tracking-wide">姓名</label>
           <Input
             placeholder="张三"
             value={form.name}
             onChange={(e) => onFormChange({ ...form, name: e.target.value })}
-            className="h-9 text-xs"
+            className="h-8 text-xs"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase">密码</label>
+          <label className="text-2xs font-bold text-muted-foreground uppercase tracking-wide">密码</label>
           <Input
             type="password"
             placeholder="••••••••"
             value={form.password}
             onChange={(e) => onFormChange({ ...form, password: e.target.value })}
-            className="h-9 text-xs"
+            className="h-8 text-xs"
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase">角色</label>
+          <label className="text-2xs font-bold text-muted-foreground uppercase tracking-wide">角色</label>
           <Select value={form.role} onValueChange={(v) => onFormChange({ ...form, role: v })}>
-            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Admin">Admin</SelectItem>
               <SelectItem value="Viewer">Viewer</SelectItem>
@@ -70,9 +74,11 @@ export function AddUserForm({ form, addError, isPending, onFormChange, onAdd, on
           </Select>
         </div>
       </div>
-      {addError && <p className="text-xs text-red-500">{addError}</p>}
+
+      {addError && <p className="text-2xs text-red-500 font-medium">{addError}</p>}
+
       <div className="flex justify-end">
-        <Button onClick={onAdd} disabled={isPending} className="h-9 px-6 bg-blue-600 text-white text-xs font-bold">
+        <Button onClick={onAdd} disabled={isPending} className="h-8 px-4 text-xs font-bold">
           {isPending ? "添加中..." : "确认添加"}
         </Button>
       </div>

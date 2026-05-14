@@ -76,16 +76,16 @@ export function BasicInfoModal({ open, onClose, mode, initialValues, loading, on
       <div
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-zinc-200/80 animate-in fade-in zoom-in-95 duration-150 overflow-hidden"
+        className="relative w-full max-w-md bg-white rounded-2xl shadow-modal border border-border/80 animate-in fade-in zoom-in-95 duration-150 overflow-hidden"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
-          <h2 className="text-sm font-bold text-zinc-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle">
+          <h2 className="text-sm font-bold text-foreground">
             {mode === "create" ? "新建接口" : "编辑基本信息"}
           </h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-all"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-zinc-600 hover:bg-zinc-100 transition-all"
           >
             <X className="w-4 h-4" />
           </button>
@@ -96,15 +96,15 @@ export function BasicInfoModal({ open, onClose, mode, initialValues, loading, on
           {/* Method + Group row */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">请求方式</label>
+              <label className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">请求方式</label>
               <Select value={method} onValueChange={v => setMethod(v as HttpMethod)}>
                 <SelectTrigger className={cn(
                   "h-9 w-full rounded-lg border text-xs font-bold uppercase tracking-wider shadow-none",
-                  method === "GET"    ? "bg-blue-50 text-blue-600 border-blue-200"
+                  method === "GET"    ? "bg-primary/10 text-primary border-primary/30"
                   : method === "POST"   ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                   : method === "PUT"    ? "bg-amber-50 text-amber-600 border-amber-200"
                   : method === "DELETE" ? "bg-red-50 text-red-600 border-red-200"
-                  : "bg-zinc-50 text-zinc-500 border-zinc-200"
+                  : "bg-zinc-50 text-muted-foreground border-border"
                 )}>
                   <SelectValue />
                 </SelectTrigger>
@@ -118,9 +118,9 @@ export function BasicInfoModal({ open, onClose, mode, initialValues, loading, on
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">分组</label>
+              <label className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">分组</label>
               <Select value={String(groupId)} onValueChange={v => setGroupId(Number(v))}>
-                <SelectTrigger className="h-9 w-full rounded-lg border border-zinc-200 text-xs shadow-none bg-white">
+                <SelectTrigger className="h-9 w-full rounded-lg border border-border text-xs shadow-none bg-white">
                   <SelectValue placeholder="未分组" />
                 </SelectTrigger>
                 <SelectContent>
@@ -135,42 +135,41 @@ export function BasicInfoModal({ open, onClose, mode, initialValues, loading, on
 
           {/* Path */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">路径 <span className="text-red-400">*</span></label>
+            <label className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">路径 <span className="text-red-400">*</span></label>
             <input
               type="text"
               value={path}
               onChange={e => setPath(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") handleConfirm() }}
               placeholder="/users 或 /orders/:id"
-              className="h-9 w-full px-3 rounded-lg border border-zinc-200 bg-white text-sm font-mono text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-400/40"
+              className="h-9 w-full px-3 rounded-lg border border-border bg-white text-sm font-mono text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-primary/20"
               autoFocus
             />
           </div>
 
           {/* Summary */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">接口名称</label>
+            <label className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">接口名称</label>
             <input
               type="text"
               value={summary}
               onChange={e => setSummary(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") handleConfirm() }}
               placeholder="简短描述这个接口的用途（可选）"
-              className="h-9 w-full px-3 rounded-lg border border-zinc-200 bg-white text-sm text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-400/40"
+              className="h-9 w-full px-3 rounded-lg border border-border bg-white text-sm text-zinc-700 placeholder:text-zinc-300 focus:outline-none focus:ring-1 focus:ring-primary/20"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100 bg-zinc-50/60">
-          <Button variant="ghost" size="sm" onClick={onClose} disabled={isLoading} className="h-8 text-xs text-zinc-500">
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border-subtle bg-zinc-50/60">
+          <Button variant="ghost" onClick={onClose} disabled={isLoading} className="h-8 px-3 text-xs font-bold text-muted-foreground">
             取消
           </Button>
           <Button
-            size="sm"
             onClick={handleConfirm}
             disabled={isLoading}
-            className="h-8 bg-blue-600 hover:bg-blue-700 text-white text-xs px-5"
+            className="h-8 px-4 text-xs font-bold"
           >
             {isLoading && <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />}
             {mode === "create" ? "创建" : "保存"}

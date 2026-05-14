@@ -20,18 +20,18 @@ export function SqlEditorCard() {
   const isNew = useApiEditorStore(s => s.isNew)
 
   return (
-    <Card className="lg:col-span-2 border-zinc-200/60 shadow-sm overflow-hidden flex flex-col h-[500px] rounded-lg">
-      <CardHeader className="pb-3 pt-4 px-5 border-b border-zinc-100 bg-white shrink-0">
+    <Card className="lg:col-span-2 border-border/60 shadow-card overflow-hidden flex flex-col h-[500px] rounded-lg">
+      <CardHeader className="pb-3 pt-4 px-5 border-b border-border-subtle bg-white shrink-0">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-bold text-zinc-800 flex items-center gap-2">
-            <Code2 className="w-4 h-4 text-blue-500" /> SQL 查询
+          <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Code2 className="w-4 h-4 text-primary/80" /> SQL 查询
           </CardTitle>
           <div className="flex items-center gap-1.5">
             <Button
               onClick={() => runDesign(activeTenant, projectId, selectedId, isNew)}
               disabled={designExecuting}
               size="sm"
-              className="h-7 bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 text-xs rounded-lg shadow-sm active:scale-95 transition-all"
+              className="h-7 font-bold px-3 text-xs rounded-lg shadow-sm"
             >
               {designExecuting ? (
                 <div className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-1.5" />
@@ -40,14 +40,14 @@ export function SqlEditorCard() {
               )}
               执行
             </Button>
-            <Button onClick={formatSQL} variant="ghost" size="sm" className="h-7 text-xs text-zinc-400 hover:text-blue-600 rounded-lg">
+            <Button onClick={formatSQL} variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-primary rounded-lg">
               <AlignLeft className="w-3 h-3 mr-1" /> 格式化
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="p-0 flex-1 relative flex flex-col overflow-hidden bg-white">
-        <div className="flex-1 relative border-b border-zinc-100">
+        <div className="flex-1 relative border-b border-border-subtle">
           <Editor
             height="100%"
             defaultLanguage="sql"

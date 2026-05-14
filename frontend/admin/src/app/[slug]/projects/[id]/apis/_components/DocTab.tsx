@@ -116,21 +116,21 @@ export function DocTab() {
 
           {/* Endpoint identity */}
           <div className="space-y-1.5">
-            <h2 className="text-xl font-bold text-zinc-900">
+            <h2 className="text-lg font-bold text-foreground">
               {formSummary || <span className="text-zinc-300 font-normal italic">未命名接口</span>}
             </h2>
             <div className="flex items-center gap-2.5">
               <span className={cn(
-                "text-[10px] font-black px-2 py-0.5 rounded-md border uppercase tracking-wider",
-                formMethod === "GET"    ? "bg-blue-50 text-blue-600 border-blue-200"
+                "text-2xs font-black px-2 py-0.5 rounded-md border uppercase tracking-wider",
+                formMethod === "GET"    ? "bg-primary/10 text-primary border-primary/30"
                 : formMethod === "POST"   ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                 : formMethod === "PUT"    ? "bg-amber-50 text-amber-600 border-amber-200"
                 : formMethod === "DELETE" ? "bg-red-50 text-red-600 border-red-200"
-                : "bg-zinc-50 text-zinc-500 border-zinc-200"
+                : "bg-zinc-50 text-muted-foreground border-border"
               )}>
                 {formMethod}
               </span>
-              <span className="text-sm font-mono text-zinc-500">{formPath || "-"}</span>
+              <span className="text-sm font-mono text-muted-foreground">{formPath || "-"}</span>
             </div>
           </div>
 
@@ -153,10 +153,10 @@ export function DocTab() {
                     <td className="px-5 py-3 font-mono font-bold text-emerald-600 text-sm truncate">{def.name}</td>
                     <td className="px-5 py-3"><TypeBadge>{def.type || "string"}</TypeBadge></td>
                     <td className="px-5 py-3 text-sm">
-                      {def.required ? <span className="text-red-500 font-bold">是</span> : <span className="text-zinc-400">否</span>}
+                      {def.required ? <span className="text-red-500 font-bold">是</span> : <span className="text-muted-foreground">否</span>}
                     </td>
-                    <td className="px-5 py-3 text-sm font-mono text-zinc-500 truncate">{def.default || "-"}</td>
-                    <td className="px-5 py-3 text-sm text-zinc-500 truncate">{def.desc || "-"}</td>
+                    <td className="px-5 py-3 text-sm font-mono text-muted-foreground truncate">{def.default || "-"}</td>
+                    <td className="px-5 py-3 text-sm text-muted-foreground truncate">{def.desc || "-"}</td>
                   </ParamRow>
                 ))}
               </ParamGroup>
@@ -172,13 +172,13 @@ export function DocTab() {
               >
                 {nonPathParams.map(def => (
                   <ParamRow key={def.name}>
-                    <td className="px-5 py-3 font-mono font-bold text-blue-600 text-sm truncate">{def.name}</td>
+                    <td className="px-5 py-3 font-mono font-bold text-primary text-sm truncate">{def.name}</td>
                     <td className="px-5 py-3"><TypeBadge>{def.type || "string"}</TypeBadge></td>
                     <td className="px-5 py-3 text-sm">
-                      {def.required ? <span className="text-red-500 font-bold">是</span> : <span className="text-zinc-400">否</span>}
+                      {def.required ? <span className="text-red-500 font-bold">是</span> : <span className="text-muted-foreground">否</span>}
                     </td>
-                    <td className="px-5 py-3 text-sm font-mono text-zinc-500 truncate">{def.default || "-"}</td>
-                    <td className="px-5 py-3 text-sm text-zinc-500 truncate">{def.desc || "-"}</td>
+                    <td className="px-5 py-3 text-sm font-mono text-muted-foreground truncate">{def.default || "-"}</td>
+                    <td className="px-5 py-3 text-sm text-muted-foreground truncate">{def.desc || "-"}</td>
                   </ParamRow>
                 ))}
                 {paginationEnabled && <PaginationDivider show={true} />}
@@ -186,9 +186,9 @@ export function DocTab() {
                   <ParamRow key={p.name}>
                     <td className="px-5 py-3 font-mono font-bold text-violet-500 text-sm truncate">{p.name}</td>
                     <td className="px-5 py-3"><TypeBadge>{p.type}</TypeBadge></td>
-                    <td className="px-5 py-3 text-sm"><span className="text-zinc-400">否</span></td>
-                    <td className="px-5 py-3 text-sm font-mono text-zinc-500 truncate">{p.default}</td>
-                    <td className="px-5 py-3 text-sm text-zinc-500 truncate">{p.desc}</td>
+                    <td className="px-5 py-3 text-sm"><span className="text-muted-foreground">否</span></td>
+                    <td className="px-5 py-3 text-sm font-mono text-muted-foreground truncate">{p.default}</td>
+                    <td className="px-5 py-3 text-sm text-muted-foreground truncate">{p.desc}</td>
                   </ParamRow>
                 ))}
               </ParamGroup>
@@ -207,10 +207,10 @@ export function DocTab() {
                     <td className="px-5 py-3 font-mono font-bold text-amber-600 text-sm truncate">{def.name}</td>
                     <td className="px-5 py-3"><TypeBadge>{def.type || "string"}</TypeBadge></td>
                     <td className="px-5 py-3 text-sm">
-                      {def.required ? <span className="text-red-500 font-bold">是</span> : <span className="text-zinc-400">否</span>}
+                      {def.required ? <span className="text-red-500 font-bold">是</span> : <span className="text-muted-foreground">否</span>}
                     </td>
-                    <td className="px-5 py-3 text-sm font-mono text-zinc-500 truncate">{def.default || "-"}</td>
-                    <td className="px-5 py-3 text-sm text-zinc-500 truncate">{def.desc || "-"}</td>
+                    <td className="px-5 py-3 text-sm font-mono text-muted-foreground truncate">{def.default || "-"}</td>
+                    <td className="px-5 py-3 text-sm text-muted-foreground truncate">{def.desc || "-"}</td>
                   </ParamRow>
                 ))}
                 {paginationEnabled && <PaginationDivider show={true} />}
@@ -218,9 +218,9 @@ export function DocTab() {
                   <ParamRow key={p.name}>
                     <td className="px-5 py-3 font-mono font-bold text-violet-500 text-sm truncate">{p.name}</td>
                     <td className="px-5 py-3"><TypeBadge>{p.type}</TypeBadge></td>
-                    <td className="px-5 py-3 text-sm"><span className="text-zinc-400">否</span></td>
-                    <td className="px-5 py-3 text-sm font-mono text-zinc-500 truncate">{p.default}</td>
-                    <td className="px-5 py-3 text-sm text-zinc-500 truncate">{p.desc}</td>
+                    <td className="px-5 py-3 text-sm"><span className="text-muted-foreground">否</span></td>
+                    <td className="px-5 py-3 text-sm font-mono text-muted-foreground truncate">{p.default}</td>
+                    <td className="px-5 py-3 text-sm text-muted-foreground truncate">{p.desc}</td>
                   </ParamRow>
                 ))}
               </ParamGroup>
@@ -230,10 +230,10 @@ export function DocTab() {
           {/* cURL example */}
           <div className="space-y-4">
             <SectionTitle color="blue">调用示例</SectionTitle>
-            <div className="bg-zinc-900 rounded-xl p-5 font-mono text-sm leading-relaxed text-emerald-400 shadow-lg border border-zinc-800 overflow-x-auto">
+            <div className="bg-zinc-900 rounded-xl p-5 font-mono text-sm leading-relaxed text-emerald-400 shadow-card border border-zinc-800 overflow-x-auto">
               <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">cURL</span>
-                <Badge variant="outline" className="text-[10px] text-zinc-500 border-zinc-700 rounded-md">Bash</Badge>
+                <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">cURL</span>
+                <Badge variant="outline" className="text-2xs text-muted-foreground border-zinc-700 rounded-md">Bash</Badge>
               </div>
               <pre className="whitespace-pre-wrap break-all">{curl}</pre>
             </div>
@@ -251,7 +251,7 @@ type TagColor = "green" | "blue" | "amber" | "violet"
 
 const tagColorMap: Record<TagColor, { badge: string; bar: string }> = {
   green:  { badge: "bg-emerald-50 text-emerald-600 border-emerald-200", bar: "bg-emerald-500" },
-  blue:   { badge: "bg-blue-50 text-blue-600 border-blue-200",          bar: "bg-blue-500" },
+  blue:   { badge: "bg-primary/10 text-primary border-primary/30",          bar: "bg-primary/80" },
   amber:  { badge: "bg-amber-50 text-amber-600 border-amber-200",       bar: "bg-amber-500" },
   violet: { badge: "bg-violet-50 text-violet-600 border-violet-200",    bar: "bg-violet-500" },
 }
@@ -277,18 +277,18 @@ function ParamGroup({
       <div className="flex items-center gap-2">
         <div className={cn("w-1 h-3.5 rounded-full", colors.bar)} />
         <span className="text-xs font-bold text-zinc-700">{label}</span>
-        <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-md border", colors.badge)}>
+        <span className={cn("text-2xs font-bold px-1.5 py-0.5 rounded-md border", colors.badge)}>
           {tag}
         </span>
         {icon && (
           <div className="flex items-center gap-1 px-2 py-0.5 bg-violet-50 border border-violet-100 rounded-full">
             {icon}
-            <span className="text-[10px] font-bold text-violet-600">前置脚本注入</span>
+            <span className="text-2xs font-bold text-violet-600">前置脚本注入</span>
           </div>
         )}
-        <span className="text-[11px] text-zinc-400">{desc}</span>
+        <span className="text-xs text-muted-foreground">{desc}</span>
       </div>
-      <div className="bg-white rounded-xl overflow-hidden border border-zinc-200/80 shadow-sm">
+      <div className="bg-white rounded-xl overflow-hidden border border-border/80 shadow-card">
         <table className="w-full text-left table-fixed">
           <colgroup>
             <col className="w-[30%]" />
@@ -297,10 +297,10 @@ function ParamGroup({
             <col className="w-[15%]" />
             <col />
           </colgroup>
-          <thead className="bg-zinc-50/80 border-b border-zinc-200/50">
+          <thead className="bg-zinc-50/80 border-b border-border/50">
             <tr>
               {["参数名", "类型", "必填", "默认值", "说明"].map(h => (
-                <th key={h} className="px-5 py-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{h}</th>
+                <th key={h} className="px-5 py-3 text-2xs font-bold text-muted-foreground uppercase tracking-wider">{h}</th>
               ))}
             </tr>
           </thead>
@@ -314,8 +314,8 @@ function ParamGroup({
 function SectionTitle({ children, color }: { children: React.ReactNode; color: "blue" | "violet" }) {
   return (
     <div className="flex items-center gap-2">
-      <div className={cn("w-1 h-5 rounded-full", color === "violet" ? "bg-violet-500" : "bg-blue-600")} />
-      <h4 className="text-base font-bold text-zinc-800">{children}</h4>
+      <div className={cn("w-1 h-5 rounded-full", color === "violet" ? "bg-violet-500" : "bg-primary")} />
+      <h4 className="text-lg font-bold text-foreground">{children}</h4>
     </div>
   )
 }
@@ -326,7 +326,7 @@ function ParamRow({ children }: { children: React.ReactNode }) {
 
 function TypeBadge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[10px] font-bold px-2 py-0.5 bg-zinc-100 text-zinc-500 rounded-md uppercase">
+    <span className="text-2xs font-bold px-2 py-0.5 bg-zinc-100 text-muted-foreground rounded-md uppercase">
       {children}
     </span>
   )
@@ -337,7 +337,7 @@ function PaginationDivider({ show }: { show: boolean }) {
   return (
     <tr>
       <td colSpan={5} className="px-5 py-1.5 bg-violet-50/60 border-y border-violet-100/80">
-        <span className="flex items-center gap-1 text-[10px] font-bold text-violet-500">
+        <span className="flex items-center gap-1 text-2xs font-bold text-violet-500">
           <LayoutList className="w-3 h-3" />
           分页参数 · 前置脚本注入
         </span>
@@ -348,7 +348,7 @@ function PaginationDivider({ show }: { show: boolean }) {
 
 function EmptyParams() {
   return (
-    <div className="p-5 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200 text-sm text-zinc-400 text-center italic">
+    <div className="p-5 bg-zinc-50/50 rounded-xl border border-dashed border-border text-sm text-muted-foreground text-center italic">
       该接口无请求参数，可直接调用。
     </div>
   )

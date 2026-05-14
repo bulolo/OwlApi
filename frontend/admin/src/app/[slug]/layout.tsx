@@ -34,7 +34,7 @@ export default function DashboardLayout({
 
   return (
     <TenantProvider slug={slug}>
-      <div className="min-h-screen bg-[#f8f9fa] flex text-zinc-900 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
+      <div className="min-h-screen bg-background flex text-foreground font-sans selection:bg-primary/20 selection:text-primary overflow-hidden">
         {isTenantView && <Sidebar slug={slug} />}
         <div className={cn(
           "flex-1 flex flex-col min-h-screen min-w-0",

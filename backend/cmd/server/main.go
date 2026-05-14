@@ -1,5 +1,5 @@
 // @title           OwlApi Control Plane
-// @version         0.1.7
+// @version         0.1.8
 // @description     企业级 SQL to API 智能网关平台管理接口
 // @host            localhost:3000
 // @BasePath        /
@@ -36,6 +36,9 @@ import (
 
 func main() {
 	cfg := config.LoadServerConfig()
+	if err := cfg.Validate(); err != nil {
+		slog.Warn("config validation warning", "err", err)
+	}
 	logger.Init(cfg.LogLevel)
 	slog.Info("Starting OwlApi Control Plane...")
 

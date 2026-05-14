@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/bulolo/owlapi/internal/domain"
 )
@@ -25,7 +26,9 @@ func scanEP(scan func(dest ...any) error) (*domain.APIEndpoint, error) {
 		return nil, err
 	}
 	if len(paramDefsJSON) > 0 {
-		_ = json.Unmarshal(paramDefsJSON, &ep.ParamDefs)
+		if err := json.Unmarshal(paramDefsJSON, &ep.ParamDefs); err != nil {
+			slog.Warn("unmarshal param_defs failed", "err", err)
+		}
 	}
 	return &ep, nil
 }
@@ -38,7 +41,9 @@ func scanEPWithDraft(scan func(dest ...any) error) (*domain.APIEndpoint, error) 
 		return nil, err
 	}
 	if len(paramDefsJSON) > 0 {
-		_ = json.Unmarshal(paramDefsJSON, &ep.ParamDefs)
+		if err := json.Unmarshal(paramDefsJSON, &ep.ParamDefs); err != nil {
+			slog.Warn("unmarshal param_defs failed", "err", err)
+		}
 	}
 	return &ep, nil
 }
@@ -113,7 +118,7 @@ func (r *APIEndpointRepo) List(ctx context.Context, tenantID, projectID int64, p
 	argN := 3
 	if p.Keyword != "" {
 		where += fmt.Sprintf(" AND (ae.path ILIKE $%d OR ae.summary ILIKE $%d)", argN, argN)
-		args = append(args, "%"+p.Keyword+"%")
+		args = append(args, likeWrap(p.Keyword))
 		argN++
 	}
 

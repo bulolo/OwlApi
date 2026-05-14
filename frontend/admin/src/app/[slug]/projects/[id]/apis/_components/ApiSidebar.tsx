@@ -69,11 +69,11 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
   if (!sidebarOpen) {
     return (
       <button
-        className="h-auto w-11 shrink-0 flex flex-col items-center py-5 bg-[#fafbfc] border-r border-zinc-200/80 hover:bg-white transition-all group animate-in slide-in-from-left-4"
+        className="h-auto w-11 shrink-0 flex flex-col items-center py-5 bg-zinc-50/60 border-r border-border/80 hover:bg-white transition-all group animate-in slide-in-from-left-4"
         onClick={() => setSidebarOpen(true)}
       >
-        <PanelLeftOpen className="w-4 h-4 text-zinc-400 mb-3 group-hover:text-blue-600 transition-colors" />
-        <span className="text-[10px] font-bold text-zinc-400 [writing-mode:vertical-lr] tracking-[0.15em] group-hover:text-zinc-600 transition-colors">导航</span>
+        <PanelLeftOpen className="w-4 h-4 text-muted-foreground mb-3 group-hover:text-primary transition-colors" />
+        <span className="text-2xs font-bold text-muted-foreground [writing-mode:vertical-lr] tracking-[0.15em] group-hover:text-zinc-600 transition-colors">导航</span>
       </button>
     )
   }
@@ -81,27 +81,27 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
   const allGroups: ApiGroup[] = [...(groups as ApiGroup[]), { id: -1, name: "未分类接口" } as ApiGroup]
 
   return (
-    <div className="w-[272px] shrink-0 flex flex-col bg-[#fafbfc] border-r border-zinc-200/80 animate-in fade-in slide-in-from-left-4 duration-300">
-      <div className="p-4 border-b border-zinc-200/80 bg-white flex flex-col space-y-3">
+    <div className="w-[272px] shrink-0 flex flex-col bg-zinc-50/60 border-r border-border/80 animate-in fade-in slide-in-from-left-4 duration-300">
+      <div className="p-4 border-b border-border/80 bg-white flex flex-col space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.15em] px-0.5">接口导航</span>
+          <span className="text-2xs font-black text-muted-foreground uppercase tracking-[0.15em] px-0.5">接口导航</span>
           <div className="flex items-center gap-0.5">
-            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-400 transition-all" title="新建接口" onClick={onCreateNew}>
+            <Button size="icon-xs" variant="ghost" className="rounded-lg hover:bg-primary/10 hover:text-primary text-muted-foreground" title="新建接口" onClick={onCreateNew}>
               <Plus className="w-3.5 h-3.5" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-400 transition-all" title="新建分组" onClick={() => openGroupModal("create")}>
+            <Button size="icon-xs" variant="ghost" className="rounded-lg hover:bg-primary/10 hover:text-primary text-muted-foreground" title="新建分组" onClick={() => openGroupModal("create")}>
               <FolderPlus className="w-3.5 h-3.5" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-lg hover:bg-zinc-100 text-zinc-400 transition-all" onClick={() => setSidebarOpen(false)}>
+            <Button size="icon-xs" variant="ghost" className="rounded-lg hover:bg-zinc-100 text-muted-foreground" onClick={() => setSidebarOpen(false)}>
               <PanelLeftClose className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-300" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
             placeholder="搜索接口路径..."
-            className="pl-9 h-8 text-xs bg-zinc-50/80 border-zinc-200/60 rounded-lg focus-visible:ring-blue-500/15 placeholder:text-zinc-400"
+            className="pl-9 h-8 text-xs bg-zinc-50/80 border-border/60 rounded-lg focus-visible:ring-primary/20 placeholder:text-muted-foreground"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
@@ -110,7 +110,7 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
 
       <div className="flex-1 overflow-auto custom-scrollbar">
         {isLoading ? (
-          <div className="p-8 text-center text-zinc-400 text-xs">加载中...</div>
+          <div className="p-8 text-center text-muted-foreground text-xs">加载中...</div>
         ) : (
           <div className="flex flex-col py-1">
             {allGroups.map(group => {
@@ -135,34 +135,34 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
                   <div
                     onClick={() => toggleGroup(group.id ?? 0)}
                     className={cn(
-                      "px-4 py-2.5 flex items-center justify-between group/g cursor-pointer transition-all",
+                      "px-4 py-2.5 flex items-center justify-between group/g cursor-pointer transition-colors",
                       isDragTarget
-                        ? "bg-blue-50 border-l-2 border-blue-400"
+                        ? "bg-primary/10 border-l-2 border-primary/60"
                         : "hover:bg-zinc-100/40"
                     )}
                   >
                     <div className="flex items-center gap-2">
                       <ChevronRight className={cn(
-                        "w-3 h-3 text-zinc-400 transition-transform duration-200",
+                        "w-3 h-3 text-muted-foreground transition-transform duration-200",
                         expandedGroups.includes(group.id ?? 0) && "rotate-90"
                       )} />
-                      <Folder className={cn("w-3.5 h-3.5 transition-colors", isDragTarget ? "text-blue-500" : "text-zinc-400")} />
-                      <span className={cn("text-xs font-semibold tracking-wide transition-colors", isDragTarget ? "text-blue-600" : "text-zinc-500")}>
+                      <Folder className={cn("w-3.5 h-3.5 transition-colors", isDragTarget ? "text-primary/80" : "text-muted-foreground")} />
+                      <span className={cn("text-xs font-bold tracking-wide transition-colors", isDragTarget ? "text-primary" : "text-muted-foreground")}>
                         {group.name}
                       </span>
-                      <span className="text-[10px] text-zinc-400 font-medium bg-zinc-100/80 px-1.5 py-0 rounded-md">{items.length}</span>
+                      <span className="text-2xs text-muted-foreground font-medium bg-zinc-100/80 px-1.5 py-0 rounded-md">{items.length}</span>
                     </div>
                     {!isUngrouped && group.id !== undefined && (
                       <div className="flex items-center opacity-0 group-hover/g:opacity-100 transition-opacity">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-white rounded-md transition-all outline-none shadow-sm border border-transparent hover:border-zinc-200">
+                            <button className="p-1.5 text-muted-foreground hover:text-zinc-700 hover:bg-white rounded-md transition-all outline-none shadow-sm border border-transparent hover:border-border">
                               <MoreVertical className="w-3.5 h-3.5" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40 rounded-lg shadow-md border-zinc-200 p-1.5">
+                          <DropdownMenuContent align="end" className="w-40 rounded-lg shadow-modal border-border p-1.5">
                             <DropdownMenuItem onClick={() => openGroupModal("edit", group)} className="text-xs font-medium py-2 rounded-md">
-                              <Edit3 className="w-3.5 h-3.5 mr-2.5 text-zinc-400" /> 重命名
+                              <Edit3 className="w-3.5 h-3.5 mr-2.5 text-muted-foreground" /> 重命名
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDeleteGroup(group.id!)} className="text-xs font-medium py-2 rounded-md text-red-600 focus:text-red-900 focus:bg-red-50">
                               <Trash2 className="w-3.5 h-3.5 mr-2.5" /> 删除
@@ -176,7 +176,7 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
                   {expandedGroups.includes(group.id ?? 0) && (
                     <div className="space-y-0.5 pb-1 animate-in fade-in slide-in-from-top-1 duration-200">
                       {items.length === 0 ? (
-                        <div className="mx-4 pl-7 py-2 text-xs text-zinc-400 italic">空分组</div>
+                        <div className="mx-4 pl-7 py-2 text-xs text-muted-foreground italic">空分组</div>
                       ) : (
                         items.map((ep, idx) => (
                           <EndpointItem
@@ -198,12 +198,12 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
 
             {groups.length === 0 && (
               <div className="p-10 text-center">
-                <div className="w-14 h-14 bg-zinc-50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-zinc-100">
+                <div className="w-14 h-14 bg-zinc-50 rounded-xl flex items-center justify-center mx-auto mb-4 border border-border-subtle">
                   <FileCode className="w-7 h-7 text-zinc-300" />
                 </div>
-                <p className="text-zinc-500 text-sm font-semibold">暂无接口分组</p>
-                <p className="text-zinc-400 text-xs mt-1">创建分组以管理接口</p>
-                <Button variant="outline" className="mt-5 text-xs h-8 px-4 rounded-lg border-zinc-200 hover:bg-zinc-50" onClick={() => openGroupModal("create")}>
+                <p className="text-muted-foreground text-sm font-bold">暂无接口分组</p>
+                <p className="text-muted-foreground text-xs mt-1">创建分组以管理接口</p>
+                <Button variant="outline" className="mt-5 text-xs h-8 px-4 rounded-lg border-border hover:bg-zinc-50" onClick={() => openGroupModal("create")}>
                   <Plus className="w-3.5 h-3.5 mr-2" /> 创建分组
                 </Button>
               </div>
@@ -219,7 +219,7 @@ function StatusDot({ status }: { status?: string }) {
   return (
     <span className={cn(
       "shrink-0 w-1.5 h-1.5 rounded-full",
-      status === "published" ? "bg-emerald-400" : status === "offline" ? "bg-zinc-400" : "bg-amber-400"
+      status === "published" ? "bg-emerald-500" : status === "offline" ? "bg-zinc-400" : "bg-amber-500"
     )} />
   )
 }
@@ -260,32 +260,32 @@ function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
       onClick={onSelect}
       className={cn(
         "mx-2 px-3 py-2 cursor-pointer transition-all duration-200 group flex items-center gap-2 rounded-xl font-medium",
-        isSelected ? "bg-blue-50" : "hover:bg-white hover:shadow-sm"
+        isSelected ? "bg-primary/10" : "hover:bg-white hover:shadow-sm"
       )}
     >
       <StatusDot status={ep.status} />
       <MethodBadge method={ep.methods?.[0] as HttpMethod | undefined} isSelected={isSelected} />
       <span className={cn(
         "flex-1 text-xs font-medium truncate min-w-0",
-        isSelected ? "text-blue-600 font-bold" : "text-zinc-600 group-hover:text-zinc-900"
+        isSelected ? "text-primary font-bold" : "text-zinc-600 group-hover:text-foreground"
       )}>
         {ep.path ?? ""}
       </span>
       {ep.has_draft && ep.status === "published" && (
-        <span className="shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-50 text-amber-500 border border-amber-200 leading-tight">
+        <span className="shrink-0 text-2xs font-black px-1.5 py-0.5 rounded bg-amber-50 text-amber-500 border border-amber-200 leading-tight">
           NEW
         </span>
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
-            className="shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded-md text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-all outline-none"
+            className="shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded-md text-muted-foreground hover:text-zinc-700 hover:bg-zinc-100 transition-all outline-none"
             onClick={e => e.stopPropagation()}
           >
             <MoreVertical className="w-3.5 h-3.5" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-36 rounded-lg shadow-md border-zinc-200 p-1">
+        <DropdownMenuContent align="end" className="w-36 rounded-lg shadow-modal border-border p-1">
           {canPublish && (
             <DropdownMenuItem onClick={handlePublish} className="text-xs font-medium py-2 rounded-md text-emerald-700 focus:text-emerald-900 focus:bg-emerald-50">
               <Rocket className="w-3.5 h-3.5 mr-2 text-emerald-500" /> 上线
@@ -293,7 +293,7 @@ function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
           )}
           {canUnpublish && (
             <DropdownMenuItem onClick={handleUnpublish} className="text-xs font-medium py-2 rounded-md text-zinc-600">
-              <WifiOff className="w-3.5 h-3.5 mr-2 text-zinc-400" /> 下线
+              <WifiOff className="w-3.5 h-3.5 mr-2 text-muted-foreground" /> 下线
             </DropdownMenuItem>
           )}
           {(canPublish || canUnpublish) && <DropdownMenuSeparator />}
@@ -311,19 +311,19 @@ function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
 
 function MethodBadge({ method, isSelected }: { method?: HttpMethod; isSelected: boolean }) {
   const colorClass = isSelected
-    ? method === "GET" ? "bg-blue-100 text-blue-700 border-blue-200"
+    ? method === "GET" ? "bg-primary/20 text-primary border-primary/30"
       : method === "POST" ? "bg-emerald-100 text-emerald-700 border-emerald-200"
       : method === "PUT" ? "bg-amber-100 text-amber-700 border-amber-200"
       : method === "DELETE" ? "bg-red-100 text-red-700 border-red-200"
-      : "bg-zinc-200 text-zinc-600 border-zinc-300"
-    : method === "GET" ? "bg-blue-50 text-blue-600 border-blue-200/60"
+      : "bg-zinc-200 text-zinc-600 border-border"
+    : method === "GET" ? "bg-primary/10 text-primary border-primary/30"
     : method === "POST" ? "bg-emerald-50 text-emerald-600 border-emerald-200/60"
     : method === "PUT" ? "bg-amber-50 text-amber-600 border-amber-200/60"
     : method === "DELETE" ? "bg-red-50 text-red-600 border-red-200/60"
-    : "bg-zinc-100 text-zinc-500 border-zinc-200"
+    : "bg-zinc-100 text-muted-foreground border-border"
 
   return (
-    <span className={cn("font-black text-[10px] w-10 text-center py-0.5 rounded-md border transition-colors shrink-0", colorClass)}>
+    <span className={cn("font-black text-2xs w-10 text-center py-0.5 rounded-md border transition-colors shrink-0", colorClass)}>
       {method}
     </span>
   )

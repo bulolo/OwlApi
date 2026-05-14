@@ -66,7 +66,7 @@ func (r *DataSourceRepo) List(ctx context.Context, tenantID int64, p domain.List
 	argN := 2
 	if p.Keyword != "" {
 		where += fmt.Sprintf(" AND (name ILIKE $%d OR type ILIKE $%d)", argN, argN)
-		args = append(args, "%"+p.Keyword+"%")
+		args = append(args, likeWrap(p.Keyword))
 		argN++
 	}
 

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/bulolo/owlapi/internal/pkg/pathutil"
@@ -98,5 +97,5 @@ func (s *apiEndpointService) MatchByPath(ctx context.Context, tenantID, projectI
 	if bestEp != nil {
 		return bestEp, bestParams, nil
 	}
-	return nil, nil, fmt.Errorf("endpoint not found: %s %s", method, requestPath)
+	return nil, nil, domain.ErrNotFoundf("endpoint not found: %s %s", method, requestPath)
 }

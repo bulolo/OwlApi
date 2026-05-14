@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
+	"log/slog"
 	"strconv"
 	"sync"
 	"time"
@@ -37,13 +37,44 @@ type GatewayService interface {
 	GatewayBroker
 }
 
+type streamEntry struct {
+	stream   pb.GatewayService_ConnectServer
+	lastSeen time.Time
+}
+
 type gatewayService struct {
 	repo    domain.GatewayRepository
-	streams sync.Map // gatewayID(str) → stream
+	streams sync.Map // gatewayID(str) → streamEntry
 }
 
 func NewGatewayService(repo domain.GatewayRepository) GatewayService {
-	return &gatewayService{repo: repo}
+	svc := &gatewayService{repo: repo}
+	go svc.cleanupLoop()
+	return svc
+}
+
+// cleanupLoop periodically removes stream entries that have not received a heartbeat
+// within the stale threshold and marks the corresponding gateway as offline.
+func (s *gatewayService) cleanupLoop() {
+	const staleThreshold = 2 * time.Minute
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		threshold := time.Now().Add(-staleThreshold)
+		s.streams.Range(func(key, value any) bool {
+			entry := value.(streamEntry)
+			if entry.lastSeen.Before(threshold) {
+				gatewayID := key.(string)
+				s.streams.Delete(gatewayID)
+				if gid, err := strconv.ParseInt(gatewayID, 10, 64); err == nil {
+					if err := s.repo.UpdateStatus(context.Background(), gid, domain.GatewayOffline, ""); err != nil {
+						slog.Warn("cleanup: failed to mark gateway offline", "gateway_id", gatewayID, "err", err)
+					}
+				}
+			}
+			return true
+		})
+	}
 }
 
 func (s *gatewayService) Create(ctx context.Context, gw *domain.Gateway) error {
@@ -110,13 +141,19 @@ func (s *gatewayService) Register(ctx context.Context, req *pb.RegisterRequest, 
 func (s *gatewayService) Heartbeat(ctx context.Context, gatewayID, peerIP string) error {
 	gid, err := strconv.ParseInt(gatewayID, 10, 64)
 	if err != nil {
-		return fmt.Errorf("invalid gateway ID: %s", gatewayID)
+		return domain.ErrBadRequestf("invalid gateway ID: %s", gatewayID)
+	}
+	// Refresh lastSeen so the cleanup goroutine doesn't evict this connection.
+	if val, ok := s.streams.Load(gatewayID); ok {
+		entry := val.(streamEntry)
+		entry.lastSeen = time.Now()
+		s.streams.Store(gatewayID, entry)
 	}
 	return s.repo.UpdateStatus(ctx, gid, domain.GatewayOnline, peerIP)
 }
 
 func (s *gatewayService) AddStream(gatewayID string, stream pb.GatewayService_ConnectServer) {
-	s.streams.Store(gatewayID, stream)
+	s.streams.Store(gatewayID, streamEntry{stream: stream, lastSeen: time.Now()})
 }
 
 func (s *gatewayService) RemoveStream(gatewayID string) {
@@ -128,5 +165,5 @@ func (s *gatewayService) GetStream(gatewayID string) pb.GatewayService_ConnectSe
 	if !ok {
 		return nil
 	}
-	return val.(pb.GatewayService_ConnectServer)
+	return val.(streamEntry).stream
 }

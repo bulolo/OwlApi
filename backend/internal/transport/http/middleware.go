@@ -54,6 +54,7 @@ func JWTAuth() gin.HandlerFunc {
 }
 
 // GetClaims returns the JWT claims from gin context.
+// Precondition: JWTAuth middleware must be applied to this route.
 func GetClaims(c *gin.Context) *auth.Claims {
 	v, _ := c.Get(ctxClaims)
 	claims, _ := v.(*auth.Claims)

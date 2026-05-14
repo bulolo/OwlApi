@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
@@ -67,6 +68,17 @@ func LoadGatewayConfig() *GatewayConfig {
 		QueryTimeoutSeconds: queryTimeout,
 		JSTimeoutSeconds:    jsTimeout,
 	}
+}
+
+// Validate returns an error if the config is not suitable for production use.
+func (c *ServerConfig) Validate() error {
+	if c.DatabaseURL == "" {
+		return fmt.Errorf("DATABASE_URL is required")
+	}
+	if len(c.JWTSecret) < 32 {
+		return fmt.Errorf("OWLAPI_JWT_SECRET must be at least 32 characters (current: %d)", len(c.JWTSecret))
+	}
+	return nil
 }
 
 func getEnv(key, fallback string) string {

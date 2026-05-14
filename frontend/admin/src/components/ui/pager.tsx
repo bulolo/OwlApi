@@ -28,8 +28,8 @@ export function Pager({
   const pages = getPageNumbers(page, totalPages)
 
   return (
-    <div className={cn("flex items-center justify-between gap-4 px-4 py-3 border-t border-zinc-100 bg-zinc-50/30", className)}>
-      <div className="flex items-center gap-3 text-xs text-zinc-500 font-medium">
+    <div className={cn("flex items-center justify-between gap-4 px-4 py-3 border-t border-border-subtle bg-zinc-50/30", className)}>
+      <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
         <span>第 {start}-{end} 条，共 {total} 条</span>
         {onSizeChange && (
           <>
@@ -37,7 +37,7 @@ export function Pager({
             <div className="flex items-center gap-1.5">
               <span>每页</span>
               <Select value={String(size)} onValueChange={(v) => { onSizeChange(Number(v)); onPageChange(1) }}>
-                <SelectTrigger suppressHydrationWarning className="h-7 w-[72px] text-xs border-zinc-200"><SelectValue /></SelectTrigger>
+                <SelectTrigger suppressHydrationWarning className="h-7 w-[72px] text-xs border-border"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {sizeOptions.map((s) => (
                     <SelectItem key={s} value={String(s)}>{s} 条</SelectItem>
@@ -50,19 +50,19 @@ export function Pager({
       </div>
 
       <div className="flex items-center gap-1">
-        <Button variant="outline" size="icon" className="h-7 w-7 border-zinc-200" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        <Button variant="outline" size="icon-xs" className="border-border" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
           <ChevronLeft className="w-3.5 h-3.5" />
         </Button>
 
         {pages.map((p, i) =>
           p === '...' ? (
-            <span key={`e${i}`} className="px-1.5 text-zinc-400 text-xs">...</span>
+            <span key={`e${i}`} className="px-1.5 text-muted-foreground text-xs">...</span>
           ) : (
             <Button
               key={p}
               variant={page === p ? "default" : "outline"}
-              size="icon"
-              className={cn("h-7 w-7 text-xs font-bold", page === p && "bg-blue-600 text-white hover:bg-blue-700")}
+              size="icon-xs"
+              className={cn("text-xs font-bold", page === p && "bg-primary text-white hover:bg-primary/90")}
               onClick={() => onPageChange(p as number)}
             >
               {p}
@@ -70,7 +70,7 @@ export function Pager({
           )
         )}
 
-        <Button variant="outline" size="icon" className="h-7 w-7 border-zinc-200" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+        <Button variant="outline" size="icon-xs" className="border-border" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
           <ChevronRight className="w-3.5 h-3.5" />
         </Button>
       </div>

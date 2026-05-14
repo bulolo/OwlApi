@@ -22,3 +22,7 @@ func ErrNotFoundf(format string, a ...any) *Error   { return ErrNotFound(fmt.Spr
 func ErrBadRequestf(format string, a ...any) *Error { return ErrBadRequest(fmt.Sprintf(format, a...)) }
 func ErrConflictf(format string, a ...any) *Error   { return ErrConflict(fmt.Sprintf(format, a...)) }
 func ErrForbiddenf(format string, a ...any) *Error  { return ErrForbidden(fmt.Sprintf(format, a...)) }
+func ErrUnavailablef(format string, a ...any) *Error {
+	return ErrUnavailable(fmt.Sprintf(format, a...))
+}
+func ErrInternalf(format string, a ...any) *Error { return ErrInternal(fmt.Sprintf(format, a...)) }

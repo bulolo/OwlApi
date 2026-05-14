@@ -37,12 +37,12 @@ export function ReleasesTab() {
 
   return (
     <div className="p-6 max-w-3xl">
-      <h3 className="text-sm font-semibold text-zinc-700 mb-4">版本历史</h3>
+      <h3 className="text-sm font-bold text-zinc-700 mb-4">版本历史</h3>
 
       {isLoading ? (
-        <div className="text-sm text-zinc-400 py-8 text-center">加载中...</div>
+        <div className="text-sm text-muted-foreground py-8 text-center">加载中...</div>
       ) : published.length === 0 ? (
-        <div className="text-sm text-zinc-400 py-8 text-center">暂无发布记录</div>
+        <div className="text-sm text-muted-foreground py-8 text-center">暂无发布记录</div>
       ) : (
         <div className="space-y-2">
           {published.map(rel => (
@@ -72,7 +72,7 @@ function ReleaseRow({ release, onActivate, activating, onRestoreEdit }: {
   return (
     <div className={cn(
       "rounded-xl border transition-colors",
-      release.is_active ? "border-emerald-100 bg-emerald-50/40" : "border-zinc-100 bg-white"
+      release.is_active ? "border-emerald-100 bg-emerald-50/40" : "border-border-subtle bg-white"
     )}>
       {/* Row header */}
       <div
@@ -87,19 +87,19 @@ function ReleaseRow({ release, onActivate, activating, onRestoreEdit }: {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-black text-zinc-800">v{release.version}</span>
+            <span className="text-xs font-black text-foreground">v{release.version}</span>
             {release.is_active && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
+              <span className="text-2xs font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200">
                 上线中
               </span>
             )}
             {snap && (
-              <span className="text-xs text-zinc-400 font-mono truncate">
+              <span className="text-xs text-muted-foreground font-mono truncate">
                 {(snap.methods?.[0] ?? "").toUpperCase()} {snap.path}
               </span>
             )}
           </div>
-          <p className="text-[11px] text-zinc-400 mt-0.5">{formatDate(release.published_at)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{formatDate(release.published_at)}</p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -108,7 +108,7 @@ function ReleaseRow({ release, onActivate, activating, onRestoreEdit }: {
               size="sm"
               variant="ghost"
               onClick={e => { e.stopPropagation(); onRestoreEdit() }}
-              className="h-7 px-3 text-xs text-zinc-500 hover:bg-zinc-100"
+              className="h-7 px-3 text-xs text-muted-foreground hover:bg-zinc-100"
             >
               <RotateCcw className="w-3 h-3 mr-1.5" /> 恢复编辑
             </Button>
@@ -125,18 +125,18 @@ function ReleaseRow({ release, onActivate, activating, onRestoreEdit }: {
             </Button>
           )}
           {expanded
-            ? <ChevronDown className="w-4 h-4 text-zinc-400" />
-            : <ChevronRight className="w-4 h-4 text-zinc-400" />}
+            ? <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
         </div>
       </div>
 
       {/* Snapshot detail */}
       {expanded && snap && (
-        <div className="border-t border-zinc-100 px-4 py-3 space-y-3">
+        <div className="border-t border-border-subtle px-4 py-3 space-y-3">
           {/* SQL */}
           <div>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">SQL</p>
-            <pre className="text-xs text-zinc-700 bg-zinc-50 border border-zinc-100 rounded-lg p-3 overflow-x-auto whitespace-pre leading-relaxed font-mono">
+            <p className="text-2xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">SQL</p>
+            <pre className="text-xs text-zinc-700 bg-zinc-50 border border-border-subtle rounded-lg p-3 overflow-x-auto whitespace-pre leading-relaxed font-mono">
               {snap.sql ?? "—"}
             </pre>
           </div>
@@ -144,13 +144,13 @@ function ReleaseRow({ release, onActivate, activating, onRestoreEdit }: {
           {/* Params */}
           {snap.param_defs && snap.param_defs.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">参数</p>
+              <p className="text-2xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5">参数</p>
               <div className="flex flex-wrap gap-1.5">
                 {snap.param_defs.map((p, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 text-[11px] font-mono bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded">
+                  <span key={i} className="inline-flex items-center gap-1 text-xs font-mono bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded">
                     <span className="font-bold">{p.name}</span>
-                    <span className="text-zinc-400">{p.type}</span>
-                    {p.required && <span className="text-red-400">*</span>}
+                    <span className="text-muted-foreground">{p.type}</span>
+                    {p.required && <span className="text-red-500">*</span>}
                   </span>
                 ))}
               </div>

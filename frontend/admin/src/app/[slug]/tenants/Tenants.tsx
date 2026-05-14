@@ -11,32 +11,44 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useUIStore } from "@/store/useUIStore"
 import { useRouter } from "next/navigation"
-import { useTenants } from "@/hooks"
+import { useTenants, usePaginationState, useAdminMutation } from "@/hooks"
 import { apiDeleteTenant, apiUpdateTenant, type Tenant } from "@/lib/api-client"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Pager } from "@/components/ui/pager"
-import { toast } from "sonner"
-import { useQueryClient } from "@tanstack/react-query"
 import { showConfirm } from "@/store/useConfirmStore"
 import { useIsClient } from "@/hooks/useIsClient"
 
-import TenantRegisterForm from "./TenantRegisterForm"
+import TenantRegisterForm from "./_components/TenantRegisterForm"
 
-export default function TenantsClientPage() {
+export default function Tenants() {
   const isClient = useIsClient()
   const appHost = isClient ? window.location.host : ''
   const [isRegistering, setIsRegistering] = useState(false)
-  const [keyword, setKeyword] = useState("")
   const [editing, setEditing] = useState<Tenant | null>(null)
-  const [page, setPage] = useState(1)
-  const [size, setSize] = useState(20)
+  const { page, size, keyword, setPage, setSize, onSearch } = usePaginationState(20)
   const { setViewContext } = useUIStore()
   const { tenants, pagination } = useTenants({ page, size, keyword })
-  const qc = useQueryClient()
   const router = useRouter()
 
+  const deleteMutation = useAdminMutation({
+    mutationFn: (tenant: Tenant) => apiDeleteTenant(tenant.slug!),
+    invalidateKeys: [["tenants"]],
+    successMsg: (_, tenant) => `组织「${tenant.name}」已删除`,
+    errorMsg: "删除失败",
+  })
+
+  const handleDelete = async (tenant: Tenant) => {
+    if (!await showConfirm(`确认删除组织「${tenant.name}」？此操作不可恢复。`)) return
+    deleteMutation.mutate(tenant)
+  }
+
   if (isRegistering) {
-    return <TenantRegisterForm onCancel={() => setIsRegistering(false)} onSuccess={() => { setIsRegistering(false); qc.invalidateQueries({ queryKey: ["tenants"] }) }} />
+    return (
+      <TenantRegisterForm
+        onCancel={() => setIsRegistering(false)}
+        onSuccess={() => setIsRegistering(false)}
+      />
+    )
   }
 
   return (
@@ -44,12 +56,12 @@ export default function TenantsClientPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">组织管理</h1>
-          <p className="text-sm text-zinc-500 mt-1 font-medium">查看并管理所有企业组织、订阅状态及资源使用情况。</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">组织管理</h1>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">查看并管理所有企业组织、订阅状态及资源使用情况。</p>
         </div>
-        <Button 
+        <Button
           onClick={() => setIsRegistering(true)}
-          className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm"
+          className="h-9 px-4 text-xs font-bold shadow-sm"
         >
           <Plus className="w-4 h-4 mr-2" />
           开通新组织
@@ -61,49 +73,49 @@ export default function TenantsClientPage() {
         <EditTenantModal
           tenant={editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); qc.invalidateQueries({ queryKey: ["tenants"] }) }}
+          onSaved={() => setEditing(null)}
         />
       )}
 
       {/* List */}
-      <div className="bg-white rounded-lg border border-zinc-100 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/30">
+      <div className="bg-white rounded-lg border border-border-subtle shadow-card overflow-hidden">
+        <div className="p-4 border-b border-border-subtle flex items-center justify-between bg-zinc-50/30">
           <div className="relative w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-            <Input 
-              placeholder="搜索组织名称、Slug 或 ID..." 
-              className="pl-9 h-9 text-xs border-zinc-200 bg-white"
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="搜索组织名称、Slug 或 ID..."
+              className="pl-9 h-9 text-xs border-border bg-white"
               value={keyword}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setKeyword(e.target.value); setPage(1) }}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearch(e.target.value)}
             />
           </div>
         </div>
 
         <div className="divide-y divide-zinc-100">
           {tenants.map((tenant) => (
-            <div 
+            <div
               key={tenant.id}
               className="p-4 hover:bg-zinc-50/50 transition-colors group"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4 flex-1">
-                  <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center border border-zinc-200 group-hover:bg-white transition-colors">
-                     <Building2 className="w-5 h-5 text-zinc-400 group-hover:text-blue-600" />
+                  <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center border border-border group-hover:bg-white transition-colors">
+                     <Building2 className="w-5 h-5 text-muted-foreground group-hover:text-primary" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-zinc-900">{tenant.name}</h3>
-                      <Badge variant="secondary" className="text-[10px] h-4 font-black uppercase tracking-tighter bg-zinc-100 text-zinc-500">
+                      <h3 className="text-sm font-bold text-foreground">{tenant.name}</h3>
+                      <Badge variant="secondary" className="text-2xs h-4 font-black uppercase tracking-tight bg-zinc-100 text-muted-foreground">
                         {tenant.id}
                       </Badge>
                       <Badge className={cn(
-                        "text-[10px] h-4 font-black uppercase",
+                        "text-2xs h-4 font-black uppercase",
                         tenant.status === 'Active' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
                       )}>
                         {tenant.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-zinc-400 font-medium">
+                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground font-medium">
                       <span className="flex items-center gap-1">
                         <Globe className="w-3 h-3" /> {appHost}/{tenant.slug}
                       </span>
@@ -117,15 +129,14 @@ export default function TenantsClientPage() {
 
                 <div className="flex items-center gap-2">
                   <div className="hidden md:block text-right mr-6">
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">计划</p>
-                    <p className="text-xs font-bold text-zinc-800">{tenant.plan || 'Free'}</p>
+                    <p className="text-2xs font-black text-muted-foreground uppercase tracking-widest mb-0.5">计划</p>
+                    <p className="text-xs font-bold text-foreground">{tenant.plan || 'Free'}</p>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    className="h-8 text-xs font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                  <Button
+                    variant="ghost"
+                    className="h-8 text-xs font-bold text-primary hover:text-primary/90 hover:bg-primary/10"
                     onClick={() => {
                       setViewContext('TENANT');
-                      // markTenantAsRecent removed — using React Query now
                       router.push(`/${tenant.slug}/overview`);
                     }}
                   >
@@ -134,24 +145,16 @@ export default function TenantsClientPage() {
                   </Button>
                   <Button
                     variant="ghost" size="icon"
-                    className="h-8 w-8 text-zinc-400 hover:text-blue-600 hover:bg-blue-50 opacity-0 group-hover:opacity-100 transition-all"
+                    className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all"
                     onClick={() => setEditing(tenant)}
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </Button>
                   <Button
                     variant="ghost" size="icon"
-                    className="h-8 w-8 text-zinc-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
-                    onClick={async () => {
-                      if (!await showConfirm(`确认删除组织「${tenant.name}」？此操作不可恢复。`)) return
-                      try { 
-                        await apiDeleteTenant(tenant.slug!)
-                        toast.success(`组织「${tenant.name}」已删除`)
-                        qc.invalidateQueries({ queryKey: ["tenants"] }) 
-                      } catch (err) {
-                        toast.error(err instanceof Error ? err.message : "删除失败")
-                      }
-                    }}
+                    className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                    disabled={deleteMutation.isPending}
+                    onClick={() => handleDelete(tenant)}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
@@ -160,10 +163,10 @@ export default function TenantsClientPage() {
             </div>
           ))}
           {tenants.length === 0 && (
-            <div className="p-12 text-center text-sm text-zinc-400">暂无组织</div>
+            <div className="p-12 text-center text-sm text-muted-foreground">暂无组织</div>
           )}
         </div>
-        
+
         <Pager page={page} size={size} total={pagination?.total ?? 0} onPageChange={setPage} onSizeChange={setSize} />
       </div>
     </div>
@@ -176,38 +179,36 @@ function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose
   const [name, setName] = useState(tenant.name || "")
   const [plan, setPlan] = useState(tenant.plan || "Free")
   const [status, setStatus] = useState(tenant.status || "Active")
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
-  const handleSave = async () => {
-    setSaving(true)
+  const updateMutation = useAdminMutation({
+    mutationFn: () => apiUpdateTenant(tenant.slug!, { name, plan, status }),
+    invalidateKeys: [["tenants"]],
+    onSuccess: () => onSaved(),
+    errorMsg: (err) => (err as Error)?.message || "保存失败",
+  })
+
+  const handleSaveTenant = () => {
     setError("")
-    try {
-      await apiUpdateTenant(tenant.slug!, { name, plan, status })
-      onSaved()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "保存失败")
-    } finally {
-      setSaving(false)
-    }
+    updateMutation.mutate(undefined)
   }
 
   return (
-    <div className="bg-white border border-zinc-200 rounded-lg p-6 shadow-sm space-y-5">
+    <div className="bg-white border border-border rounded-lg p-6 shadow-card space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-zinc-900">编辑组织 — {tenant.slug}</h3>
-        <Button variant="ghost" size="icon" className="w-7 h-7" onClick={onClose}>
+        <h3 className="text-sm font-bold text-foreground">编辑组织 — {tenant.slug}</h3>
+        <Button variant="ghost" size="icon-sm" onClick={onClose}>
           <X className="w-4 h-4" />
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">组织名称</label>
+          <label className="text-2xs font-bold text-muted-foreground uppercase tracking-widest">组织名称</label>
           <Input value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-xs" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">订阅计划</label>
+          <label className="text-2xs font-bold text-muted-foreground uppercase tracking-widest">订阅计划</label>
           <Select value={plan} onValueChange={v => setPlan(v as typeof plan)}>
             <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -218,7 +219,7 @@ function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose
           </Select>
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">状态</label>
+          <label className="text-2xs font-bold text-muted-foreground uppercase tracking-widest">状态</label>
           <Select value={status} onValueChange={v => setStatus(v as typeof status)}>
             <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -233,9 +234,9 @@ function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose
       {error && <p className="text-xs text-red-500">{error}</p>}
 
       <div className="flex justify-end gap-3">
-        <Button variant="outline" onClick={onClose} className="h-9 text-xs font-bold">取消</Button>
-        <Button onClick={handleSave} disabled={saving} className="h-9 px-6 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold">
-          {saving ? "保存中..." : "保存"}
+        <Button variant="outline" onClick={onClose} className="h-9 px-4 text-xs font-bold">取消</Button>
+        <Button onClick={handleSaveTenant} disabled={updateMutation.isPending} className="h-9 px-4 text-xs font-bold shadow-sm">
+          {updateMutation.isPending ? "保存中..." : "保存"}
         </Button>
       </div>
     </div>

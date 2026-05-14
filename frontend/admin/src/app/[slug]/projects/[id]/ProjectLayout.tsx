@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { toast } from "sonner"
 
-export default function ProjectLayoutContent({
+export default function ProjectLayout({
   children,
   projectId,
 }: {
@@ -33,38 +33,38 @@ export default function ProjectLayoutContent({
   return (
     <div className="space-y-0">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs text-zinc-400 font-medium mb-5">
-        <Link href={`/${activeTenant}/projects`} className="hover:text-blue-600 transition-colors">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium mb-5">
+        <Link href={`/${activeTenant}/projects`} className="hover:text-primary transition-colors">
           项目列表
         </Link>
         <ChevronRight className="w-3 h-3" />
-        <span className="text-zinc-600 font-semibold">{project?.name || "加载中..."}</span>
+        <span className="text-zinc-600 font-bold">{project?.name || "加载中..."}</span>
       </div>
 
       {/* Project Header */}
-      <div className="bg-white border border-zinc-100 rounded-lg shadow-sm mb-6">
+      <div className="bg-white border border-border-subtle rounded-lg shadow-card mb-6">
         <div className="px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href={`/${activeTenant}/projects`}>
-              <Button variant="ghost" size="icon" className="rounded-lg hover:bg-zinc-100 w-9 h-9">
-                <ArrowLeft className="w-4 h-4 text-zinc-500" />
+              <Button variant="ghost" size="icon" className="rounded-lg hover:bg-zinc-100">
+                <ArrowLeft className="w-4 h-4 text-muted-foreground" />
               </Button>
             </Link>
 
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center border shadow-sm text-blue-600 border-blue-100 bg-blue-50/30">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center border shadow-sm text-primary border-primary/20 bg-primary/10">
                 <Box className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-lg font-bold text-zinc-900 tracking-tight">
+                  <h1 className="text-lg font-bold text-foreground tracking-tight">
                     {project?.name || "加载中..."}
                   </h1>
-                  <Badge variant="secondary" className="bg-zinc-100 text-zinc-500 border-zinc-200 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                  <Badge variant="secondary" className="bg-zinc-100 text-muted-foreground border-border text-2xs font-bold px-2 py-0.5 rounded-md">
                     ID:{projectId}
                   </Badge>
                 </div>
-                <p className="text-sm text-zinc-500 mt-1 font-medium">
+                <p className="text-sm text-muted-foreground mt-1 font-medium">
                   {project?.description || "SQL to API 接口编排"}
                 </p>
               </div>
@@ -73,16 +73,16 @@ export default function ProjectLayoutContent({
 
           <div className="flex items-center gap-3">
             {/* Quick Stats */}
-            <div className="hidden md:flex items-center gap-2 mr-4 px-4 py-2 bg-zinc-50 rounded-lg border border-zinc-100">
-              <Layers className="w-4 h-4 text-blue-500" />
+            <div className="hidden md:flex items-center gap-2 mr-4 px-4 py-2 bg-zinc-50 rounded-lg border border-border-subtle">
+              <Layers className="w-4 h-4 text-primary/80" />
               <span className="text-xs font-bold text-zinc-600">{endpointCount}</span>
-              <span className="text-xs text-zinc-400">个接口</span>
+              <span className="text-xs text-muted-foreground">个接口</span>
             </div>
 
             <Button
               variant="outline"
               onClick={handleExport}
-              className="h-9 px-4 rounded-lg border-zinc-200 text-xs font-bold shadow-sm hover:bg-zinc-50 hover:border-zinc-300 transition-all"
+              className="h-9 px-4 rounded-lg border-border text-xs font-bold shadow-sm hover:bg-zinc-50 hover:border-border transition-all"
             >
               <Download className="w-3.5 h-3.5 mr-2" /> 导出 OpenAPI
             </Button>

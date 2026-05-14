@@ -1,4 +1,4 @@
-import ApisClientPage from "./ApisClientPage"
+import Apis from "./Apis"
 
 export default async function Page({
   params,
@@ -6,5 +6,5 @@ export default async function Page({
   params: Promise<{ id: string }>
 }) {
   await params
-  return <ApisClientPage />
+  return <Apis />
 }

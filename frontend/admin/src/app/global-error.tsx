@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { Button } from "@/components/ui/button"
 
 export default function GlobalError({
   error,
@@ -18,14 +19,9 @@ export default function GlobalError({
       <body>
         <div className="min-h-screen flex items-center justify-center bg-zinc-50">
           <div className="text-center space-y-4 p-8">
-            <h2 className="text-lg font-bold text-zinc-900">应用发生错误</h2>
-            <p className="text-sm text-zinc-500">{error.message || "未知错误"}</p>
-            <button
-              onClick={reset}
-              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
-            >
-              重试
-            </button>
+            <h2 className="text-lg font-bold text-foreground">应用发生错误</h2>
+            <p className="text-sm text-muted-foreground">{error.message || "未知错误"}</p>
+            <Button onClick={reset} className="text-sm">重试</Button>
           </div>
         </div>
       </body>

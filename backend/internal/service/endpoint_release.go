@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/bulolo/owlapi/internal/domain"
 )
@@ -35,7 +36,9 @@ func (s *endpointReleaseService) Publish(ctx context.Context, tenantID, endpoint
 		if err := s.releases.Activate(ctx, tenantID, endpointID, draft.ID); err != nil {
 			return nil, err
 		}
-		_ = s.releases.TrimOldReleases(ctx, tenantID, endpointID, maxVersions)
+		if err := s.releases.TrimOldReleases(ctx, tenantID, endpointID, maxVersions); err != nil {
+			slog.Warn("trim old releases failed", "endpoint_id", endpointID, "err", err)
+		}
 		draft.IsActive = true
 		draft.IsDraft = false
 		return draft, nil
@@ -61,7 +64,9 @@ func (s *endpointReleaseService) Publish(ctx context.Context, tenantID, endpoint
 	if err := s.releases.Activate(ctx, tenantID, endpointID, rel.ID); err != nil {
 		return nil, err
 	}
-	_ = s.releases.TrimOldReleases(ctx, tenantID, endpointID, maxVersions)
+	if err := s.releases.TrimOldReleases(ctx, tenantID, endpointID, maxVersions); err != nil {
+		slog.Warn("trim old releases failed", "endpoint_id", endpointID, "err", err)
+	}
 	rel.IsActive = true
 	return rel, nil
 }

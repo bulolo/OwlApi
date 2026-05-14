@@ -80,7 +80,7 @@ help:
 	@echo "  make help                显示此帮助信息"
 	@echo ""
 	@echo " 📦 [发布同步] (Release & Sync)"
-	@echo "  make set-version v=0.1.7 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
+	@echo "  make set-version v=0.1.8 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
 	@echo "  make             从 ee 生成 Community Edition (CE) 分支"
 	@echo "  make   将 origin/ce 同步并推送到 GitHub 公开仓库"
 	@echo "  make init-test-db        向 default 租户写入四种测试数据源 (需服务已启动)"
@@ -305,6 +305,24 @@ check-all:
 	cd backend && go vet ./...
 	@echo "  - frontend/admin eslint + tsc"
 	cd frontend/admin && pnpm run lint && pnpm exec tsc --noEmit -p tsconfig.check.json
+	@echo "  - swagger/sdk drift"
+	@SWAG="$$(go env GOPATH)/bin/swag"; \
+	if ! [ -x "$$SWAG" ]; then \
+		echo "  ⚠️  swag 未安装，跳过检查 (go install github.com/swaggo/swag/cmd/swag@latest)"; \
+	elif [ ! -f "frontend/admin/node_modules/.bin/openapi-ts" ]; then \
+		echo "  ⚠️  openapi-ts 未安装，跳过检查 (cd frontend/admin && pnpm install)"; \
+	else \
+		(cd backend && "$$SWAG" init -g cmd/server/main.go -o docs >/dev/null 2>&1) && \
+		(cd frontend/admin && node scripts/strip-swagger-prefix.mjs >/dev/null 2>&1) && \
+		(cd frontend/admin && node_modules/.bin/openapi-ts >/dev/null 2>&1); \
+		if ! git diff --quiet -- backend/docs/ frontend/admin/src/lib/sdk/; then \
+			echo "❌ Swagger/SDK 已过期，请执行 make gen-sdk 后提交以下文件:"; \
+			git diff --stat -- backend/docs/ frontend/admin/src/lib/sdk/; \
+			git checkout -- backend/docs/ frontend/admin/src/lib/sdk/; \
+			exit 1; \
+		fi; \
+		echo "  ✓ Swagger/SDK 已同步"; \
+	fi
 	@echo "✅ 全量检查通过"
 
 # 配置 Git hooks 路径

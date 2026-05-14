@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"github.com/bulolo/owlapi/internal/domain"
 )
@@ -156,7 +157,9 @@ func scanRelease(scan func(dest ...any) error) (*domain.EndpointRelease, error) 
 	}
 	if len(snapJSON) > 0 {
 		rel.Snapshot = &domain.APIEndpoint{}
-		_ = json.Unmarshal(snapJSON, rel.Snapshot)
+		if err := json.Unmarshal(snapJSON, rel.Snapshot); err != nil {
+			slog.Warn("unmarshal snapshot failed", "err", err)
+		}
 	}
 	return &rel, nil
 }

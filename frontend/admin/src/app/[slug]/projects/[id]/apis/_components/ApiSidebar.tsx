@@ -3,12 +3,12 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, ChevronRight, Search, Trash2, PanelLeftClose, PanelLeftOpen, FileCode, Folder, FolderPlus, MoreVertical, Edit3, Rocket, WifiOff } from "lucide-react"
+import { Plus, ChevronRight, Search, Trash2, PanelLeftClose, PanelLeftOpen, FileCode, Folder, FolderPlus, MoreVertical, Edit3, WifiOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useTenantProject } from "../_hooks/useTenantProject"
-import { useEndpointsQuery, useDeleteEndpoint, usePublishEndpointMutation, useUnpublishEndpointMutation, useUpdateEndpointGroup } from "../_hooks/useEndpointsQuery"
+import { useEndpointsQuery, useDeleteEndpoint, useUnpublishEndpointMutation, useUpdateEndpointGroup } from "../_hooks/useEndpointsQuery"
 import { useGroupsQuery, useDeleteGroup } from "../_hooks/useGroupsQuery"
 import { showConfirm } from "@/store/useConfirmStore"
 import type { ApiEndpoint, ApiGroup, HttpMethod } from "../_types"
@@ -215,13 +215,27 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
   )
 }
 
-function StatusDot({ status }: { status?: string }) {
-  return (
-    <span className={cn(
-      "shrink-0 w-1.5 h-1.5 rounded-full",
-      status === "published" ? "bg-emerald-500" : status === "offline" ? "bg-zinc-400" : "bg-amber-500"
-    )} />
-  )
+function StatusDot({ ep }: { ep: ApiEndpoint }) {
+  // 5 色状态点（颜色映射跟编辑器顶栏 StatusBadge 保持一致）：
+  //   emerald — 已发布且与最新版本一致
+  //   amber   — 已发布，但草稿有未发布修改
+  //   primary — 已发布，且有更新的版本（vM）等待激活
+  //   zinc    — 已下线（有版本但无激活指针）
+  //   amber-dim — 全新接口（从未发布过）
+  const active = ep.active_version ?? 0
+  const latest = ep.latest_version ?? 0
+  const isPublished = ep.is_published
+  const hasPending = isPublished && !ep.has_draft && latest > active
+
+  const color =
+    !isPublished
+      ? latest > 0 ? "bg-zinc-400"        // 已下线
+      : "bg-amber-400"                     // 未发布过（草稿）
+    : ep.has_draft  ? "bg-amber-500"       // 有未发布修改
+    : hasPending    ? "bg-primary"         // v待上线
+    : "bg-emerald-500"                     // 完美态
+
+  return <span className={cn("shrink-0 w-1.5 h-1.5 rounded-full", color)} />
 }
 
 function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
@@ -232,21 +246,13 @@ function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
   onSelect: () => void
   onDelete: () => void
 }) {
-  const publish = usePublishEndpointMutation(slug, projectId, ep.id ?? 0)
+  // 发布相关的主操作搬到编辑器顶栏；侧边栏只保留"下线 + 删除"。
   const unpublish = useUnpublishEndpointMutation(slug, projectId, ep.id ?? 0)
-
-  const canPublish = ep.status !== "published" || ep.has_draft
-  const canUnpublish = ep.status === "published"
-
-  async function handlePublish(e: React.MouseEvent) {
-    e.stopPropagation()
-    const ok = await showConfirm(`确认将「${ep.path ?? ""}」上线？`, "上线")
-    if (ok) publish.mutate(undefined as never)
-  }
+  const canUnpublish = ep.is_published
 
   async function handleUnpublish(e: React.MouseEvent) {
     e.stopPropagation()
-    const ok = await showConfirm(`确认将「${ep.path ?? ""}」下线？下线后外部调用将返回 404。`, "下线")
+    const ok = await showConfirm(`确认将「${ep.path ?? ""}」下线？下线后调用方会收到 404。`, "下线")
     if (ok) unpublish.mutate()
   }
 
@@ -263,7 +269,7 @@ function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
         isSelected ? "bg-primary/10" : "hover:bg-white hover:shadow-sm"
       )}
     >
-      <StatusDot status={ep.status} />
+      <StatusDot ep={ep} />
       <MethodBadge method={ep.methods?.[0] as HttpMethod | undefined} isSelected={isSelected} />
       <span className={cn(
         "flex-1 text-xs font-medium truncate min-w-0",
@@ -271,9 +277,20 @@ function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
       )}>
         {ep.path ?? ""}
       </span>
-      {ep.has_draft && ep.status === "published" && (
-        <span className="shrink-0 text-2xs font-black px-1.5 py-0.5 rounded bg-amber-50 text-amber-500 border border-amber-200 leading-tight">
+      {ep.is_published && ep.has_draft && (
+        <span
+          className="shrink-0 text-2xs font-black px-1.5 py-0.5 rounded bg-amber-50 text-amber-500 border border-amber-200 leading-tight"
+          title="草稿有未发布修改"
+        >
           NEW
+        </span>
+      )}
+      {ep.is_published && !ep.has_draft && (ep.latest_version ?? 0) > (ep.active_version ?? 0) && (
+        <span
+          className="shrink-0 text-2xs font-black px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/30 leading-tight"
+          title={`v${ep.latest_version} 已创建但未上线`}
+        >
+          v{ep.latest_version}
         </span>
       )}
       <DropdownMenu>
@@ -286,22 +303,20 @@ function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36 rounded-lg shadow-modal border-border p-1">
-          {canPublish && (
-            <DropdownMenuItem onClick={handlePublish} className="text-xs font-medium py-2 rounded-md text-emerald-700 focus:text-emerald-900 focus:bg-emerald-50">
-              <Rocket className="w-3.5 h-3.5 mr-2 text-emerald-500" /> 上线
-            </DropdownMenuItem>
-          )}
           {canUnpublish && (
             <DropdownMenuItem onClick={handleUnpublish} className="text-xs font-medium py-2 rounded-md text-zinc-600">
               <WifiOff className="w-3.5 h-3.5 mr-2 text-muted-foreground" /> 下线
             </DropdownMenuItem>
           )}
-          {(canPublish || canUnpublish) && <DropdownMenuSeparator />}
+          {canUnpublish && <DropdownMenuSeparator />}
           <DropdownMenuItem
+            // 上线中的接口禁止删除——必须先下线（前端守卫；后端 service 也有同样的检查）
+            disabled={ep.is_published}
             onClick={e => { e.stopPropagation(); onDelete() }}
-            className="text-xs font-medium py-2 rounded-md text-red-600 focus:text-red-900 focus:bg-red-50"
+            className="text-xs font-medium py-2 rounded-md text-red-600 focus:text-red-900 focus:bg-red-50 data-[disabled]:text-zinc-300 data-[disabled]:cursor-not-allowed"
+            title={ep.is_published ? "请先下线接口再删除" : undefined}
           >
-            <Trash2 className="w-3.5 h-3.5 mr-2" /> 删除
+            <Trash2 className="w-3.5 h-3.5 mr-2" /> 删除{ep.is_published ? "（请先下线）" : ""}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

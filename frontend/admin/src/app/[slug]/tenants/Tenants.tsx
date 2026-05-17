@@ -20,7 +20,7 @@ import { useIsClient } from "@/hooks/useIsClient"
 
 import TenantRegisterForm from "./_components/TenantRegisterForm"
 
-export default function Tenants() {
+export default function Tenants({ onClose }: { onClose?: () => void }) {
   const isClient = useIsClient()
   const appHost = isClient ? window.location.host : ''
   const [isRegistering, setIsRegistering] = useState(false)
@@ -56,7 +56,7 @@ export default function Tenants() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">组织管理</h1>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">组织管理</h1>
           <p className="text-sm text-muted-foreground mt-1 font-medium">查看并管理所有企业组织、订阅状态及资源使用情况。</p>
         </div>
         <Button
@@ -109,10 +109,10 @@ export default function Tenants() {
                         {tenant.id}
                       </Badge>
                       <Badge className={cn(
-                        "text-2xs h-4 font-black uppercase",
-                        tenant.status === 'Active' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
+                        "text-2xs h-4 font-black",
+                        tenant.status === 'Active' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-red-50 text-red-500 border-red-100"
                       )}>
-                        {tenant.status}
+                        {{ Active: '正常', Suspended: '已停用' }[tenant.status!] ?? tenant.status}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground font-medium">
@@ -130,12 +130,13 @@ export default function Tenants() {
                 <div className="flex items-center gap-2">
                   <div className="hidden md:block text-right mr-6">
                     <p className="text-2xs font-black text-muted-foreground uppercase tracking-widest mb-0.5">计划</p>
-                    <p className="text-xs font-bold text-foreground">{tenant.plan || 'Free'}</p>
+                    <p className={cn("text-xs font-bold", tenant.plan === 'Demo' ? "text-orange-500" : "text-foreground")}>{tenant.plan || 'Free'}</p>
                   </div>
                   <Button
                     variant="ghost"
                     className="h-8 text-xs font-bold text-primary hover:text-primary/90 hover:bg-primary/10"
                     onClick={() => {
+                      onClose?.()
                       setViewContext('TENANT');
                       router.push(`/${tenant.slug}/overview`);
                     }}
@@ -212,6 +213,7 @@ function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose
           <Select value={plan} onValueChange={v => setPlan(v as typeof plan)}>
             <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="Demo">Demo</SelectItem>
               <SelectItem value="Free">Free</SelectItem>
               <SelectItem value="Pro">Pro</SelectItem>
               <SelectItem value="Enterprise">Enterprise</SelectItem>
@@ -223,9 +225,8 @@ function EditTenantModal({ tenant, onClose, onSaved }: { tenant: Tenant; onClose
           <Select value={status} onValueChange={v => setStatus(v as typeof status)}>
             <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Warning">Warning</SelectItem>
-              <SelectItem value="Suspended">Suspended</SelectItem>
+              <SelectItem value="Active">正常</SelectItem>
+              <SelectItem value="Suspended">已停用</SelectItem>
             </SelectContent>
           </Select>
         </div>

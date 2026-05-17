@@ -7,7 +7,7 @@ import type { Script } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, FileCode2, Search, ChevronDown, RefreshCw } from "lucide-react"
+import { Plus, FileCode2, Search, ChevronDown, RefreshCw, HelpCircle } from "lucide-react"
 import { Pager } from "@/components/ui/pager"
 import { showConfirm } from "@/store/useConfirmStore"
 import { ScriptItem } from "./_components/ScriptItem"
@@ -128,12 +128,15 @@ export default function ScriptsPage() {
           <p className="text-sm text-muted-foreground mt-1 font-medium">管理可复用的前置/后置 JavaScript 脚本，挂载到接口上实现参数处理和数据转换</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-100" onClick={() => { setSelectedId(null); setEditing(false) }}>
+            <HelpCircle className="w-3.5 h-3.5 mr-1.5" /> 帮助
+          </Button>
           <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-100" onClick={() => refetch()}>
             <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> 刷新
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="h-9 px-4 text-xs font-bold shadow-sm">
+              <Button suppressHydrationWarning className="h-9 px-4 text-xs font-bold shadow-sm">
                 <Plus className="w-4 h-4 mr-1.5" /> 新建 <ChevronDown className="w-3 h-3 ml-1.5 opacity-70" />
               </Button>
             </DropdownMenuTrigger>
@@ -174,7 +177,11 @@ export default function ScriptsPage() {
             <div className="flex-1 overflow-auto">
               {preScripts.length > 0 && (
                 <div>
-                  <div className="px-4 py-2 text-2xs font-bold text-muted-foreground uppercase tracking-wide bg-zinc-50/50 border-b border-border-subtle">前置脚本</div>
+                  <div className="px-4 py-2 flex items-center gap-2 text-2xs font-bold text-muted-foreground uppercase tracking-wide bg-zinc-50/50 border-b border-border-subtle">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                    前置脚本
+                    <span className="ml-auto font-bold text-zinc-400">{preScripts.length}</span>
+                  </div>
                   {preScripts.map(s => (
                     <ScriptItem key={s.id} script={s} active={selectedId === s.id} onSelect={() => handleSelect(s)} onDelete={() => handleDelete(s)} />
                   ))}
@@ -182,7 +189,11 @@ export default function ScriptsPage() {
               )}
               {postScripts.length > 0 && (
                 <div>
-                  <div className="px-4 py-2 text-2xs font-bold text-muted-foreground uppercase tracking-wide bg-zinc-50/50 border-b border-border-subtle">后置脚本</div>
+                  <div className="px-4 py-2 flex items-center gap-2 text-2xs font-bold text-muted-foreground uppercase tracking-wide bg-zinc-50/50 border-b border-border-subtle">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0" />
+                    后置脚本
+                    <span className="ml-auto font-bold text-zinc-400">{postScripts.length}</span>
+                  </div>
                   {postScripts.map(s => (
                     <ScriptItem key={s.id} script={s} active={selectedId === s.id} onSelect={() => handleSelect(s)} onDelete={() => handleDelete(s)} />
                   ))}

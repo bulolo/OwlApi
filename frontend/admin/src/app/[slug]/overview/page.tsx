@@ -28,7 +28,7 @@ export default function OverviewPage() {
   const onlineGw = gateways.filter(g => g.status === 'online').length
   const gwTotal = gwPagination?.total ?? gateways.length
   const gatewayLabel = `${onlineGw}/${gwTotal}`
-  const gatewayStatus = onlineGw === gwTotal && gwTotal > 0 ? 'Healthy' : `${onlineGw} Online`
+  const gatewayStatus = onlineGw === gwTotal && gwTotal > 0 ? '全部在线' : `${onlineGw} 在线`
   const projectCount = projPagination?.total ?? 0
   const dsCount = dsPagination?.total ?? 0
   const scriptCount = scriptPagination?.total ?? 0

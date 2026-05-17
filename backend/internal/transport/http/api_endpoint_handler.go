@@ -1,7 +1,6 @@
 package http
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/bulolo/owlapi/internal/domain"
@@ -11,7 +10,6 @@ import (
 
 type APIEndpointHandler struct {
 	endpoints service.APIEndpointService
-	releases  service.EndpointReleaseService
 }
 
 // HandleList godoc
@@ -153,10 +151,6 @@ func (h *APIEndpointHandler) HandleUpdate(c *gin.Context) {
 	if err := h.endpoints.Update(c.Request.Context(), ep); err != nil {
 		FailErr(c, err)
 		return
-	}
-	claims := GetClaims(c)
-	if err := h.releases.UpsertDraft(c.Request.Context(), tenant.ID, epID, claims.UserID); err != nil {
-		slog.Warn("upsert draft failed", "endpoint_id", epID, "err", err)
 	}
 	OK(c, ep)
 }

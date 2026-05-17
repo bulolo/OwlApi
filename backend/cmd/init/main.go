@@ -46,16 +46,21 @@ func main() {
 	gatewayRepo := &postgres.GatewayRepo{DB: db}
 	gatewaySvc := service.NewGatewayService(gatewayRepo)
 	endpointRepo := &postgres.APIEndpointRepo{DB: db}
-	releaseRepo := &postgres.EndpointReleaseRepo{DB: db}
-	releaseSvc := service.NewEndpointReleaseService(releaseRepo, endpointRepo)
+	versionRepo := &postgres.EndpointVersionRepo{DB: db}
+	activeVersionRepo := &postgres.EndpointActiveVersionRepo{DB: db}
+	activationLogRepo := &postgres.EndpointActivationLogRepo{DB: db}
+	scriptRepo := &postgres.ScriptRepo{DB: db}
+	dsRepo := &postgres.DataSourceRepo{DB: db}
+	versionSvc := service.NewEndpointVersionService(versionRepo, activeVersionRepo, activationLogRepo, endpointRepo, scriptRepo, dsRepo)
 
 	seed(ctx, users, tenants, tenantUsers, gatewaySvc,
 		&postgres.ProjectRepo{DB: db},
-		&postgres.DataSourceRepo{DB: db},
-		&postgres.ScriptRepo{DB: db},
+		dsRepo,
+		scriptRepo,
 		&postgres.APIGroupRepo{DB: db},
 		endpointRepo,
-		releaseSvc,
+		activeVersionRepo,
+		versionSvc,
 	)
 	fmt.Println("✅ Backend init completed.")
 }
@@ -72,16 +77,17 @@ func hashPwd(pwd string) string {
 // ── repos bundle ─────────────────────────────────────────────────────────────
 
 type repos struct {
-	users       *postgres.UserRepo
-	tenants     *postgres.TenantRepo
-	tenantUsers *postgres.TenantUserRepo
-	gateways    service.GatewayService
-	projects    *postgres.ProjectRepo
-	dataSources *postgres.DataSourceRepo
-	scripts     *postgres.ScriptRepo
-	groups      *postgres.APIGroupRepo
-	endpoints   *postgres.APIEndpointRepo
-	releases    service.EndpointReleaseService
+	users         *postgres.UserRepo
+	tenants       *postgres.TenantRepo
+	tenantUsers   *postgres.TenantUserRepo
+	gateways      service.GatewayService
+	projects      *postgres.ProjectRepo
+	dataSources   *postgres.DataSourceRepo
+	scripts       *postgres.ScriptRepo
+	groups        *postgres.APIGroupRepo
+	endpoints     *postgres.APIEndpointRepo
+	activeVersion *postgres.EndpointActiveVersionRepo
+	versions      service.EndpointVersionService
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -194,14 +200,14 @@ func ensureGroups(ctx context.Context, r *repos, tenantID, projectID int64, defs
 	return ids
 }
 
-func ensureEndpoints(ctx context.Context, r *repos, tenantID, projectID, publisherID int64, eps []*domain.APIEndpoint) {
+func ensureEndpoints(ctx context.Context, r *repos, tenant *domain.Tenant, projectID, publisherID int64, eps []*domain.APIEndpoint) {
 	created := 0
 	for _, ep := range eps {
 		method := ""
 		if len(ep.Methods) > 0 {
 			method = ep.Methods[0]
 		}
-		existing, err := r.endpoints.GetByPathAndMethod(ctx, tenantID, projectID, ep.Path, method)
+		existing, err := r.endpoints.GetByPathAndMethod(ctx, tenant.ID, projectID, ep.Path, method)
 		if err != nil || existing == nil {
 			if err := r.endpoints.Create(ctx, ep); err != nil {
 				slog.Error("Failed to create endpoint", "path", ep.Path, "error", err)
@@ -210,8 +216,9 @@ func ensureEndpoints(ctx context.Context, r *repos, tenantID, projectID, publish
 			existing = ep
 			created++
 		}
-		if existing.Status != "published" {
-			if _, err := r.releases.Publish(ctx, tenantID, existing.ID, publisherID, "初始发布", 10); err != nil {
+		if _, err := r.activeVersion.Get(ctx, tenant.ID, existing.ID); err != nil {
+			note := "seed: 初始版本（由系统初始化脚本创建）"
+			if _, err := r.versions.Publish(ctx, tenant.ID, existing.ID, publisherID, note, tenant.MaxReleaseVersions); err != nil {
 				slog.Error("Failed to publish endpoint", "path", ep.Path, "error", err)
 				os.Exit(1)
 			}
@@ -303,15 +310,21 @@ func seed(ctx context.Context,
 	gatewaySvc service.GatewayService,
 	projects *postgres.ProjectRepo, dataSources *postgres.DataSourceRepo,
 	scripts *postgres.ScriptRepo, groups *postgres.APIGroupRepo, endpoints *postgres.APIEndpointRepo,
-	releaseSvc service.EndpointReleaseService,
+	activeVersion *postgres.EndpointActiveVersionRepo,
+	versionSvc service.EndpointVersionService,
 ) {
 	r := &repos{
 		users: users, tenants: tenants, tenantUsers: tenantUsers,
 		gateways: gatewaySvc, projects: projects, dataSources: dataSources,
-		scripts: scripts, groups: groups, endpoints: endpoints, releases: releaseSvc,
+		scripts: scripts, groups: groups, endpoints: endpoints,
+		activeVersion: activeVersion, versions: versionSvc,
 	}
 
-	superadmin := ensureUser(ctx, r, "superadmin@owlapi.cn", "SuperAdmin", "superadmin123", true)
+	// SuperAdmin 是平台级身份（users.is_superadmin = true），与 tenant_users 是正交的：
+	//   • RequireTenantRole 中间件自动豁免超管，无需 tenant_users 表行
+	//   • /my/tenants 对超管返回全租户列表
+	// 因此这里只建超管账号，不需要往 tenant_users 里塞虚假的"admin"记录。
+	_ = ensureUser(ctx, r, "superadmin@owlapi.cn", "SuperAdmin", "superadmin123", true)
 
 	ps := seedPlatformScripts(ctx, r)
 
@@ -319,11 +332,8 @@ func seed(ctx context.Context,
 	gwToken := os.Getenv("OWLAPI_GATEWAY_TOKEN")
 	gw := ensureGateway(ctx, r, 0, "内置网关", gwToken, true)
 
-	defaultTenant := seedEcommerce(ctx, r, ps, gw)
+	seedEcommerce(ctx, r, ps, gw)
 	seedCMS(ctx, r, ps, gw)
-
-	// superadmin 关联到 default 租户，确保登录后能看到数据
-	ensureTenantUser(ctx, r, defaultTenant.ID, superadmin.ID, domain.RoleAdmin)
 
 	slog.Info("🦉 Seed completed!")
 }
@@ -357,7 +367,7 @@ func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain
 		{Name: "is_pager", Type: "integer", Default: "1", Desc: "是否分页：1/0"},
 	}
 
-	ensureEndpoints(ctx, r, t, p, 0, []*domain.APIEndpoint{
+	ensureEndpoints(ctx, r, tenant, p, admin.ID, []*domain.APIEndpoint{
 		// 用户
 		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["用户管理"], Path: "/api/users", Methods: []string{"GET"},
 			Summary: "获取用户列表", SQL: "SELECT id, name, email, role, created_at FROM users ORDER BY id LIMIT :limit OFFSET :offset",
@@ -495,7 +505,7 @@ func seedCMS(ctx context.Context, r *repos, ps platformScripts, sharedGW *domain
 		{Name: "is_pager", Type: "integer", Default: "1", Desc: "是否分页：1/0"},
 	}
 
-	ensureEndpoints(ctx, r, t, p, 0, []*domain.APIEndpoint{
+	ensureEndpoints(ctx, r, tenant, p, editor.ID, []*domain.APIEndpoint{
 		// 文章
 		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["文章管理"], Path: "/api/articles", Methods: []string{"GET"},
 			Summary: "获取文章列表", SQL: "SELECT id, title, summary, author_id, category_id, status, created_at FROM articles ORDER BY id DESC LIMIT :limit OFFSET :offset",

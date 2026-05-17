@@ -9,9 +9,9 @@ const (
 	PlanFree       TenantPlan = "Free"
 	PlanPro        TenantPlan = "Pro"
 	PlanEnterprise TenantPlan = "Enterprise"
+	PlanDemo       TenantPlan = "Demo"
 
 	TenantActive    TenantStatus = "Active"
-	TenantWarning   TenantStatus = "Warning"
 	TenantSuspended TenantStatus = "Suspended"
 )
 

@@ -11,6 +11,7 @@ interface UserMember {
   user?: {
     name?: string
     email?: string
+    is_superadmin?: boolean
   }
 }
 
@@ -34,9 +35,9 @@ export function UserRow({ member: m, roleColor, onRoleChange, onRemove }: UserRo
           {initials}
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-bold text-foreground truncate">{m.user?.name}</p>
-          <p className="text-2xs text-muted-foreground font-medium flex items-center gap-1 mt-0.5 truncate">
-            <Mail className="w-2.5 h-2.5 shrink-0" />
+          <p className="text-sm font-bold text-foreground truncate">{m.user?.name}</p>
+          <p className="text-xs text-muted-foreground font-medium flex items-center gap-1 mt-0.5 truncate">
+            <Mail className="w-3 h-3 shrink-0" />
             {m.user?.email}
           </p>
         </div>
@@ -51,8 +52,8 @@ export function UserRow({ member: m, roleColor, onRoleChange, onRemove }: UserRo
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Admin">Admin</SelectItem>
-            <SelectItem value="Viewer">Viewer</SelectItem>
+            <SelectItem value="Admin">管理员</SelectItem>
+            <SelectItem value="Viewer">访客</SelectItem>
           </SelectContent>
         </Select>
         <Button

@@ -6,7 +6,7 @@ services:
     build:
       context: ../frontend/docs
       dockerfile: Dockerfile.prod
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/docs:${DOCKER_IMAGE_TAG:-v0.1.8}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/docs:${DOCKER_IMAGE_TAG:-v0.1.9}
     container_name: owlapi_docs
     environment:
       - TZ=Asia/Shanghai
@@ -37,7 +37,7 @@ services:
     build:
       context: ../frontend/website
       dockerfile: Dockerfile.prod
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/website:${DOCKER_IMAGE_TAG:-v0.1.8}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/website:${DOCKER_IMAGE_TAG:-v0.1.9}
     container_name: owlapi_website
     environment:
       - TZ=Asia/Shanghai

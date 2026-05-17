@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { AlignLeft, Play, Save, Code2, Loader2, X } from "lucide-react"
@@ -10,6 +10,7 @@ import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useReferenceData } from "../_hooks/useReferenceData"
 import { useSchemaQuery } from "../_hooks/useSchemaQuery"
 import { useTenantProject } from "../_hooks/useTenantProject"
+import { showConfirm } from "@/store/useConfirmStore"
 import { ParamDefCard } from "./DesignTab/ParamDefCard"
 import { SqlEditorPanel } from "./SqlEditorPanel"
 
@@ -35,8 +36,10 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
   const form = useEndpointFormStore(s => s.form)
   const setFormField = useEndpointFormStore(s => s.setFormField)
   const saving = useEndpointFormStore(s => s.saving)
+  const isDirty = useEndpointFormStore(s => s.isDirty)
   const designExecuting = useEndpointFormStore(s => s.designExecuting)
   const save = useEndpointFormStore(s => s.save)
+  const revertToSaved = useEndpointFormStore(s => s.revertToSaved)
   const runDesign = useEndpointFormStore(s => s.runDesign)
   const formatSQL = useEndpointFormStore(s => s.formatSQL)
   const designExecResult = useEndpointFormStore(s => s.designExecResult)
@@ -45,13 +48,30 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
   const { dataSources, scripts } = useReferenceData(activeTenant)
   const { data: tables = [], isLoading: schemaLoading } = useSchemaQuery(activeTenant, form.datasourceId)
 
+  /**
+   * 关闭模态前的守卫：表单写到全局 store（用于"执行"功能能读到最新 SQL），
+   * 所以如果用户改了东西又点 X / 背景 / Escape 关闭，store 里会留下脏数据。
+   * 这里弹一次确认，让用户明确选择是丢弃还是回去保存。
+   * 已经在保存的接口（!isNew）才有"上次保存的状态"可回退；新接口直接放过（外层 guardDirty 处理）。
+   */
+  const guardedClose = useCallback(async () => {
+    if (!isDirty || isNew) {
+      onClose()
+      return
+    }
+    const ok = await showConfirm("有未保存的修改，关闭将丢弃。是否继续？", "丢弃修改")
+    if (!ok) return
+    revertToSaved()
+    onClose()
+  }, [isDirty, isNew, onClose, revertToSaved])
+
   // Escape to close modal
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") guardedClose() }
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
-  }, [open, onClose])
+  }, [open, guardedClose])
 
   async function handleSave() {
     const saved = await save(activeTenant, projectId, isNew, selectedId)
@@ -69,7 +89,7 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 animate-in fade-in duration-150"
-        onClick={onClose}
+        onClick={guardedClose}
       />
 
       {/* Panel */}
@@ -143,7 +163,7 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
             <div className="w-px h-4 bg-zinc-200 mx-1" />
 
             <button
-              onClick={onClose}
+              onClick={guardedClose}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-zinc-600 hover:bg-zinc-100 transition-all"
             >
               <X className="w-4 h-4" />

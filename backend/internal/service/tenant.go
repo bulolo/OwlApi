@@ -13,8 +13,8 @@ var ErrSlugExists = domain.ErrConflict("tenant slug already exists")
 
 // Valid plan and status values for validation.
 var (
-	validPlans    = map[domain.TenantPlan]bool{domain.PlanFree: true, domain.PlanPro: true, domain.PlanEnterprise: true}
-	validStatuses = map[domain.TenantStatus]bool{domain.TenantActive: true, domain.TenantWarning: true, domain.TenantSuspended: true}
+	validPlans    = map[domain.TenantPlan]bool{domain.PlanFree: true, domain.PlanPro: true, domain.PlanEnterprise: true, domain.PlanDemo: true}
+	validStatuses = map[domain.TenantStatus]bool{domain.TenantActive: true, domain.TenantSuspended: true}
 )
 
 type TenantService interface {

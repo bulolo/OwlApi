@@ -58,7 +58,7 @@ export default function Users() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">成员管理</h1>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">成员管理</h1>
           <p className="text-sm text-muted-foreground mt-1 font-medium">管理当前组织的成员及角色</p>
         </div>
         <Button

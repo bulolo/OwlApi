@@ -68,8 +68,8 @@ export function AddUserForm({ form, addError, isPending, onFormChange, onAdd, on
           <Select value={form.role} onValueChange={(v) => onFormChange({ ...form, role: v })}>
             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="Admin">Admin</SelectItem>
-              <SelectItem value="Viewer">Viewer</SelectItem>
+              <SelectItem value="Admin">管理员</SelectItem>
+              <SelectItem value="Viewer">访客</SelectItem>
             </SelectContent>
           </Select>
         </div>

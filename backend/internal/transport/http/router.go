@@ -16,10 +16,11 @@ type App struct {
 	DataSource       service.DataSourceService
 	Project          service.ProjectService
 	Endpoint         service.APIEndpointService
-	Release          service.EndpointReleaseService
+	Version          service.EndpointVersionService
 	Group            service.APIGroupService
 	Script           service.ScriptService
 	Query            service.QueryService
+	CallLog          service.EndpointCallLogService
 	PlatformSettings service.PlatformSettingsService
 	Authz            service.AuthorizationService
 }
@@ -33,17 +34,19 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	gatewayH := &GatewayHandler{gateways: a.Gateway}
 	dsH := &DataSourceHandler{dataSources: a.DataSource}
 	projectH := &ProjectHandler{projects: a.Project}
-	endpointH := &APIEndpointHandler{endpoints: a.Endpoint, releases: a.Release}
-	releaseH := &EndpointReleaseHandler{releases: a.Release}
+	endpointH := &APIEndpointHandler{endpoints: a.Endpoint}
+	versionH := &EndpointVersionHandler{versions: a.Version}
+	callLogH := &EndpointCallLogHandler{callLogs: a.CallLog}
 	groupH := &APIGroupHandler{groups: a.Group}
 	scriptH := &ScriptHandler{scripts: a.Script}
-	queryH := NewQueryHandler(a.Query, a.Endpoint, a.Release, a.Tenant, a.Project)
+	queryH := NewQueryHandler(a.Query, a.Endpoint, a.Version, a.Tenant, a.Project, a.CallLog)
 	queryTestH := &QueryTestHandler{tenants: a.Tenant, gateways: a.GatewayBroker, queries: a.Query, endpoints: a.Endpoint, dataSources: a.DataSource}
 	openAPIH := &OpenAPIHandler{projects: a.Project, endpoints: a.Endpoint, groups: a.Group}
 
 	v1 := r.Group("/v1")
 	v1.POST("/auth/register", authH.HandleRegister)
 	v1.POST("/auth/login", authH.HandleLogin)
+	v1.PUT("/auth/change-password", JWTAuth(), authH.HandleChangePassword)
 	v1.GET("/platform/settings", platformSettingsH.HandleGet)
 	v1.GET("/my/tenants", JWTAuth(), tenantH.HandleMyTenants)
 	v1.POST("/tenants/:slug/query/test", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleViewer), queryTestH.HandleTestQuery)
@@ -67,12 +70,14 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	viewer.GET("/tenants/:slug/projects", projectH.HandleList)
 	viewer.GET("/tenants/:slug/projects/:projectId", projectH.HandleGet)
 	viewer.GET("/tenants/:slug/projects/:projectId/endpoints", endpointH.HandleList)
-	viewer.GET("/tenants/:slug/projects/:projectId/endpoints/:endpointId/releases", releaseH.HandleList)
+	viewer.GET("/tenants/:slug/projects/:projectId/endpoints/:endpointId/versions", versionH.HandleList)
+	viewer.GET("/tenants/:slug/projects/:projectId/endpoints/:endpointId/activation-log", versionH.HandleListActivationLog)
+	viewer.GET("/tenants/:slug/projects/:projectId/endpoints/:endpointId/call-logs", callLogH.HandleList)
 	viewer.GET("/tenants/:slug/projects/:projectId/groups", groupH.HandleList)
 	viewer.GET("/tenants/:slug/projects/:projectId/openapi.json", openAPIH.HandleExportOpenAPI)
 	viewer.GET("/tenants/:slug/scripts", scriptH.HandleList)
 
-	admin := v1.Group("", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleAdmin))
+	admin := v1.Group("", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleAdmin), DemoGuard())
 	admin.PUT("/tenants/:slug/settings", tenantH.HandleUpdateTenantSettings)
 	admin.POST("/tenants/:slug/users", tuH.HandleCreate)
 	admin.PUT("/tenants/:slug/users/:userId/role", tuH.HandleUpdateRole)
@@ -89,9 +94,12 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	admin.POST("/tenants/:slug/projects/:projectId/endpoints", endpointH.HandleCreate)
 	admin.PUT("/tenants/:slug/projects/:projectId/endpoints/:endpointId", endpointH.HandleUpdate)
 	admin.DELETE("/tenants/:slug/projects/:projectId/endpoints/:endpointId", endpointH.HandleDelete)
-	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/releases", releaseH.HandlePublish)
-	admin.PUT("/tenants/:slug/projects/:projectId/endpoints/:endpointId/releases/:releaseId/activate", releaseH.HandleActivate)
-	admin.PUT("/tenants/:slug/projects/:projectId/endpoints/:endpointId/unpublish", releaseH.HandleUnpublish)
+	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/publish", versionH.HandlePublish)
+	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/unpublish", versionH.HandleUnpublish)
+	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/revert", versionH.HandleRevertToActive)
+	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/versions", versionH.HandleCreateVersion)
+	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/versions/:versionId/activate", versionH.HandleActivate)
+	admin.DELETE("/tenants/:slug/projects/:projectId/endpoints/:endpointId/versions/:versionId", versionH.HandleDeleteVersion)
 	admin.POST("/tenants/:slug/projects/:projectId/groups", groupH.HandleCreate)
 	admin.PUT("/tenants/:slug/projects/:projectId/groups/:groupId", groupH.HandleUpdate)
 	admin.DELETE("/tenants/:slug/projects/:projectId/groups/:groupId", groupH.HandleDelete)

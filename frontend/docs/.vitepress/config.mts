@@ -44,6 +44,14 @@ export default defineConfig({
             { text: '代码生成', link: '/guide/codegen' },
           ],
         },
+        {
+          text: '开发指南',
+          items: [
+            { text: '后端开发', link: '/guide/backend' },
+            { text: '前端开发', link: '/guide/frontend' },
+            { text: '设计语言规范', link: '/guide/style-guide' },
+          ],
+        },
       ],
 
       '/deployment/': [

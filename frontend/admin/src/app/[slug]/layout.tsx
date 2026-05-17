@@ -2,6 +2,7 @@
 
 import { Sidebar } from "@/components/layout/Sidebar"
 import { Header } from "@/components/layout/Header"
+import { DemoBanner } from "@/components/layout/DemoBanner"
 import { useEffect, use } from "react"
 import { useUIStore } from "@/store/useUIStore"
 import { useAuthStore } from "@/store/useAuthStore"
@@ -41,6 +42,7 @@ export default function DashboardLayout({
           isTenantView ? (sidebarCollapsed ? "lg:pl-[60px]" : "lg:pl-56") : "pl-0"
         )}>
           <Header slug={slug} />
+          <DemoBanner />
           <main className="flex-1 p-8 max-w-[1600px] w-full mx-auto min-w-0 overflow-x-hidden">
             {children}
           </main>

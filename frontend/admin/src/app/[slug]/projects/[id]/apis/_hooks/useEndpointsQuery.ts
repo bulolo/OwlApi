@@ -3,7 +3,6 @@ import { useAdminMutation } from "@/hooks/useAdminMutation"
 import {
   apiListEndpoints,
   apiDeleteEndpoint,
-  apiPublishEndpoint,
   apiUnpublishEndpoint,
   apiUpdateEndpoint,
 } from "@/lib/api-client"
@@ -25,24 +24,13 @@ export function useDeleteEndpoint(slug: string, projectId: string) {
   })
 }
 
-export function usePublishEndpointMutation(slug: string, projectId: string, endpointId: number) {
-  return useAdminMutation({
-    mutationFn: () => apiPublishEndpoint(slug, Number(projectId), endpointId),
-    successMsg: "接口已上线",
-    invalidateKeys: [
-      ["endpoints", slug, projectId],
-      ["releases", slug, Number(projectId), endpointId],
-    ],
-  })
-}
-
 export function useUnpublishEndpointMutation(slug: string, projectId: string, endpointId: number) {
   return useAdminMutation<void, Error, void>({
     mutationFn: () => apiUnpublishEndpoint(slug, Number(projectId), endpointId),
     successMsg: "接口已下线",
     invalidateKeys: [
       ["endpoints", slug, projectId],
-      ["releases", slug, Number(projectId), endpointId],
+      ["endpoint-versions", slug, Number(projectId), endpointId],
     ],
   })
 }

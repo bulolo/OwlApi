@@ -8,6 +8,7 @@ import {
   apiUpdateEndpoint,
   apiRun,
   type ApiEndpoint,
+  type EndpointVersion,
 } from "@/lib/api-client"
 import { queryClient } from "@/lib/queryClient"
 import { getErrorMessage } from "@/lib/errors"
@@ -61,6 +62,13 @@ const initialForm: EndpointFormState = {
 
 // ── Store ──
 
+/** 当编辑器内容来自某个历史版本时记录的"来源"信息，用于在设计 Tab 顶部展示告示条。 */
+export interface RestoredFromVersion {
+  versionId: number
+  version: number
+  createdAt: string
+}
+
 interface FormState {
   form: EndpointFormState
   _savedForm: EndpointFormState
@@ -72,6 +80,10 @@ interface FormState {
   execResult: ExecutionResult
   designExecuting: boolean
   designExecResult: ExecutionResult
+  /** 当前编辑内容是否来自某个历史版本的复制（用于显示提示条）。 */
+  restoredFromVersion: RestoredFromVersion | null
+  /** 复制前的表单状态，用于「撤销」回到复制前。 */
+  _preRestoreForm: EndpointFormState | null
 }
 
 interface FormActions {
@@ -88,7 +100,14 @@ interface FormActions {
   runDesign: (tenant: string, projectId: string, selectedId: number | null, isNew: boolean) => Promise<void>
 
   formatSQL: () => void
-  restoreSnapshot: (snap: { sql?: string; path?: string; methods?: string[]; param_defs?: unknown[] }) => void
+  /** 把某个历史版本的内容复制到当前编辑器（不会修改线上）。会记录来源 + 复制前快照以便撤销。 */
+  restoreFromVersion: (version: EndpointVersion) => void
+  /** 撤销 restoreFromVersion，回到复制前的草稿状态。 */
+  undoRestore: () => void
+  /** 保留当前表单，但清除"基于某版本编辑"的标记（用于发布/创建版本成功后）。 */
+  clearRestoredBanner: () => void
+  /** 丢弃所有未保存的修改，把表单恢复到上次保存的状态。 */
+  revertToSaved: () => void
 
   setAuthToken: (token: string) => void
   setParamJSON: (json: string) => void
@@ -109,6 +128,8 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
   execResult: null,
   designExecuting: false,
   designExecResult: null,
+  restoredFromVersion: null,
+  _preRestoreForm: null,
 
   initForm: (ep, defaultDatasourceId = 0, initialMethod?) => {
     const form = ep
@@ -125,6 +146,8 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
       paramJSON: buildParamJSON(form.paramDefs),
       execResult: null,
       designExecResult: null,
+      restoredFromVersion: null,
+      _preRestoreForm: null,
     })
   },
 
@@ -288,21 +311,57 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
     }
   },
 
-  restoreSnapshot: ({ sql, path, methods, param_defs }) => {
-    const paramDefs = (param_defs || []) as ParamDef[]
-    set((s) => ({
-      form: {
+  restoreFromVersion: (version) => {
+    const snap = version.snapshot
+    if (!snap) return
+    const paramDefs = (snap.param_defs || []) as ParamDef[]
+    set((s) => {
+      const nextForm: EndpointFormState = {
         ...s.form,
-        ...(sql !== undefined && { sql }),
-        ...(path !== undefined && { path }),
-        ...(methods?.[0] && { method: methods[0] as HttpMethod }),
+        ...(snap.sql !== undefined && { sql: snap.sql }),
+        ...(snap.path !== undefined && { path: snap.path }),
+        ...(snap.methods?.[0] && { method: snap.methods[0] as HttpMethod }),
         paramDefs,
-      },
-      paramJSON: buildParamJSON(paramDefs),
-      isDirty: true,
-    }))
-    toast.success("历史版本已恢复到编辑区，保存后生效")
+      }
+      return {
+        // 复制前的状态备份，供「撤销」使用。如果已有备份，保留最早的那次。
+        _preRestoreForm: s._preRestoreForm ?? { ...s.form },
+        form: nextForm,
+        paramJSON: buildParamJSON(paramDefs),
+        isDirty: true,
+        restoredFromVersion: {
+          versionId: version.id,
+          version: version.version,
+          createdAt: version.created_at,
+        },
+      }
+    })
   },
+
+  undoRestore: () => {
+    set((s) => {
+      const target = s._preRestoreForm
+      if (!target) return s
+      return {
+        form: { ...target },
+        paramJSON: buildParamJSON(target.paramDefs),
+        // 如果撤销后内容与上次保存版一致，标记 isDirty=false；否则保留为 true
+        isDirty: JSON.stringify(target) !== JSON.stringify(s._savedForm),
+        restoredFromVersion: null,
+        _preRestoreForm: null,
+      }
+    })
+  },
+
+  clearRestoredBanner: () => set({ restoredFromVersion: null, _preRestoreForm: null }),
+
+  revertToSaved: () => set(s => ({
+    form: { ...s._savedForm },
+    paramJSON: buildParamJSON(s._savedForm.paramDefs),
+    isDirty: false,
+    restoredFromVersion: null,
+    _preRestoreForm: null,
+  })),
 
   setAuthToken: (token) => set({ authToken: token }),
   setParamJSON: (json) => set({ paramJSON: json }),

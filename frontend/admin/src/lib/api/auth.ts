@@ -1,4 +1,4 @@
-import { login as sdkLogin, register as sdkRegister } from '@/lib/sdk'
+import { login as sdkLogin, register as sdkRegister, changePassword as sdkChangePassword } from '@/lib/sdk'
 import { wrapResponse, setToken } from './token'
 import type { AuthResponse } from './types'
 
@@ -13,3 +13,6 @@ export const apiRegister = async (req: { email: string; name: string; password: 
   if (res.token) setToken(res.token)
   return res
 }
+
+export const apiChangePassword = (req: { old_password: string; new_password: string }): Promise<void> =>
+  wrapResponse<void>(sdkChangePassword({ body: req }))

@@ -2,6 +2,9 @@ basePath: /
 definitions:
   domain.APIEndpoint:
     properties:
+      active_version:
+        description: current live version number (0 if not published)
+        type: integer
       created_at:
         type: string
       datasource_id:
@@ -11,8 +14,17 @@ definitions:
       group_id:
         type: integer
       has_draft:
+        description: true iff updated_at > activated_at (or not published yet but
+          at least one version exists)
         type: boolean
       id:
+        type: integer
+      is_published:
+        description: 'Derived/computed fields (not stored on the row itself):'
+        type: boolean
+      latest_version:
+        description: newest version number in endpoint_versions for this endpoint
+          (0 if no versions)
         type: integer
       methods:
         items:
@@ -34,17 +46,14 @@ definitions:
         type: integer
       project_id:
         type: integer
-      published_release_id:
-        type: integer
       sql:
-        type: string
-      status:
-        description: '"draft" | "published"'
         type: string
       summary:
         type: string
       tenant_id:
         type: integer
+      updated_at:
+        type: string
     type: object
   domain.ParamDef:
     properties:
@@ -74,6 +83,8 @@ definitions:
     type: object
   http.APIEndpointResp:
     properties:
+      active_version:
+        type: integer
       created_at:
         type: string
       datasource_id:
@@ -85,6 +96,10 @@ definitions:
       has_draft:
         type: boolean
       id:
+        type: integer
+      is_published:
+        type: boolean
+      latest_version:
         type: integer
       methods:
         items:
@@ -106,29 +121,29 @@ definitions:
         type: integer
       project_id:
         type: integer
-      published_release_id:
-        type: integer
       sql:
-        type: string
-      status:
         type: string
       summary:
         type: string
       tenant_id:
         type: integer
+      updated_at:
+        type: string
     required:
     - created_at
     - datasource_id
     - group_id
+    - has_draft
     - id
+    - is_published
     - methods
     - params
     - path
     - project_id
     - sql
-    - status
     - summary
     - tenant_id
+    - updated_at
     type: object
   http.APIGroupListResp:
     properties:
@@ -209,6 +224,19 @@ definitions:
     - list
     - pagination
     type: object
+  http.DataSourceRefResp:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - id
+    - name
+    - type
+    type: object
   http.DataSourceResp:
     properties:
       created_at:
@@ -238,11 +266,11 @@ definitions:
     - tenant_id
     - type
     type: object
-  http.EndpointReleaseListResp:
+  http.EndpointActivationLogListResp:
     properties:
       list:
         items:
-          $ref: '#/definitions/http.EndpointReleaseResp'
+          $ref: '#/definitions/http.EndpointActivationLogResp'
         type: array
       pagination:
         $ref: '#/definitions/http.PaginationInfo'
@@ -250,36 +278,138 @@ definitions:
     - list
     - pagination
     type: object
-  http.EndpointReleaseResp:
+  http.EndpointActivationLogResp:
     properties:
+      action:
+        description: publish / activate / rollback / unpublish
+        type: string
+      actor_id:
+        type: integer
+      actor_name:
+        description: 操作人显示名；空 = 系统
+        type: string
+      at:
+        type: string
+      endpoint_id:
+        type: integer
+      id:
+        type: integer
+      tenant_id:
+        type: integer
+      version:
+        description: 版本号 (vN)，便于直接展示
+        type: integer
+      version_id:
+        type: integer
+    required:
+    - action
+    - actor_id
+    - at
+    - endpoint_id
+    - id
+    - tenant_id
+    type: object
+  http.EndpointCallLogListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.EndpointCallLogResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
+    type: object
+  http.EndpointCallLogResp:
+    properties:
+      at:
+        type: string
+      endpoint_id:
+        type: integer
+      error:
+        type: string
+      id:
+        type: integer
+      ip:
+        type: string
+      latency_ms:
+        type: integer
+      method:
+        type: string
+      params:
+        additionalProperties: true
+        type: object
+      path:
+        type: string
+      status:
+        type: integer
+      tenant_id:
+        type: integer
+      user_agent:
+        type: string
+      version:
+        type: integer
+      version_id:
+        type: integer
+    required:
+    - at
+    - endpoint_id
+    - id
+    - latency_ms
+    - method
+    - path
+    - status
+    - tenant_id
+    type: object
+  http.EndpointVersionListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.EndpointVersionResp'
+        type: array
+      pagination:
+        $ref: '#/definitions/http.PaginationInfo'
+    required:
+    - list
+    - pagination
+    type: object
+  http.EndpointVersionResp:
+    properties:
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      datasource_ref:
+        $ref: '#/definitions/http.DataSourceRefResp'
       endpoint_id:
         type: integer
       id:
         type: integer
       is_active:
         type: boolean
-      is_draft:
-        type: boolean
       note:
         type: string
-      published_at:
-        type: string
-      published_by:
-        type: integer
+      post_script_snapshot:
+        $ref: '#/definitions/http.ScriptSnapshotResp'
+      pre_script_snapshot:
+        $ref: '#/definitions/http.ScriptSnapshotResp'
       snapshot:
         $ref: '#/definitions/domain.APIEndpoint'
+      snapshot_v:
+        type: integer
       tenant_id:
         type: integer
       version:
         type: integer
     required:
+    - created_at
+    - created_by
     - endpoint_id
     - id
     - is_active
-    - is_draft
     - note
-    - published_at
-    - published_by
+    - snapshot_v
     - tenant_id
     - version
     type: object
@@ -499,12 +629,12 @@ definitions:
     - data
     - msg
     type: object
-  http.REndpointRelease:
+  http.REndpointActivationLogList:
     properties:
       code:
         type: integer
       data:
-        $ref: '#/definitions/http.EndpointReleaseResp'
+        $ref: '#/definitions/http.EndpointActivationLogListResp'
       msg:
         type: string
     required:
@@ -512,12 +642,38 @@ definitions:
     - data
     - msg
     type: object
-  http.REndpointReleaseList:
+  http.REndpointCallLogList:
     properties:
       code:
         type: integer
       data:
-        $ref: '#/definitions/http.EndpointReleaseListResp'
+        $ref: '#/definitions/http.EndpointCallLogListResp'
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  http.REndpointVersion:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.EndpointVersionResp'
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  http.REndpointVersionList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.EndpointVersionListResp'
       msg:
         type: string
     required:
@@ -693,6 +849,22 @@ definitions:
     - name
     - type
     type: object
+  http.ScriptSnapshotResp:
+    properties:
+      code:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - code
+    - id
+    - name
+    - type
+    type: object
   http.TenantListResp:
     properties:
       list:
@@ -787,6 +959,17 @@ definitions:
     - name
     - updated_at
     type: object
+  http.changePasswordReq:
+    properties:
+      new_password:
+        minLength: 6
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
   http.createDataSourceReq:
     properties:
       envs:
@@ -852,9 +1035,9 @@ info:
   contact: {}
   description: 企业级 SQL to API 智能网关平台管理接口
   title: OwlApi Control Plane
-  version: 0.1.8
+  version: 0.1.9
 paths:
-  /gw/{tenantSlug}/{projectSlug}/{path}:
+  /{tenantSlug}/{projectSlug}/{path}:
     delete:
       consumes:
       - application/json
@@ -995,6 +1178,32 @@ paths:
       summary: 执行已发布的 API 接口
       tags:
       - gateway
+  /v1/auth/change-password:
+    put:
+      consumes:
+      - application/json
+      operationId: changePassword
+      parameters:
+      - description: 密码信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.changePasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 修改当前用户密码
+      tags:
+      - auth
   /v1/auth/login:
     post:
       consumes:
@@ -1987,9 +2196,9 @@ paths:
       summary: 更新 API 端点
       tags:
       - endpoint
-  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases:
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/activation-log:
     get:
-      operationId: listReleases
+      operationId: listEndpointActivationLog
       parameters:
       - description: 租户slug
         in: path
@@ -2020,12 +2229,65 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.REndpointReleaseList'
+            $ref: '#/definitions/http.REndpointActivationLogList'
       security:
       - BearerAuth: []
-      summary: 查询发版记录列表
+      summary: 查询接口激活流水（谁、何时、做了什么）
       tags:
-      - release
+      - endpoint-version
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/call-logs:
+    get:
+      description: 倒序列出指定接口最近的调用流水（成功+失败）。支持按状态码段、关键词、时间下限过滤
+      operationId: listEndpointCallLogs
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      - description: 状态码段：all / 2xx / 4xx / 5xx
+        in: query
+        name: status
+        type: string
+      - description: 关键词搜索（匹配 path 或 error）
+        in: query
+        name: keyword
+        type: string
+      - description: 时间下限 (RFC3339)，仅返回该时间之后的
+        in: query
+        name: since
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.REndpointCallLogList'
+      security:
+      - BearerAuth: []
+      summary: 查询接口调用日志
+      tags:
+      - endpoint-call-log
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/publish:
     post:
       consumes:
       - application/json
@@ -2046,7 +2308,7 @@ paths:
         name: endpointId
         required: true
         type: integer
-      - description: 发版说明
+      - description: 版本说明
         in: body
         name: body
         schema:
@@ -2060,15 +2322,16 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.REndpointRelease'
+            $ref: '#/definitions/http.REndpointVersion'
       security:
       - BearerAuth: []
-      summary: 发布接口版本
+      summary: 发布接口（创建版本 + 激活，一键上线）
       tags:
-      - release
-  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/releases/{releaseId}/activate:
-    put:
-      operationId: activateRelease
+      - endpoint-version
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/revert:
+    post:
+      description: 把 api_endpoints 草稿恢复成当前激活版本的内容；操作后 has_draft 立即变 false
+      operationId: revertEndpointToActive
       parameters:
       - description: 租户slug
         in: path
@@ -2085,11 +2348,6 @@ paths:
         name: endpointId
         required: true
         type: integer
-      - description: 版本ID
-        in: path
-        name: releaseId
-        required: true
-        type: integer
       produces:
       - application/json
       responses:
@@ -2099,11 +2357,11 @@ paths:
             $ref: '#/definitions/http.R'
       security:
       - BearerAuth: []
-      summary: 回滚到指定版本
+      summary: 还原到线上版本（丢弃所有未发布修改）
       tags:
-      - release
+      - endpoint-version
   /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/unpublish:
-    put:
+    post:
       operationId: unpublishEndpoint
       parameters:
       - description: 租户slug
@@ -2130,9 +2388,161 @@ paths:
             $ref: '#/definitions/http.R'
       security:
       - BearerAuth: []
-      summary: 下线接口（停止对外提供服务）
+      summary: 下线接口（删除激活指针）
       tags:
-      - release
+      - endpoint-version
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/versions:
+    get:
+      operationId: listEndpointVersions
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.REndpointVersionList'
+      security:
+      - BearerAuth: []
+      summary: 查询版本历史
+      tags:
+      - endpoint-version
+    post:
+      consumes:
+      - application/json
+      operationId: createEndpointVersion
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: 版本说明
+        in: body
+        name: body
+        schema:
+          properties:
+            note:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.REndpointVersion'
+      security:
+      - BearerAuth: []
+      summary: 创建版本快照（不激活）
+      tags:
+      - endpoint-version
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/versions/{versionId}:
+    delete:
+      description: 受三道护栏保护：不能删 active、不能删唯一版本、删除事件本身会写入流水
+      operationId: deleteEndpointVersion
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: 版本ID
+        in: path
+        name: versionId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除指定版本（不可恢复）
+      tags:
+      - endpoint-version
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/versions/{versionId}/activate:
+    post:
+      operationId: activateEndpointVersion
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: 版本ID
+        in: path
+        name: versionId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 激活指定版本（=回滚 / 切换到此版本）
+      tags:
+      - endpoint-version
   /v1/tenants/{slug}/projects/{projectId}/groups:
     get:
       operationId: listGroups

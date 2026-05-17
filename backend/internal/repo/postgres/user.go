@@ -37,3 +37,9 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, 
 	}
 	return &u, nil
 }
+
+func (r *UserRepo) UpdatePasswordHash(ctx context.Context, userID int64, hash string) error {
+	_, err := r.DB.Pool.Exec(ctx,
+		`UPDATE users SET password_hash=$1, updated_at=NOW() WHERE id=$2`, hash, userID)
+	return err
+}

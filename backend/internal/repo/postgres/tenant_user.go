@@ -25,7 +25,7 @@ func (r *TenantUserRepo) Delete(ctx context.Context, tenantID, userID int64) err
 }
 
 func (r *TenantUserRepo) List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.TenantUser, int, error) {
-	where := "WHERE tu.tenant_id=$1"
+	where := "WHERE tu.tenant_id=$1 AND u.is_superadmin = false"
 	args := []interface{}{tenantID}
 	argN := 2
 	if p.Keyword != "" {

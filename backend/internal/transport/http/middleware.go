@@ -68,6 +68,29 @@ func GetTenant(c *gin.Context) *domain.Tenant {
 	return t
 }
 
+// DemoGuard blocks write operations (POST/PUT/DELETE) for tenants on the Demo plan.
+// SuperAdmins bypass this check so they can still manage demo tenants.
+func DemoGuard() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.Request.Method == http.MethodGet {
+			c.Next()
+			return
+		}
+		claims := GetClaims(c)
+		if claims != nil && claims.IsSuperAdmin {
+			c.Next()
+			return
+		}
+		tenant := GetTenant(c)
+		if tenant != nil && tenant.Plan == domain.PlanDemo {
+			Fail(c, http.StatusForbidden, "演示模式，暂不支持此操作")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
 // RequireSuperAdmin allows only super admins.
 func RequireSuperAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {

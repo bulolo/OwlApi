@@ -58,7 +58,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
           <ArrowLeft className="w-5 h-5 text-muted-foreground" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
+          <h1 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
             开通新组织
           </h1>
           <p className="text-sm text-muted-foreground mt-1 font-medium">
@@ -93,7 +93,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
             {step === 1 && (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">公司/企业名称</Label>
+                  <Label className="text-2xs font-bold uppercase tracking-widest text-muted-foreground">公司/企业名称</Label>
                   <Input
                     placeholder="e.g. 阿里巴巴 (中国) 网络技术有限公司"
                     value={formData.companyName}
@@ -103,7 +103,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">专属访问路径</Label>
+                  <Label className="text-2xs font-bold uppercase tracking-widest text-muted-foreground">专属访问路径</Label>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-muted-foreground">{appHost}/</span>
                     <Input
@@ -116,7 +116,7 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">初始管理员邮箱</Label>
+                  <Label className="text-2xs font-bold uppercase tracking-widest text-muted-foreground">初始管理员邮箱</Label>
                   <Input
                     type="email"
                     placeholder="it-admin@company.com"
@@ -138,8 +138,14 @@ export default function TenantRegisterForm({ onCancel, onSuccess }: TenantRegist
             {step === 2 && (
               <div className="space-y-6">
                 <div className="space-y-4">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">选择服务等级</Label>
+                  <Label className="text-2xs font-bold uppercase tracking-widest text-muted-foreground">选择服务等级</Label>
                   <div className="grid grid-cols-1 gap-3">
+                    <PlanOption
+                      active={formData.plan === 'Demo'}
+                      onClick={() => setFormData({...formData, plan: 'Demo'})}
+                      title="Demo"
+                      desc="演示模式，只读访问，写入操作受限"
+                    />
                     <PlanOption
                       active={formData.plan === 'Free'}
                       onClick={() => setFormData({...formData, plan: 'Free'})}

@@ -2,7 +2,8 @@
 
 import { useState, Suspense } from "react"
 import { useRouter } from "next/navigation"
-import { Hexagon, ArrowRight, Mail, Lock, User, Building2 } from "lucide-react"
+import { ArrowRight, Mail, Lock, User, Building2 } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,9 +58,7 @@ function RegisterForm() {
       <div className="w-full max-w-[400px] p-6 lg:p-0">
         <div className="bg-white border border-border rounded-lg p-8 shadow-card space-y-8">
           <div className="flex flex-col items-center space-y-4">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center shadow-sm">
-              <Hexagon className="w-6 h-6 text-white" />
-            </div>
+            <Image src="/logo.svg" alt="OwlApi" width={52} height={52} />
             <div className="text-center space-y-1">
               <h1 className="text-lg font-black text-foreground uppercase tracking-tight">创建组织</h1>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">注册 OwlAPI 云平台</p>

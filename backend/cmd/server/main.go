@@ -1,5 +1,5 @@
 // @title           OwlApi Control Plane
-// @version         0.1.8
+// @version         0.1.9
 // @description     企业级 SQL to API 智能网关平台管理接口
 // @host            localhost:3000
 // @BasePath        /
@@ -62,7 +62,10 @@ func main() {
 	projectRepo := &postgres.ProjectRepo{DB: db}
 	dsRepo := &postgres.DataSourceRepo{DB: db}
 	endpointRepo := &postgres.APIEndpointRepo{DB: db}
-	releaseRepo := &postgres.EndpointReleaseRepo{DB: db}
+	versionRepo := &postgres.EndpointVersionRepo{DB: db}
+	activeVersionRepo := &postgres.EndpointActiveVersionRepo{DB: db}
+	activationLogRepo := &postgres.EndpointActivationLogRepo{DB: db}
+	callLogRepo := &postgres.EndpointCallLogRepo{DB: db}
 	groupRepo := &postgres.APIGroupRepo{DB: db}
 	scriptRepo := &postgres.ScriptRepo{DB: db}
 
@@ -74,8 +77,9 @@ func main() {
 	gatewaySvc := service.NewGatewayService(gatewayRepo)
 	dsSvc := service.NewDataSourceService(dsRepo)
 	projectSvc := service.NewProjectService(projectRepo)
-	endpointSvc := service.NewAPIEndpointService(endpointRepo)
-	releaseSvc := service.NewEndpointReleaseService(releaseRepo, endpointRepo)
+	endpointSvc := service.NewAPIEndpointService(endpointRepo, activeVersionRepo)
+	versionSvc := service.NewEndpointVersionService(versionRepo, activeVersionRepo, activationLogRepo, endpointRepo, scriptRepo, dsRepo)
+	callLogSvc := service.NewEndpointCallLogService(callLogRepo)
 	groupSvc := service.NewAPIGroupService(groupRepo)
 	scriptSvc := service.NewScriptService(scriptRepo)
 	querySvc := service.NewQueryService(gatewaySvc, dsSvc, scriptSvc, cfg.QueryTimeoutSeconds+5)
@@ -97,7 +101,7 @@ func main() {
 		Auth: authSvc, Tenant: tenantSvc, TenantUser: tenantUserSvc,
 		Gateway: gatewaySvc, GatewayBroker: gatewaySvc,
 		DataSource: dsSvc, Project: projectSvc,
-		Endpoint: endpointSvc, Release: releaseSvc, Group: groupSvc, Script: scriptSvc, Query: querySvc,
+		Endpoint: endpointSvc, Version: versionSvc, Group: groupSvc, Script: scriptSvc, Query: querySvc, CallLog: callLogSvc,
 		PlatformSettings: platformSettingsSvc,
 		Authz:            authzSvc,
 	}

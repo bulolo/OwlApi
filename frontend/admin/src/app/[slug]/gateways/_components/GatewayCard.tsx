@@ -14,7 +14,7 @@ interface GatewayCardProps {
 
 export function GatewayCard({ gateway: gw, formatTime, onViewDeploy, onDelete }: GatewayCardProps) {
   return (
-    <div className="bg-white border border-border-subtle rounded-xl p-5 flex flex-col shadow-card hover:shadow-card-hover transition-all group">
+    <div className="bg-white border border-border-subtle rounded-xl p-5 flex flex-col shadow-card hover:shadow-card-hover hover:border-primary/30 transition-all duration-300 group">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-4">
           <div className={cn(
@@ -45,7 +45,7 @@ export function GatewayCard({ gateway: gw, formatTime, onViewDeploy, onDelete }:
             : "text-muted-foreground border-border-subtle bg-zinc-50"
         )}>
           <div className={cn("w-1.5 h-1.5 rounded-full mr-1.5", gw.status === "online" ? "bg-emerald-500" : "bg-zinc-300")} />
-          {gw.status === "online" ? "Online" : "Offline"}
+          {gw.status === "online" ? "在线" : "离线"}
         </div>
       </div>
 

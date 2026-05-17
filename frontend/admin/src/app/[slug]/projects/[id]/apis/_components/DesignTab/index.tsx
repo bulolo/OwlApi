@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Code2, LayoutTemplate, PenLine, Columns3, Info, Pencil, Folder } from "lucide-react"
 import { SqlDesignerModal } from "../SqlDesignerModal"
 import { BasicInfoModal } from "../BasicInfoModal"
+import { ScriptPreviewModal } from "../ScriptPreviewModal"
 import { FeedbackBanner } from "./FeedbackBanner"
+import { RestoredBanner } from "./RestoredBanner"
 import { useEndpointFormStore } from "../../_store/useEndpointFormStore"
 import { useApiEditorStore } from "../../_store/useApiEditorStore"
 import { useReferenceData } from "../../_hooks/useReferenceData"
@@ -36,12 +37,15 @@ export function DesignTab() {
   const [designerOpen, setDesignerOpen] = useState(false)
   const [basicInfoOpen, setBasicInfoOpen] = useState(false)
   const [savingInfo, setSavingInfo] = useState(false)
+  const [previewScriptId, setPreviewScriptId] = useState<number | null>(null)
+  const previewScript = previewScriptId ? scripts.find(s => s.id === previewScriptId) ?? null : null
 
   const sqlPreview = sql?.trim() ? sql.trim() : null
   const groupName = groups.find(g => g.id === groupId)?.name
 
   return (
     <div className="p-6 space-y-4 animate-in fade-in duration-300">
+      <RestoredBanner />
       <FeedbackBanner />
 
       {/* Basic info card — read-only display */}
@@ -102,15 +106,20 @@ export function DesignTab() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* SQL preview card */}
         <div className="lg:col-span-2 border border-border/60 rounded-xl bg-white shadow-card overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-border-subtle">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-border-subtle gap-3">
+            <div className="flex items-center gap-2 shrink-0">
               <Code2 className="w-4 h-4 text-primary/80" />
               <span className="text-sm font-bold text-foreground">SQL 查询</span>
+            </div>
+            {/* 脚本只读展示——点击查看内容，挂载/切换/编辑统一到 SQL 设计器内 */}
+            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+              <ScriptPill label="前置" scriptId={preScriptId} scripts={scripts} onClick={setPreviewScriptId} />
+              <ScriptPill label="后置" scriptId={postScriptId} scripts={scripts} onClick={setPreviewScriptId} />
             </div>
             <Button
               size="sm"
               onClick={() => setDesignerOpen(true)}
-              className="h-7 text-xs px-3 gap-1.5"
+              className="h-7 text-xs px-3 gap-1.5 shrink-0"
             >
               <PenLine className="w-3 h-3" />
               打开 SQL 设计器
@@ -168,42 +177,17 @@ export function DesignTab() {
         </div>
       </div>
 
-      {/* Script selectors */}
-      <div className="flex items-center gap-4 px-1">
-        <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider shrink-0">脚本</span>
-        <div className="flex items-center gap-2 flex-1">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-xs text-muted-foreground shrink-0">前置</span>
-            <Select value={String(preScriptId)} onValueChange={v => setFormField("preScriptId", Number(v))}>
-              <SelectTrigger className="h-7 text-xs border-border bg-white rounded-lg min-w-[140px]">
-                <SelectValue placeholder="无" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">无</SelectItem>
-                {scripts.filter(s => s.type === "pre").map(s => (
-                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-xs text-muted-foreground shrink-0">后置</span>
-            <Select value={String(postScriptId)} onValueChange={v => setFormField("postScriptId", Number(v))}>
-              <SelectTrigger className="h-7 text-xs border-border bg-white rounded-lg min-w-[140px]">
-                <SelectValue placeholder="无" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">无</SelectItem>
-                {scripts.filter(s => s.type === "post").map(s => (
-                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
       <SqlDesignerModal open={designerOpen} onClose={() => setDesignerOpen(false)} />
+
+      <ScriptPreviewModal
+        open={!!previewScript}
+        script={previewScript}
+        onClose={() => setPreviewScriptId(null)}
+        onEditInDesigner={() => {
+          setPreviewScriptId(null)
+          setDesignerOpen(true)
+        }}
+      />
 
       <BasicInfoModal
         open={basicInfoOpen}
@@ -304,5 +288,39 @@ function ParamGroup({ label, color, params }: {
         </div>
       ))}
     </div>
+  )
+}
+
+function ScriptPill({ label, scriptId, scripts, onClick }: {
+  label: string
+  scriptId: number
+  scripts: { id?: number; name?: string }[]
+  onClick?: (id: number) => void
+}) {
+  const name = scriptId ? scripts.find(s => s.id === scriptId)?.name : null
+  const mounted = !!name
+
+  if (!mounted) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 text-2xs px-1.5 py-0.5 rounded border max-w-[180px] truncate bg-zinc-50 text-zinc-300 italic border-border-subtle"
+        title={`${label}脚本未挂载`}
+      >
+        <span className="font-bold text-muted-foreground">{label}</span>
+        <span className="truncate">—</span>
+      </span>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => scriptId && onClick?.(scriptId)}
+      className="inline-flex items-center gap-1 text-2xs px-1.5 py-0.5 rounded border max-w-[180px] truncate bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 hover:border-violet-300 transition-colors cursor-pointer"
+      title={`${label}脚本：${name} — 点击查看内容`}
+    >
+      <span className="font-bold text-muted-foreground">{label}</span>
+      <span className="truncate">{name}</span>
+    </button>
   )
 }

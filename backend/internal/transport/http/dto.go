@@ -82,24 +82,26 @@ type ParamDefResp struct {
 }
 
 type APIEndpointResp struct {
-	ID                 int64          `json:"id"                           validate:"required"`
-	TenantID           int64          `json:"tenant_id"                    validate:"required"`
-	ProjectID          int64          `json:"project_id"                   validate:"required"`
-	GroupID            int64          `json:"group_id"                     validate:"required"`
-	DataSourceID       int64          `json:"datasource_id"                validate:"required"`
-	Path               string         `json:"path"                         validate:"required"`
-	Methods            []string       `json:"methods"                      validate:"required"`
-	Summary            string         `json:"summary"                      validate:"required"`
-	Description        string         `json:"description,omitempty"`
-	SQL                string         `json:"sql"                          validate:"required"`
-	Params             []string       `json:"params"                       validate:"required"`
-	ParamDefs          []ParamDefResp `json:"param_defs,omitempty"`
-	PreScriptID        int64          `json:"pre_script_id,omitempty"`
-	PostScriptID       int64          `json:"post_script_id,omitempty"`
-	Status             string         `json:"status"                       validate:"required"`
-	PublishedReleaseID int64          `json:"published_release_id,omitempty"`
-	HasDraft           bool           `json:"has_draft,omitempty"`
-	CreatedAt          string         `json:"created_at"                   validate:"required"`
+	ID            int64          `json:"id"                    validate:"required"`
+	TenantID      int64          `json:"tenant_id"             validate:"required"`
+	ProjectID     int64          `json:"project_id"            validate:"required"`
+	GroupID       int64          `json:"group_id"              validate:"required"`
+	DataSourceID  int64          `json:"datasource_id"         validate:"required"`
+	Path          string         `json:"path"                  validate:"required"`
+	Methods       []string       `json:"methods"               validate:"required"`
+	Summary       string         `json:"summary"               validate:"required"`
+	Description   string         `json:"description,omitempty"`
+	SQL           string         `json:"sql"                   validate:"required"`
+	Params        []string       `json:"params"                validate:"required"`
+	ParamDefs     []ParamDefResp `json:"param_defs,omitempty"`
+	PreScriptID   int64          `json:"pre_script_id,omitempty"`
+	PostScriptID  int64          `json:"post_script_id,omitempty"`
+	IsPublished   bool           `json:"is_published"          validate:"required"`
+	ActiveVersion int            `json:"active_version,omitempty"`
+	LatestVersion int            `json:"latest_version,omitempty"`
+	HasDraft      bool           `json:"has_draft"             validate:"required"`
+	CreatedAt     string         `json:"created_at"            validate:"required"`
+	UpdatedAt     string         `json:"updated_at"            validate:"required"`
 }
 
 type APIGroupResp struct {

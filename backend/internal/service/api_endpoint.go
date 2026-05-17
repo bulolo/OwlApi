@@ -19,10 +19,13 @@ type APIEndpointService interface {
 	Delete(ctx context.Context, tenantID, id int64) error
 }
 
-type apiEndpointService struct{ repo domain.APIEndpointRepository }
+type apiEndpointService struct {
+	repo   domain.APIEndpointRepository
+	active domain.EndpointActiveVersionRepository
+}
 
-func NewAPIEndpointService(repo domain.APIEndpointRepository) APIEndpointService {
-	return &apiEndpointService{repo: repo}
+func NewAPIEndpointService(repo domain.APIEndpointRepository, active domain.EndpointActiveVersionRepository) APIEndpointService {
+	return &apiEndpointService{repo: repo, active: active}
 }
 
 func (s *apiEndpointService) List(ctx context.Context, tenantID, projectID int64, p domain.ListParams) ([]*domain.APIEndpoint, int, error) {
@@ -48,6 +51,10 @@ func (s *apiEndpointService) Update(ctx context.Context, ep *domain.APIEndpoint)
 }
 
 func (s *apiEndpointService) Delete(ctx context.Context, tenantID, id int64) error {
+	// 上线中的接口必须先下线才能删除——避免外部调用方突然 404 / 残留 active_version 指针指向被删行
+	if av, err := s.active.Get(ctx, tenantID, id); err == nil && av != nil {
+		return domain.ErrConflict("接口仍在上线中，请先下线后再删除")
+	}
 	return s.repo.Delete(ctx, tenantID, id)
 }
 

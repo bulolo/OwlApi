@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Hexagon, ArrowRight, ShieldCheck, Mail, Lock } from "lucide-react"
+import { ArrowRight, ShieldCheck, Mail, Lock } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -90,9 +91,7 @@ function LoginForm() {
       <div className="w-full max-w-[400px] p-6 lg:p-0">
         <div className="bg-white border border-border rounded-lg p-8 shadow-card space-y-8">
           <div className="flex flex-col items-center space-y-4">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center shadow-sm">
-              <Hexagon className="w-6 h-6 text-white" />
-            </div>
+            <Image src="/logo.svg" alt="OwlApi" width={52} height={52} />
             <div className="text-center space-y-1">
               <h1 className="text-lg font-black text-foreground uppercase tracking-tight">OwlAPI 云平台</h1>
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">企业级 SQL-API 网关</p>

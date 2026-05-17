@@ -1,6 +1,9 @@
 package domain
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // ListParams holds common pagination and search parameters for list queries.
 type ListParams struct {
@@ -33,6 +36,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id int64) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
+	UpdatePasswordHash(ctx context.Context, userID int64, hash string) error
 }
 
 type TenantUserRepository interface {
@@ -88,28 +92,57 @@ type APIEndpointRepository interface {
 	GetByID(ctx context.Context, tenantID, id int64) (*APIEndpoint, error)
 	Create(ctx context.Context, ep *APIEndpoint) error
 	Update(ctx context.Context, ep *APIEndpoint) error
+	// RevertFromSnapshot rewrites api_endpoints from a version snapshot and explicitly sets
+	// updated_at = activatedAt so the derived has_draft becomes false.
+	// (Regular Update bumps updated_at = NOW(), which would still leave has_draft = true.)
+	RevertFromSnapshot(ctx context.Context, tenantID, endpointID int64, snap *APIEndpoint, activatedAt time.Time) error
 	List(ctx context.Context, tenantID, projectID int64, p ListParams) ([]*APIEndpoint, int, error)
+	// ListPublishedByProject returns endpoints whose endpoint_active_version row exists in the given project.
 	ListPublishedByProject(ctx context.Context, tenantID, projectID int64) ([]*APIEndpoint, error)
 	Delete(ctx context.Context, tenantID, id int64) error
 }
 
-type EndpointReleaseRepository interface {
-	Create(ctx context.Context, rel *EndpointRelease) error
-	GetByID(ctx context.Context, tenantID, id int64) (*EndpointRelease, error)
-	ListByEndpoint(ctx context.Context, tenantID, endpointID int64, p ListParams) ([]*EndpointRelease, int, error)
-	// Activate marks the given release as active and updates the endpoint's published_release_id.
-	Activate(ctx context.Context, tenantID, endpointID, releaseID int64) error
-	// Deactivate clears all active releases and resets endpoint status to 'draft'.
-	Deactivate(ctx context.Context, tenantID, endpointID int64) error
-	// TrimOldReleases deletes old non-active, non-draft releases keeping only the newest keepCount total.
-	// keepCount <= 0 means no limit.
-	TrimOldReleases(ctx context.Context, tenantID, endpointID int64, keepCount int) error
-	// NextVersion returns COUNT(releases for endpointID) + 1.
+type EndpointVersionRepository interface {
+	// Create inserts a new immutable version. Caller must populate Version (use NextVersion).
+	Create(ctx context.Context, v *EndpointVersion) error
+	GetByID(ctx context.Context, tenantID, id int64) (*EndpointVersion, error)
+	GetByVersion(ctx context.Context, tenantID, endpointID int64, version int) (*EndpointVersion, error)
+	ListByEndpoint(ctx context.Context, tenantID, endpointID int64, p ListParams) ([]*EndpointVersion, int, error)
+	// NextVersion returns MAX(version) + 1 for the endpoint (1 if none exist).
 	NextVersion(ctx context.Context, tenantID, endpointID int64) (int, error)
-	// GetDraftByEndpoint returns the single draft release for an endpoint, if one exists.
-	GetDraftByEndpoint(ctx context.Context, tenantID, endpointID int64) (*EndpointRelease, error)
-	// UpdateDraftSnapshot updates the snapshot content of an existing draft release.
-	UpdateDraftSnapshot(ctx context.Context, tenantID, releaseID int64, snapshot *APIEndpoint) error
+	// CountByEndpoint returns how many version rows exist for this endpoint.
+	CountByEndpoint(ctx context.Context, tenantID, endpointID int64) (int, error)
+	// Trim deletes old versions beyond keepCount, skipping the currently active one. keepCount <= 0 → no-op.
+	Trim(ctx context.Context, tenantID, endpointID int64, keepCount int) error
+	// DeleteByEndpoint removes all versions for an endpoint (used when endpoint itself is deleted).
+	DeleteByEndpoint(ctx context.Context, tenantID, endpointID int64) error
+	// Delete removes a single version row by ID. Caller is responsible for the active/only-version guard rails.
+	Delete(ctx context.Context, tenantID, id int64) error
+}
+
+type EndpointActiveVersionRepository interface {
+	// Upsert replaces the active version pointer for (tenant, endpoint).
+	Upsert(ctx context.Context, tenantID, endpointID, versionID, actorID int64) error
+	Get(ctx context.Context, tenantID, endpointID int64) (*EndpointActiveVersion, error)
+	// Delete clears the active version pointer (= take endpoint offline).
+	Delete(ctx context.Context, tenantID, endpointID int64) error
+	// ListByProject returns active pointers for all published endpoints of a project, joined with version numbers.
+	ListByProject(ctx context.Context, tenantID, projectID int64) ([]*EndpointActiveVersion, error)
+}
+
+type EndpointCallLogRepository interface {
+	// Append writes one call log row. Fire-and-forget at the service layer.
+	Append(ctx context.Context, log *EndpointCallLog) error
+	// ListByEndpoint paginates call logs filtered by status class / keyword / since.
+	ListByEndpoint(ctx context.Context, tenantID, endpointID int64, f CallLogFilter, p ListParams) ([]*EndpointCallLog, int, error)
+}
+
+type EndpointActivationLogRepository interface {
+	// Append writes one log row. versionNumber is the human-readable v3 number;
+	// stored redundantly so the log still displays correctly after the version row is deleted.
+	// Pass 0 for both versionID and versionNumber on unpublish-style events with no associated version.
+	Append(ctx context.Context, tenantID, endpointID, versionID int64, versionNumber int, actorID int64, action ActivationAction) error
+	ListByEndpoint(ctx context.Context, tenantID, endpointID int64, p ListParams) ([]*EndpointActivationLog, int, error)
 }
 
 type PlatformSettingsRepository interface {

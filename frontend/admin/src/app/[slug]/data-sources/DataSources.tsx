@@ -127,7 +127,7 @@ export default function DataSources() {
                           双环境
                         </span>
                       )}
-                      <span className="px-2 py-0.5 rounded-full text-2xs font-bold border bg-zinc-50 text-muted-foreground border-border-subtle uppercase tracking-tight">
+                      <span className={cn("px-2 py-0.5 rounded-full text-2xs font-bold border uppercase tracking-tight", DB_TYPES[ds.type as keyof typeof DB_TYPES]?.color ?? "bg-zinc-50 text-muted-foreground border-border-subtle")}>
                         {DB_TYPES[ds.type as keyof typeof DB_TYPES]?.label ?? ds.type}
                       </span>
                     </div>
@@ -146,14 +146,14 @@ export default function DataSources() {
                       {prodEnv && <EnvRow type={ds.type} dsn={prodEnv.dsn ?? ''} label="PROD" colors="bg-primary/10 text-primary border-primary/20" />}
                     </div>
                   ) : (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="text-zinc-300 font-bold w-7 shrink-0">HOST</span>
-                        <span className="font-mono truncate">{host}</span>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-2xs font-bold text-muted-foreground shrink-0">主机</span>
+                        <span className="text-xs font-mono text-foreground truncate">{host || '-'}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="text-zinc-300 font-bold w-7 shrink-0">DB</span>
-                        <span className="font-mono truncate">{db}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-2xs font-bold text-muted-foreground shrink-0">库名</span>
+                        <span className="text-xs font-mono text-foreground truncate">{db || '-'}</span>
                       </div>
                     </div>
                   )}

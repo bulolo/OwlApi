@@ -23,18 +23,16 @@ export function ScriptItem({ script, active, onSelect, onDelete }: ScriptItemPro
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className={cn("text-xs font-bold truncate tracking-tight", active ? "text-primary" : "text-zinc-700 group-hover:text-primary")}>
-            {script.name}
-          </span>
           {script.is_platform && (
             <span className="shrink-0 inline-flex items-center gap-0.5 text-2xs font-bold px-1.5 py-0.5 rounded bg-zinc-100 text-muted-foreground border border-border">
               <Lock className="w-2 h-2" /> 内置
             </span>
           )}
+          <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", script.type === "pre" ? "bg-amber-400" : "bg-primary/60")} />
+          <span className={cn("text-xs font-bold truncate tracking-tight", active ? "text-primary" : "text-zinc-700 group-hover:text-primary")}>
+            {script.name}
+          </span>
         </div>
-        {script.description && (
-          <p className="text-2xs text-muted-foreground truncate mt-0.5">{script.description}</p>
-        )}
       </div>
       {!script.is_platform && (
         <Button variant="ghost" size="icon-xs" className="rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 shrink-0 ml-2" onClick={e => { e.stopPropagation(); onDelete() }}>

@@ -19,6 +19,7 @@ var (
 type AuthService interface {
 	Register(ctx context.Context, req RegisterRequest) (*AuthResponse, error)
 	Login(ctx context.Context, email, password string) (*AuthResponse, error)
+	ChangePassword(ctx context.Context, userID int64, oldPassword, newPassword string) error
 }
 
 type RegisterRequest struct {
@@ -102,6 +103,21 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 	}
 
 	return resp, nil
+}
+
+func (s *authService) ChangePassword(ctx context.Context, userID int64, oldPassword, newPassword string) error {
+	user, err := s.users.GetByID(ctx, userID)
+	if err != nil {
+		return ErrInvalidCredentials
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
+		return domain.ErrUnauthorized("current password is incorrect")
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return s.users.UpdatePasswordHash(ctx, userID, string(hash))
 }
 
 func (s *authService) Login(ctx context.Context, email, password string) (*AuthResponse, error) {

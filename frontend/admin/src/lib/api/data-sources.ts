@@ -4,8 +4,11 @@ import {
   getDataSource,
   deleteDataSource,
   updateDataSource,
+  getDatasourceSchema,
+  previewTable,
+  testDatasource,
 } from '@/lib/sdk'
-import { wrapResponse, apiRequest } from './token'
+import { wrapResponse } from './token'
 import type { DataSource, ListQuery, PaginatedData, CreateDataSourceRequest, UpdateDataSourceRequest } from './types'
 
 export const apiListDataSources = (slug: string, q: ListQuery = {}) =>
@@ -28,10 +31,8 @@ export const apiDeleteDataSource = (slug: string, datasourceId: number) =>
 export type SchemaColumn = { name: string; type: string; nullable: boolean }
 export type SchemaTable  = { name: string; columns: SchemaColumn[] }
 
-// ── Non-SDK endpoints (schema / preview / test) ───────────────────────────────
-
 export const apiGetSchema = (slug: string, datasourceId: number): Promise<SchemaTable[]> =>
-  apiRequest(`/v1/tenants/${slug}/datasources/${datasourceId}/schema`)
+  wrapResponse<SchemaTable[]>(getDatasourceSchema({ path: { slug, datasourceId } }))
 
 export const apiPreviewTable = (
   slug: string,
@@ -39,14 +40,11 @@ export const apiPreviewTable = (
   table: string,
   limit = 100,
 ): Promise<Record<string, unknown>[]> =>
-  apiRequest(`/v1/tenants/${slug}/datasources/${datasourceId}/tables/${encodeURIComponent(table)}/preview?limit=${limit}`)
+  wrapResponse<Record<string, unknown>[]>(previewTable({ path: { slug, datasourceId, table }, query: { limit } }))
 
 export const apiTestDatasource = (
   slug: string,
   dsn: string,
   gatewayId: number,
 ): Promise<{ latency_ms: number }> =>
-  apiRequest(`/v1/tenants/${slug}/datasources/test`, {
-    method: 'POST',
-    body: JSON.stringify({ dsn, gateway_id: gatewayId }),
-  })
+  wrapResponse<{ latency_ms: number }>(testDatasource({ path: { slug }, body: { dsn, gateway_id: gatewayId } }))

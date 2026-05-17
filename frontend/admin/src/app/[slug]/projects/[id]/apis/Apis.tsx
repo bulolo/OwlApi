@@ -17,8 +17,10 @@ import { DebugTab } from "./_components/DebugTab"
 import { DocTab } from "./_components/DocTab"
 import { ReleasesTab } from "./_components/ReleasesTab"
 import { GroupModal } from "./_components/GroupModal"
-import { ApiEmptyState, LogsPlaceholder } from "./_components/ApiEmptyState"
+import { ApiEmptyState } from "./_components/ApiEmptyState"
+import { LogsTab } from "./_components/LogsTab"
 import { BasicInfoModal } from "./_components/BasicInfoModal"
+import { EndpointHeader } from "./_components/EndpointHeader"
 import type { ActiveTab, ApiEndpoint } from "./_types"
 
 const TABS = [
@@ -87,6 +89,7 @@ export default function Apis() {
       <div className="flex-1 min-w-0 bg-white">
         {showEditor ? (
           <div className="h-full flex flex-col">
+            <EndpointHeader />
             <Tabs
               value={activeTab}
               onValueChange={v => setActiveTab(v as ActiveTab)}
@@ -110,7 +113,7 @@ export default function Apis() {
                 <TabsContent value="design" className="m-0"><DesignTab /></TabsContent>
                 <TabsContent value="run" className="m-0"><DebugTab /></TabsContent>
                 <TabsContent value="doc" className="m-0"><DocTab /></TabsContent>
-                <TabsContent value="logs" className="m-0 animate-in fade-in duration-300"><LogsPlaceholder /></TabsContent>
+                <TabsContent value="logs" className="m-0 animate-in fade-in duration-300"><LogsTab /></TabsContent>
                 <TabsContent value="releases" className="m-0"><ReleasesTab /></TabsContent>
               </div>
             </Tabs>

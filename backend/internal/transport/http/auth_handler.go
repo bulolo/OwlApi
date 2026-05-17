@@ -48,6 +48,39 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 	OK(c, resp)
 }
 
+type changePasswordReq struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
+// HandleChangePassword godoc
+// @Summary 修改当前用户密码
+// @ID changePassword
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param body body changePasswordReq true "密码信息"
+// @Success 200 {object} map[string]string
+// @Security BearerAuth
+// @Router /v1/auth/change-password [put]
+func (h *AuthHandler) HandleChangePassword(c *gin.Context) {
+	claims := GetClaims(c)
+	if claims == nil {
+		Fail(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	var req changePasswordReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := h.auth.ChangePassword(c.Request.Context(), claims.UserID, req.OldPassword, req.NewPassword); err != nil {
+		FailErr(c, err)
+		return
+	}
+	OK(c, gin.H{"message": "password updated"})
+}
+
 // HandleLogin godoc
 // @Summary 用户登录
 // @ID login

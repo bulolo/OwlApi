@@ -7,5 +7,11 @@ export { useTenants, useCreateTenant } from './useTenants'
 export { useAdminMutation } from './useAdminMutation'
 export { useIsClient } from './useIsClient'
 export { usePaginatedQuery } from './usePaginatedQuery'
-export { useReleases, usePublishEndpoint, useUnpublishEndpoint, useActivateRelease } from './useReleases'
+export {
+  useEndpointVersions,
+  usePublishEndpoint,
+  useCreateEndpointVersion,
+  useUnpublishEndpoint,
+  useActivateEndpointVersion,
+} from './useEndpointVersions'
 export { usePaginationState } from './usePaginationState'

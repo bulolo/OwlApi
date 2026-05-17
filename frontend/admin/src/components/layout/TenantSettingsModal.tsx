@@ -175,7 +175,7 @@ function ConfigCard({
             <Icon className={cn("w-3 h-3", iconColor)} />
           </div>
         )}
-        <h3 className="text-xs font-bold text-zinc-700 uppercase tracking-widest">{title}</h3>
+        <h3 className="text-xs font-bold text-foreground uppercase tracking-widest">{title}</h3>
       </div>
       <div className="divide-y divide-border-subtle">
         {children}
@@ -197,7 +197,7 @@ function ConfigRow({
     <div className="flex items-center justify-between px-5 py-4">
       <div className="flex-1 mr-8">
         <p className="text-sm font-bold text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
+        <p className="text-sm text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
       </div>
       {children}
     </div>

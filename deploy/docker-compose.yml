@@ -10,19 +10,15 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.9}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.2.0}
     container_name: owlapi_backend
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"   # HTTP API
       # 9090 gRPC 仅供容器内部 Gateway 使用，不对外暴露
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
-      - OWLAPI_HTTP_PORT=:3000
-      - OWLAPI_JWT_SECRET=${OWLAPI_JWT_SECRET:-change-me-in-production}
-      - OWLAPI_CORS_ORIGIN=${OWLAPI_CORS_ORIGIN:-*}
-      - OWLAPI_LOG_LEVEL=${OWLAPI_LOG_LEVEL:-info}
-      - TZ=Asia/Shanghai
+    # 所有运行时环境变量统一从 deploy/.env 读取——跟 dev 保持单一来源原则
+    env_file:
+      - ./.env
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
       interval: 10s
@@ -52,7 +48,7 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:${DOCKER_IMAGE_TAG:-v0.1.9}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:${DOCKER_IMAGE_TAG:-v0.2.0}
     container_name: owlapi_admin
     restart: unless-stopped
     ports:
@@ -106,15 +102,11 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile.gateway
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.1.9}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.2.0}
     container_name: owlapi_gateway
     restart: unless-stopped
-    environment:
-      - OWLAPI_SERVER_URL=dns:///backend:9090
-      - OWLAPI_GATEWAY_ID=${OWLAPI_GATEWAY_ID:-1}
-      - OWLAPI_GATEWAY_TOKEN=${OWLAPI_GATEWAY_TOKEN:-}
-      - OWLAPI_TENANT_ID=${OWLAPI_TENANT_ID:-1}
-      - TZ=Asia/Shanghai
+    env_file:
+      - ./.env
     volumes:
       - gateway_data:/data
     depends_on:
@@ -136,12 +128,11 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.1.9}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.2.0}
     container_name: owlapi_init
     command: ["./init"]
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
-      - OWLAPI_GATEWAY_TOKEN=${OWLAPI_GATEWAY_TOKEN:-}
+    env_file:
+      - ./.env
     depends_on:
       postgres:
         condition: service_healthy

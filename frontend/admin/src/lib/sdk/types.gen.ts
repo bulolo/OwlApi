@@ -5,25 +5,21 @@ export type ClientOptions = {
 };
 
 export type ApiEndpoint = {
-    /**
-     * current live version number (0 if not published)
-     */
-    active_version?: number;
     created_at?: string;
-    datasource_id?: number;
+    datasource_alias?: string;
     description?: string;
+    /**
+     * per-env active version snapshot (one row per env where this endpoint is live)
+     */
+    env_activations?: Array<EndpointEnvActivity>;
     group_id?: number;
     /**
-     * true iff updated_at > activated_at (or not published yet but at least one version exists)
+     * Derived/computed fields (not stored on the row itself):
      */
     has_draft?: boolean;
     id?: number;
     /**
-     * Derived/computed fields (not stored on the row itself):
-     */
-    is_published?: boolean;
-    /**
-     * newest version number in endpoint_versions for this endpoint (0 if no versions)
+     * newest version number in endpoint_versions for this endpoint
      */
     latest_version?: number;
     methods?: Array<string>;
@@ -37,6 +33,13 @@ export type ApiEndpoint = {
     summary?: string;
     tenant_id?: number;
     updated_at?: string;
+};
+
+export type EndpointEnvActivity = {
+    env_id?: number;
+    env_name?: string;
+    version?: number;
+    version_id?: number;
 };
 
 export type ParamDef = {
@@ -56,14 +59,13 @@ export type ApiEndpointListResp = {
 };
 
 export type ApiEndpointResp = {
-    active_version?: number;
     created_at: string;
-    datasource_id: number;
+    datasource_alias: string;
     description?: string;
+    env_activations?: Array<EndpointEnvActivityResp>;
     group_id: number;
     has_draft: boolean;
     id: number;
-    is_published: boolean;
     latest_version?: number;
     methods: Array<string>;
     param_defs?: Array<ParamDefResp>;
@@ -99,30 +101,20 @@ export type AuthResp = {
     user: UserResp;
 };
 
-export type DataSourceEnvResp = {
-    datasource_id: number;
-    dsn?: string;
-    env: string;
-    gateway_id: number;
-    id: number;
-};
-
 export type DataSourceListResp = {
     list: Array<DataSourceResp>;
     pagination: PaginationInfo;
 };
 
 export type DataSourceRefResp = {
-    id: number;
-    name: string;
-    type: string;
+    alias: string;
 };
 
 export type DataSourceResp = {
     created_at: string;
-    envs?: Array<DataSourceEnvResp>;
+    dsn?: string;
+    gateway_id: number;
     id: number;
-    is_dual: boolean;
     is_platform: boolean;
     name: string;
     tenant_id: number;
@@ -135,22 +127,15 @@ export type EndpointActivationLogListResp = {
 };
 
 export type EndpointActivationLogResp = {
-    /**
-     * publish / activate / rollback / unpublish
-     */
     action: string;
     actor_id: number;
-    /**
-     * 操作人显示名；空 = 系统
-     */
     actor_name?: string;
     at: string;
     endpoint_id: number;
+    env_id?: number;
+    env_name?: string;
     id: number;
     tenant_id: number;
-    /**
-     * 版本号 (vN)，便于直接展示
-     */
     version?: number;
     version_id?: number;
 };
@@ -163,6 +148,8 @@ export type EndpointCallLogListResp = {
 export type EndpointCallLogResp = {
     at: string;
     endpoint_id: number;
+    env_id?: number;
+    env_name?: string;
     error?: string;
     id: number;
     ip?: string;
@@ -177,6 +164,13 @@ export type EndpointCallLogResp = {
     user_agent?: string;
     version?: number;
     version_id?: number;
+};
+
+export type EndpointEnvActivityResp = {
+    env_id: number;
+    env_name: string;
+    version: number;
+    version_id: number;
 };
 
 export type EndpointVersionListResp = {
@@ -215,6 +209,21 @@ export type GatewayResp = {
     tenant_id?: number;
     token?: string;
     version: string;
+};
+
+export type HealthResp = {
+    /**
+     * "community" | "enterprise"
+     */
+    edition: string;
+    /**
+     * EE 模式下 license 是否已通过校验
+     */
+    is_licensed: boolean;
+    /**
+     * "ok"
+     */
+    status: string;
 };
 
 export type PaginationInfo = {
@@ -335,6 +344,12 @@ export type RGatewayList = {
     msg: string;
 };
 
+export type RHealth = {
+    code: number;
+    data: HealthResp;
+    msg: string;
+};
+
 export type RPlatformSettings = {
     code: number;
     data: PlatformSettingsResp;
@@ -451,24 +466,215 @@ export type ChangePasswordReq = {
 };
 
 export type CreateDataSourceReq = {
-    envs: Array<DsEnvReq>;
-    is_dual?: boolean;
+    dsn: string;
+    gateway_id: number;
     name: string;
     type: 'mysql' | 'postgres' | 'sqlserver' | 'starrocks' | 'doris' | 'sqlite';
 };
 
-export type DsEnvReq = {
-    dsn?: string;
-    env: 'dev' | 'prod';
-    gateway_id: number;
+export type CreateEnvReq = {
+    copy_bindings?: boolean;
+    copy_from_env_id?: number;
+    is_default?: boolean;
+    name: string;
+};
+
+export type RenameAliasReq = {
+    new_alias: string;
+    old_alias: string;
+};
+
+export type RenameEnvReq = {
+    name: string;
 };
 
 export type UpdateDataSourceReq = {
-    envs?: Array<DsEnvReq>;
-    is_dual?: boolean;
+    dsn?: string;
+    gateway_id?: number;
     name?: string;
     type?: 'mysql' | 'postgres' | 'sqlserver' | 'starrocks' | 'doris' | 'sqlite';
 };
+
+export type UpsertBindingReq = {
+    alias: string;
+    datasource_id: number;
+};
+
+export type ExecuteQueryData = {
+    /**
+     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    path: {
+        /**
+         * 环境名（项目级，例如 prod / dev / staging）
+         */
+        env: string;
+        /**
+         * 租户 slug
+         */
+        tenantSlug: string;
+        /**
+         * 项目 slug
+         */
+        projectSlug: string;
+        /**
+         * 接口路径（用户在项目中定义的路径）
+         */
+        path: string;
+    };
+    query?: never;
+    url: '/-/{env}/{tenantSlug}/{projectSlug}/{path}';
+};
+
+export type ExecuteQueryResponses = {
+    /**
+     * OK
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ExecuteQueryResponse = ExecuteQueryResponses[keyof ExecuteQueryResponses];
+
+export type ExecuteQuery2Data = {
+    /**
+     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    path: {
+        /**
+         * 环境名（项目级，例如 prod / dev / staging）
+         */
+        env: string;
+        /**
+         * 租户 slug
+         */
+        tenantSlug: string;
+        /**
+         * 项目 slug
+         */
+        projectSlug: string;
+        /**
+         * 接口路径（用户在项目中定义的路径）
+         */
+        path: string;
+    };
+    query?: never;
+    url: '/-/{env}/{tenantSlug}/{projectSlug}/{path}';
+};
+
+export type ExecuteQuery2Responses = {
+    /**
+     * OK
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ExecuteQuery2Response = ExecuteQuery2Responses[keyof ExecuteQuery2Responses];
+
+export type ExecuteQuery3Data = {
+    /**
+     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    path: {
+        /**
+         * 环境名（项目级，例如 prod / dev / staging）
+         */
+        env: string;
+        /**
+         * 租户 slug
+         */
+        tenantSlug: string;
+        /**
+         * 项目 slug
+         */
+        projectSlug: string;
+        /**
+         * 接口路径（用户在项目中定义的路径）
+         */
+        path: string;
+    };
+    query?: never;
+    url: '/-/{env}/{tenantSlug}/{projectSlug}/{path}';
+};
+
+export type ExecuteQuery3Responses = {
+    /**
+     * OK
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ExecuteQuery3Response = ExecuteQuery3Responses[keyof ExecuteQuery3Responses];
+
+export type ExecuteQuery4Data = {
+    /**
+     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
+     */
+    body?: {
+        [key: string]: unknown;
+    };
+    path: {
+        /**
+         * 环境名（项目级，例如 prod / dev / staging）
+         */
+        env: string;
+        /**
+         * 租户 slug
+         */
+        tenantSlug: string;
+        /**
+         * 项目 slug
+         */
+        projectSlug: string;
+        /**
+         * 接口路径（用户在项目中定义的路径）
+         */
+        path: string;
+    };
+    query?: never;
+    url: '/-/{env}/{tenantSlug}/{projectSlug}/{path}';
+};
+
+export type ExecuteQuery4Responses = {
+    /**
+     * OK
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type ExecuteQuery4Response = ExecuteQuery4Responses[keyof ExecuteQuery4Responses];
+
+export type HealthData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/health';
+};
+
+export type HealthResponses = {
+    /**
+     * OK
+     */
+    200: RHealth;
+};
+
+export type HealthResponse = HealthResponses[keyof HealthResponses];
 
 export type ChangePasswordData = {
     /**
@@ -1232,6 +1438,59 @@ export type UpdateProjectResponses = {
 
 export type UpdateProjectResponse = UpdateProjectResponses[keyof UpdateProjectResponses];
 
+export type RenameProjectAliasData = {
+    /**
+     * old/new alias
+     */
+    body: RenameAliasReq;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/aliases/rename';
+};
+
+export type RenameProjectAliasResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type RenameProjectAliasResponse = RenameProjectAliasResponses[keyof RenameProjectAliasResponses];
+
+export type ListProjectBindingsData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/bindings';
+};
+
+export type ListProjectBindingsResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type ListProjectBindingsResponse = ListProjectBindingsResponses[keyof ListProjectBindingsResponses];
+
 export type ListEndpointsData = {
     body?: never;
     path: {
@@ -1279,7 +1538,7 @@ export type CreateEndpointData = {
      * 端点信息
      */
     body: {
-        datasource_id?: number;
+        datasource_alias?: string;
         description?: string;
         group_id?: number;
         methods?: Array<unknown>;
@@ -1347,7 +1606,7 @@ export type UpdateEndpointData = {
      * 更新信息
      */
     body?: {
-        datasource_id?: number;
+        datasource_alias?: string;
         description?: string;
         group_id?: number;
         methods?: Array<unknown>;
@@ -1423,6 +1682,35 @@ export type ListEndpointActivationLogResponses = {
 
 export type ListEndpointActivationLogResponse = ListEndpointActivationLogResponses[keyof ListEndpointActivationLogResponses];
 
+export type ListEndpointActivesData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 端点ID
+         */
+        endpointId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/actives';
+};
+
+export type ListEndpointActivesResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type ListEndpointActivesResponse = ListEndpointActivesResponses[keyof ListEndpointActivesResponses];
+
 export type ListEndpointCallLogsData = {
     body?: never;
     path: {
@@ -1473,6 +1761,41 @@ export type ListEndpointCallLogsResponses = {
 
 export type ListEndpointCallLogsResponse = ListEndpointCallLogsResponses[keyof ListEndpointCallLogsResponses];
 
+export type PromoteEndpointVersionData = {
+    /**
+     * promote 参数
+     */
+    body: {
+        source_env_id?: number;
+        target_env_id?: number;
+    };
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 端点ID
+         */
+        endpointId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/promote';
+};
+
+export type PromoteEndpointVersionResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type PromoteEndpointVersionResponse = PromoteEndpointVersionResponses[keyof PromoteEndpointVersionResponses];
+
 export type PublishEndpointData = {
     /**
      * 版本说明
@@ -1494,7 +1817,16 @@ export type PublishEndpointData = {
          */
         endpointId: number;
     };
-    query?: never;
+    query?: {
+        /**
+         * 环境名（默认为项目默认 env）
+         */
+        env?: string;
+        /**
+         * 环境ID（优先于 env）
+         */
+        env_id?: number;
+    };
     url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/publish';
 };
 
@@ -1523,7 +1855,16 @@ export type RevertEndpointToActiveData = {
          */
         endpointId: number;
     };
-    query?: never;
+    query?: {
+        /**
+         * 环境名
+         */
+        env?: string;
+        /**
+         * 环境ID
+         */
+        env_id?: number;
+    };
     url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/revert';
 };
 
@@ -1552,7 +1893,16 @@ export type UnpublishEndpointData = {
          */
         endpointId: number;
     };
-    query?: never;
+    query?: {
+        /**
+         * 环境名
+         */
+        env?: string;
+        /**
+         * 环境ID
+         */
+        env_id?: number;
+    };
     url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/unpublish';
 };
 
@@ -1690,7 +2040,16 @@ export type ActivateEndpointVersionData = {
          */
         versionId: number;
     };
-    query?: never;
+    query?: {
+        /**
+         * 环境名
+         */
+        env?: string;
+        /**
+         * 环境ID
+         */
+        env_id?: number;
+    };
     url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/versions/{versionId}/activate';
 };
 
@@ -1702,6 +2061,243 @@ export type ActivateEndpointVersionResponses = {
 };
 
 export type ActivateEndpointVersionResponse = ActivateEndpointVersionResponses[keyof ActivateEndpointVersionResponses];
+
+export type ListProjectEnvironmentsData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments';
+};
+
+export type ListProjectEnvironmentsResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type ListProjectEnvironmentsResponse = ListProjectEnvironmentsResponses[keyof ListProjectEnvironmentsResponses];
+
+export type CreateProjectEnvironmentData = {
+    /**
+     * 环境信息
+     */
+    body: CreateEnvReq;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments';
+};
+
+export type CreateProjectEnvironmentResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type CreateProjectEnvironmentResponse = CreateProjectEnvironmentResponses[keyof CreateProjectEnvironmentResponses];
+
+export type DeleteProjectEnvironmentData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 环境ID
+         */
+        envId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}';
+};
+
+export type DeleteProjectEnvironmentResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type DeleteProjectEnvironmentResponse = DeleteProjectEnvironmentResponses[keyof DeleteProjectEnvironmentResponses];
+
+export type RenameProjectEnvironmentData = {
+    /**
+     * 新名称
+     */
+    body: RenameEnvReq;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 环境ID
+         */
+        envId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}';
+};
+
+export type RenameProjectEnvironmentResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type RenameProjectEnvironmentResponse = RenameProjectEnvironmentResponses[keyof RenameProjectEnvironmentResponses];
+
+export type ListEnvBindingsData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 环境ID
+         */
+        envId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings';
+};
+
+export type ListEnvBindingsResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type ListEnvBindingsResponse = ListEnvBindingsResponses[keyof ListEnvBindingsResponses];
+
+export type UpsertEnvBindingData = {
+    /**
+     * binding
+     */
+    body: UpsertBindingReq;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 环境ID
+         */
+        envId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings';
+};
+
+export type UpsertEnvBindingResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type UpsertEnvBindingResponse = UpsertEnvBindingResponses[keyof UpsertEnvBindingResponses];
+
+export type DeleteEnvBindingData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 环境ID
+         */
+        envId: number;
+        /**
+         * 别名
+         */
+        alias: string;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings/{alias}';
+};
+
+export type DeleteEnvBindingResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type DeleteEnvBindingResponse = DeleteEnvBindingResponses[keyof DeleteEnvBindingResponses];
+
+export type SetDefaultProjectEnvironmentData = {
+    body?: never;
+    path: {
+        /**
+         * 租户slug
+         */
+        slug: string;
+        /**
+         * 项目ID
+         */
+        projectId: number;
+        /**
+         * 环境ID
+         */
+        envId: number;
+    };
+    query?: never;
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/default';
+};
+
+export type SetDefaultProjectEnvironmentResponses = {
+    /**
+     * OK
+     */
+    200: R;
+};
+
+export type SetDefaultProjectEnvironmentResponse = SetDefaultProjectEnvironmentResponses[keyof SetDefaultProjectEnvironmentResponses];
 
 export type ListGroupsData = {
     body?: never;
@@ -1852,7 +2448,12 @@ export type ExportOpenApiData = {
          */
         projectId: number;
     };
-    query?: never;
+    query?: {
+        /**
+         * 环境名（默认: 项目默认 env）
+         */
+        env?: string;
+    };
     url: '/v1/tenants/{slug}/projects/{projectId}/openapi.json';
 };
 
@@ -1873,6 +2474,7 @@ export type TestQueryData = {
      */
     body: {
         endpoint_id?: number;
+        env_id?: number;
         ignore_scripts?: boolean;
         params?: {
             [key: string]: unknown;
@@ -2171,147 +2773,3 @@ export type UpdateUserRoleResponses = {
 };
 
 export type UpdateUserRoleResponse = UpdateUserRoleResponses[keyof UpdateUserRoleResponses];
-
-export type ExecuteQueryData = {
-    /**
-     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
-     */
-    body?: {
-        [key: string]: unknown;
-    };
-    path: {
-        /**
-         * 租户 slug
-         */
-        tenantSlug: string;
-        /**
-         * 项目 slug
-         */
-        projectSlug: string;
-        /**
-         * 接口路径（用户在项目中定义的路径）
-         */
-        path: string;
-    };
-    query?: never;
-    url: '/{tenantSlug}/{projectSlug}/{path}';
-};
-
-export type ExecuteQueryResponses = {
-    /**
-     * OK
-     */
-    200: {
-        [key: string]: unknown;
-    };
-};
-
-export type ExecuteQueryResponse = ExecuteQueryResponses[keyof ExecuteQueryResponses];
-
-export type ExecuteQuery2Data = {
-    /**
-     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
-     */
-    body?: {
-        [key: string]: unknown;
-    };
-    path: {
-        /**
-         * 租户 slug
-         */
-        tenantSlug: string;
-        /**
-         * 项目 slug
-         */
-        projectSlug: string;
-        /**
-         * 接口路径（用户在项目中定义的路径）
-         */
-        path: string;
-    };
-    query?: never;
-    url: '/{tenantSlug}/{projectSlug}/{path}';
-};
-
-export type ExecuteQuery2Responses = {
-    /**
-     * OK
-     */
-    200: {
-        [key: string]: unknown;
-    };
-};
-
-export type ExecuteQuery2Response = ExecuteQuery2Responses[keyof ExecuteQuery2Responses];
-
-export type ExecuteQuery3Data = {
-    /**
-     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
-     */
-    body?: {
-        [key: string]: unknown;
-    };
-    path: {
-        /**
-         * 租户 slug
-         */
-        tenantSlug: string;
-        /**
-         * 项目 slug
-         */
-        projectSlug: string;
-        /**
-         * 接口路径（用户在项目中定义的路径）
-         */
-        path: string;
-    };
-    query?: never;
-    url: '/{tenantSlug}/{projectSlug}/{path}';
-};
-
-export type ExecuteQuery3Responses = {
-    /**
-     * OK
-     */
-    200: {
-        [key: string]: unknown;
-    };
-};
-
-export type ExecuteQuery3Response = ExecuteQuery3Responses[keyof ExecuteQuery3Responses];
-
-export type ExecuteQuery4Data = {
-    /**
-     * 请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)
-     */
-    body?: {
-        [key: string]: unknown;
-    };
-    path: {
-        /**
-         * 租户 slug
-         */
-        tenantSlug: string;
-        /**
-         * 项目 slug
-         */
-        projectSlug: string;
-        /**
-         * 接口路径（用户在项目中定义的路径）
-         */
-        path: string;
-    };
-    query?: never;
-    url: '/{tenantSlug}/{projectSlug}/{path}';
-};
-
-export type ExecuteQuery4Responses = {
-    /**
-     * OK
-     */
-    200: {
-        [key: string]: unknown;
-    };
-};
-
-export type ExecuteQuery4Response = ExecuteQuery4Responses[keyof ExecuteQuery4Responses];

@@ -51,8 +51,17 @@ export async function apiRequest<T>(url: string, init?: RequestInit): Promise<T>
   return body.data as T
 }
 
-// 401 interceptor — redirect to login and stop the request chain
-client.interceptors.response.use((response) => {
+// Response interceptor.
+//
+// hey-api (0.13) with `responseStyle: 'data'` and no `throwOnError` returns
+// `undefined` silently when the HTTP response is non-2xx — and React Query v5
+// rejects any queryFn that resolves to undefined ("Query data cannot be
+// undefined."). To prevent that, this interceptor turns every non-OK response
+// into a thrown Error with the backend's `msg` field where available, so
+// failures always reach React Query as proper error states.
+client.interceptors.response.use(async (response) => {
+  if (response.ok) return response
+
   if (response.status === 401) {
     clearToken()
     localStorage.removeItem(STORAGE_KEYS.USER)
@@ -64,5 +73,13 @@ client.interceptors.response.use((response) => {
     }
     throw new Error('未授权，请重新登录')
   }
-  return response
+
+  let msg = `请求失败 (${response.status})`
+  try {
+    const body = await response.clone().json() as { msg?: string }
+    if (body?.msg) msg = body.msg
+  } catch {
+    // not JSON — keep the generic status message
+  }
+  throw new Error(msg)
 })

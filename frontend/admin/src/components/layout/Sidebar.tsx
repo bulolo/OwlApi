@@ -16,11 +16,23 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useUIStore } from "@/store/useUIStore"
+import { useIsCompactViewport } from "@/hooks/useIsCompactViewport"
+import { useEdition } from "@/hooks/useEdition"
 import pkg from "../../../package.json"
 
 export function Sidebar({ slug }: { slug?: string }) {
   const { sidebarCollapsed, setSidebarCollapsed } = useUIStore()
-  const collapsed = sidebarCollapsed
+  // 小屏（< lg, 1024px）强制折叠：保留侧边栏可见，但只显示图标，避免用户无路可走
+  const isCompact = useIsCompactViewport()
+  const collapsed = sidebarCollapsed || isCompact
+  const { isEnterprise, isLicensed } = useEdition()
+  // 三态：CE / EE·授权 / EE·未授权（橙色提醒）
+  const editionLabel = !isEnterprise ? "CE" : isLicensed ? "EE" : "EE·未授权"
+  const editionTone = !isEnterprise
+    ? "bg-zinc-50 text-muted-foreground border-border-subtle"
+    : isLicensed
+      ? "bg-violet-50 text-violet-700 border-violet-200"
+      : "bg-amber-50 text-amber-700 border-amber-200"
 
   const activeTenant = slug ?? ""
 
@@ -49,7 +61,7 @@ export function Sidebar({ slug }: { slug?: string }) {
 
   return (
     <aside className={cn(
-      "bg-white border-r border-border-subtle fixed h-full z-40 hidden lg:flex flex-col transition-all duration-300",
+      "bg-white border-r border-border-subtle fixed h-full z-40 flex flex-col transition-all duration-300",
       collapsed ? "w-[60px]" : "w-56"
     )}>
       {/* Brand */}
@@ -97,12 +109,16 @@ export function Sidebar({ slug }: { slug?: string }) {
           <span className="px-1.5 py-0.5 bg-primary/10 text-primary/80 rounded-full text-2xs font-bold border border-primary/20">
             v{pkg.version}
           </span>
-          <button
-            onClick={() => setSidebarCollapsed(false)}
-            className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
-          >
-            <PanelLeftOpen className="w-4 h-4" />
-          </button>
+          {/* 小屏强制 collapsed，不允许手动展开（点了也没用） */}
+          {!isCompact && (
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+              title="展开侧边栏"
+            >
+              <PanelLeftOpen className="w-4 h-4" />
+            </button>
+          )}
         </div>
       ) : (
         <div className="mt-auto px-4 py-5 space-y-5">
@@ -129,8 +145,14 @@ export function Sidebar({ slug }: { slug?: string }) {
             <div className="flex items-center justify-between px-1">
               <span className="text-2xs font-bold tracking-wider text-zinc-300 uppercase">OwlAPI</span>
               <div className="flex items-center gap-1.5">
-                <span className="px-2 py-0.5 rounded-full text-2xs font-bold tracking-wide border shadow-sm bg-zinc-50 text-muted-foreground border-border-subtle">
-                  CE
+                <span
+                  className={cn(
+                    "px-2 py-0.5 rounded-full text-2xs font-bold tracking-wide border shadow-sm",
+                    editionTone,
+                  )}
+                  title={isEnterprise && !isLicensed ? "Enterprise 构建但 license 未通过校验，EE 功能已回退到 CE 行为" : undefined}
+                >
+                  {editionLabel}
                 </span>
                 <span className="px-2 py-0.5 bg-primary/10 text-primary/80 rounded-full text-2xs font-bold border border-primary/20 shadow-sm">
                   v{pkg.version}

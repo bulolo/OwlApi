@@ -2,29 +2,27 @@ basePath: /
 definitions:
   domain.APIEndpoint:
     properties:
-      active_version:
-        description: current live version number (0 if not published)
-        type: integer
       created_at:
         type: string
-      datasource_id:
-        type: integer
+      datasource_alias:
+        type: string
       description:
         type: string
+      env_activations:
+        description: per-env active version snapshot (one row per env where this endpoint
+          is live)
+        items:
+          $ref: '#/definitions/domain.EndpointEnvActivity'
+        type: array
       group_id:
         type: integer
       has_draft:
-        description: true iff updated_at > activated_at (or not published yet but
-          at least one version exists)
+        description: 'Derived/computed fields (not stored on the row itself):'
         type: boolean
       id:
         type: integer
-      is_published:
-        description: 'Derived/computed fields (not stored on the row itself):'
-        type: boolean
       latest_version:
         description: newest version number in endpoint_versions for this endpoint
-          (0 if no versions)
         type: integer
       methods:
         items:
@@ -55,6 +53,17 @@ definitions:
       updated_at:
         type: string
     type: object
+  domain.EndpointEnvActivity:
+    properties:
+      env_id:
+        type: integer
+      env_name:
+        type: string
+      version:
+        type: integer
+      version_id:
+        type: integer
+    type: object
   domain.ParamDef:
     properties:
       default:
@@ -83,22 +92,22 @@ definitions:
     type: object
   http.APIEndpointResp:
     properties:
-      active_version:
-        type: integer
       created_at:
         type: string
-      datasource_id:
-        type: integer
+      datasource_alias:
+        type: string
       description:
         type: string
+      env_activations:
+        items:
+          $ref: '#/definitions/http.EndpointEnvActivityResp'
+        type: array
       group_id:
         type: integer
       has_draft:
         type: boolean
       id:
         type: integer
-      is_published:
-        type: boolean
       latest_version:
         type: integer
       methods:
@@ -131,11 +140,10 @@ definitions:
         type: string
     required:
     - created_at
-    - datasource_id
+    - datasource_alias
     - group_id
     - has_draft
     - id
-    - is_published
     - methods
     - params
     - path
@@ -194,24 +202,6 @@ definitions:
     - token
     - user
     type: object
-  http.DataSourceEnvResp:
-    properties:
-      datasource_id:
-        type: integer
-      dsn:
-        type: string
-      env:
-        type: string
-      gateway_id:
-        type: integer
-      id:
-        type: integer
-    required:
-    - datasource_id
-    - env
-    - gateway_id
-    - id
-    type: object
   http.DataSourceListResp:
     properties:
       list:
@@ -226,29 +216,21 @@ definitions:
     type: object
   http.DataSourceRefResp:
     properties:
-      id:
-        type: integer
-      name:
-        type: string
-      type:
+      alias:
         type: string
     required:
-    - id
-    - name
-    - type
+    - alias
     type: object
   http.DataSourceResp:
     properties:
       created_at:
         type: string
-      envs:
-        items:
-          $ref: '#/definitions/http.DataSourceEnvResp'
-        type: array
+      dsn:
+        type: string
+      gateway_id:
+        type: integer
       id:
         type: integer
-      is_dual:
-        type: boolean
       is_platform:
         type: boolean
       name:
@@ -259,8 +241,8 @@ definitions:
         type: string
     required:
     - created_at
+    - gateway_id
     - id
-    - is_dual
     - is_platform
     - name
     - tenant_id
@@ -281,23 +263,24 @@ definitions:
   http.EndpointActivationLogResp:
     properties:
       action:
-        description: publish / activate / rollback / unpublish
         type: string
       actor_id:
         type: integer
       actor_name:
-        description: 操作人显示名；空 = 系统
         type: string
       at:
         type: string
       endpoint_id:
         type: integer
+      env_id:
+        type: integer
+      env_name:
+        type: string
       id:
         type: integer
       tenant_id:
         type: integer
       version:
-        description: 版本号 (vN)，便于直接展示
         type: integer
       version_id:
         type: integer
@@ -327,6 +310,10 @@ definitions:
         type: string
       endpoint_id:
         type: integer
+      env_id:
+        type: integer
+      env_name:
+        type: string
       error:
         type: string
       id:
@@ -361,6 +348,22 @@ definitions:
     - path
     - status
     - tenant_id
+    type: object
+  http.EndpointEnvActivityResp:
+    properties:
+      env_id:
+        type: integer
+      env_name:
+        type: string
+      version:
+        type: integer
+      version_id:
+        type: integer
+    required:
+    - env_id
+    - env_name
+    - version
+    - version_id
     type: object
   http.EndpointVersionListResp:
     properties:
@@ -453,6 +456,22 @@ definitions:
     - name
     - status
     - version
+    type: object
+  http.HealthResp:
+    properties:
+      edition:
+        description: '"community" | "enterprise"'
+        type: string
+      is_licensed:
+        description: EE 模式下 license 是否已通过校验
+        type: boolean
+      status:
+        description: '"ok"'
+        type: string
+    required:
+    - edition
+    - is_licensed
+    - status
     type: object
   http.PaginationInfo:
     properties:
@@ -700,6 +719,19 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/http.GatewayListResp'
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  http.RHealth:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.HealthResp'
       msg:
         type: string
     required:
@@ -972,52 +1004,10 @@ definitions:
     type: object
   http.createDataSourceReq:
     properties:
-      envs:
-        items:
-          $ref: '#/definitions/http.dsEnvReq'
-        minItems: 1
-        type: array
-      is_dual:
-        type: boolean
-      name:
-        type: string
-      type:
-        enum:
-        - mysql
-        - postgres
-        - sqlserver
-        - starrocks
-        - doris
-        - sqlite
-        type: string
-    required:
-    - envs
-    - name
-    - type
-    type: object
-  http.dsEnvReq:
-    properties:
       dsn:
-        type: string
-      env:
-        enum:
-        - dev
-        - prod
         type: string
       gateway_id:
         type: integer
-    required:
-    - env
-    - gateway_id
-    type: object
-  http.updateDataSourceReq:
-    properties:
-      envs:
-        items:
-          $ref: '#/definitions/http.dsEnvReq'
-        type: array
-      is_dual:
-        type: boolean
       name:
         type: string
       type:
@@ -1029,20 +1019,88 @@ definitions:
         - doris
         - sqlite
         type: string
+    required:
+    - dsn
+    - gateway_id
+    - name
+    - type
+    type: object
+  http.createEnvReq:
+    properties:
+      copy_bindings:
+        type: boolean
+      copy_from_env_id:
+        type: integer
+      is_default:
+        type: boolean
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  http.renameAliasReq:
+    properties:
+      new_alias:
+        type: string
+      old_alias:
+        type: string
+    required:
+    - new_alias
+    - old_alias
+    type: object
+  http.renameEnvReq:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  http.updateDataSourceReq:
+    properties:
+      dsn:
+        type: string
+      gateway_id:
+        type: integer
+      name:
+        type: string
+      type:
+        enum:
+        - mysql
+        - postgres
+        - sqlserver
+        - starrocks
+        - doris
+        - sqlite
+        type: string
+    type: object
+  http.upsertBindingReq:
+    properties:
+      alias:
+        type: string
+      datasource_id:
+        type: integer
+    required:
+    - alias
+    - datasource_id
     type: object
 host: localhost:3000
 info:
   contact: {}
   description: 企业级 SQL to API 智能网关平台管理接口
   title: OwlApi Control Plane
-  version: 0.1.9
+  version: 0.2.0
 paths:
-  /{tenantSlug}/{projectSlug}/{path}:
+  /-/{env}/{tenantSlug}/{projectSlug}/{path}:
     delete:
       consumes:
       - application/json
       operationId: executeQuery
       parameters:
+      - description: 环境名（项目级，例如 prod / dev / staging）
+        in: path
+        name: env
+        required: true
+        type: string
       - description: 租户 slug
         in: path
         name: tenantSlug
@@ -1078,6 +1136,11 @@ paths:
       - application/json
       operationId: executeQuery
       parameters:
+      - description: 环境名（项目级，例如 prod / dev / staging）
+        in: path
+        name: env
+        required: true
+        type: string
       - description: 租户 slug
         in: path
         name: tenantSlug
@@ -1113,6 +1176,11 @@ paths:
       - application/json
       operationId: executeQuery
       parameters:
+      - description: 环境名（项目级，例如 prod / dev / staging）
+        in: path
+        name: env
+        required: true
+        type: string
       - description: 租户 slug
         in: path
         name: tenantSlug
@@ -1148,6 +1216,11 @@ paths:
       - application/json
       operationId: executeQuery
       parameters:
+      - description: 环境名（项目级，例如 prod / dev / staging）
+        in: path
+        name: env
+        required: true
+        type: string
       - description: 租户 slug
         in: path
         name: tenantSlug
@@ -1178,6 +1251,20 @@ paths:
       summary: 执行已发布的 API 接口
       tags:
       - gateway
+  /health:
+    get:
+      description: 公开接口，返回服务状态、当前 edition (community/enterprise) 与 license 状态
+      operationId: health
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RHealth'
+      summary: 健康检查 / 版本信息
+      tags:
+      - meta
   /v1/auth/change-password:
     put:
       consumes:
@@ -2011,6 +2098,66 @@ paths:
       summary: 更新项目
       tags:
       - project
+  /v1/tenants/{slug}/projects/{projectId}/aliases/rename:
+    post:
+      consumes:
+      - application/json
+      operationId: renameProjectAlias
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: old/new alias
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.renameAliasReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 跨 env 重命名 alias
+      tags:
+      - environment
+  /v1/tenants/{slug}/projects/{projectId}/bindings:
+    get:
+      operationId: listProjectBindings
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 获取项目所有 env 的 alias 绑定（用于编辑器解析弹窗）
+      tags:
+      - environment
   /v1/tenants/{slug}/projects/{projectId}/endpoints:
     get:
       operationId: listEndpoints
@@ -2074,8 +2221,8 @@ paths:
         required: true
         schema:
           properties:
-            datasource_id:
-              type: integer
+            datasource_alias:
+              type: string
             description:
               type: string
             group_id:
@@ -2163,8 +2310,8 @@ paths:
         name: body
         schema:
           properties:
-            datasource_id:
-              type: integer
+            datasource_alias:
+              type: string
             description:
               type: string
             group_id:
@@ -2232,7 +2379,38 @@ paths:
             $ref: '#/definitions/http.REndpointActivationLogList'
       security:
       - BearerAuth: []
-      summary: 查询接口激活流水（谁、何时、做了什么）
+      summary: 查询接口激活流水
+      tags:
+      - endpoint-version
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/actives:
+    get:
+      operationId: listEndpointActives
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 列出该接口在各 env 的当前激活版本（per-env 激活快照）
       tags:
       - endpoint-version
   /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/call-logs:
@@ -2287,6 +2465,50 @@ paths:
       summary: 查询接口调用日志
       tags:
       - endpoint-call-log
+  /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/promote:
+    post:
+      consumes:
+      - application/json
+      operationId: promoteEndpointVersion
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: promote 参数
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            source_env_id:
+              type: integer
+            target_env_id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 把 source env 当前激活版本提升到 target env（无需新建 version）
+      tags:
+      - endpoint-version
   /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/publish:
     post:
       consumes:
@@ -2308,6 +2530,14 @@ paths:
         name: endpointId
         required: true
         type: integer
+      - description: 环境名（默认为项目默认 env）
+        in: query
+        name: env
+        type: string
+      - description: 环境ID（优先于 env）
+        in: query
+        name: env_id
+        type: integer
       - description: 版本说明
         in: body
         name: body
@@ -2325,12 +2555,11 @@ paths:
             $ref: '#/definitions/http.REndpointVersion'
       security:
       - BearerAuth: []
-      summary: 发布接口（创建版本 + 激活，一键上线）
+      summary: 在某 env 发布接口（创建版本 + 激活）
       tags:
       - endpoint-version
   /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/revert:
     post:
-      description: 把 api_endpoints 草稿恢复成当前激活版本的内容；操作后 has_draft 立即变 false
       operationId: revertEndpointToActive
       parameters:
       - description: 租户slug
@@ -2348,6 +2577,14 @@ paths:
         name: endpointId
         required: true
         type: integer
+      - description: 环境名
+        in: query
+        name: env
+        type: string
+      - description: 环境ID
+        in: query
+        name: env_id
+        type: integer
       produces:
       - application/json
       responses:
@@ -2357,7 +2594,7 @@ paths:
             $ref: '#/definitions/http.R'
       security:
       - BearerAuth: []
-      summary: 还原到线上版本（丢弃所有未发布修改）
+      summary: 还原草稿到某 env 的当前激活版本（丢弃未发布修改）
       tags:
       - endpoint-version
   /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/unpublish:
@@ -2379,6 +2616,14 @@ paths:
         name: endpointId
         required: true
         type: integer
+      - description: 环境名
+        in: query
+        name: env
+        type: string
+      - description: 环境ID
+        in: query
+        name: env_id
+        type: integer
       produces:
       - application/json
       responses:
@@ -2388,7 +2633,7 @@ paths:
             $ref: '#/definitions/http.R'
       security:
       - BearerAuth: []
-      summary: 下线接口（删除激活指针）
+      summary: 在某 env 下线接口（清掉该 env 的激活指针）
       tags:
       - endpoint-version
   /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/versions:
@@ -2467,12 +2712,12 @@ paths:
             $ref: '#/definitions/http.REndpointVersion'
       security:
       - BearerAuth: []
-      summary: 创建版本快照（不激活）
+      summary: 创建版本快照（不激活任何 env）
       tags:
       - endpoint-version
   /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/versions/{versionId}:
     delete:
-      description: 受三道护栏保护：不能删 active、不能删唯一版本、删除事件本身会写入流水
+      description: 任何 env 仍激活该版本时不可删除
       operationId: deleteEndpointVersion
       parameters:
       - description: 租户slug
@@ -2531,6 +2776,14 @@ paths:
         name: versionId
         required: true
         type: integer
+      - description: 环境名
+        in: query
+        name: env
+        type: string
+      - description: 环境ID
+        in: query
+        name: env_id
+        type: integer
       produces:
       - application/json
       responses:
@@ -2540,9 +2793,273 @@ paths:
             $ref: '#/definitions/http.R'
       security:
       - BearerAuth: []
-      summary: 激活指定版本（=回滚 / 切换到此版本）
+      summary: 在某 env 激活指定版本（=切换 / 回滚）
       tags:
       - endpoint-version
+  /v1/tenants/{slug}/projects/{projectId}/environments:
+    get:
+      operationId: listProjectEnvironments
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 获取项目环境列表
+      tags:
+      - environment
+    post:
+      consumes:
+      - application/json
+      operationId: createProjectEnvironment
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 环境信息
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.createEnvReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 创建项目环境
+      tags:
+      - environment
+  /v1/tenants/{slug}/projects/{projectId}/environments/{envId}:
+    delete:
+      operationId: deleteProjectEnvironment
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 环境ID
+        in: path
+        name: envId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除环境
+      tags:
+      - environment
+    put:
+      consumes:
+      - application/json
+      operationId: renameProjectEnvironment
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 环境ID
+        in: path
+        name: envId
+        required: true
+        type: integer
+      - description: 新名称
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.renameEnvReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 重命名环境
+      tags:
+      - environment
+  /v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings:
+    get:
+      operationId: listEnvBindings
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 环境ID
+        in: path
+        name: envId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 获取单个环境的 binding 列表
+      tags:
+      - environment
+    post:
+      consumes:
+      - application/json
+      operationId: upsertEnvBinding
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 环境ID
+        in: path
+        name: envId
+        required: true
+        type: integer
+      - description: binding
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/http.upsertBindingReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 新增/更新一个 alias 绑定
+      tags:
+      - environment
+  /v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings/{alias}:
+    delete:
+      operationId: deleteEnvBinding
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 环境ID
+        in: path
+        name: envId
+        required: true
+        type: integer
+      - description: 别名
+        in: path
+        name: alias
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除一个 alias 绑定
+      tags:
+      - environment
+  /v1/tenants/{slug}/projects/{projectId}/environments/{envId}/default:
+    post:
+      operationId: setDefaultProjectEnvironment
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 环境ID
+        in: path
+        name: envId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 设置默认环境
+      tags:
+      - environment
   /v1/tenants/{slug}/projects/{projectId}/groups:
     get:
       operationId: listGroups
@@ -2711,6 +3228,10 @@ paths:
         name: projectId
         required: true
         type: integer
+      - description: '环境名（默认: 项目默认 env）'
+        in: query
+        name: env
+        type: string
       produces:
       - application/json
       responses:
@@ -2720,7 +3241,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: 导出项目 OpenAPI 规范
+      summary: 导出项目 OpenAPI 规范（按指定 env 导出；默认导出 default env）
       tags:
       - project
   /v1/tenants/{slug}/query/test:
@@ -2742,6 +3263,8 @@ paths:
           properties:
             endpoint_id:
               type: integer
+            env_id:
+              type: integer
             ignore_scripts:
               type: boolean
             params:
@@ -2756,7 +3279,7 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: 测试执行 API 端点
+      summary: 测试执行 API 端点（按指定 env 解析数据源）
       tags:
       - query
   /v1/tenants/{slug}/scripts:

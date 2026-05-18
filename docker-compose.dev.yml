@@ -13,12 +13,9 @@ services:
     volumes:
       - ./backend:/app
       - /app/tmp # Mount tmp as anonymous volume to avoid host permission issues and conflicts
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
-      - OWLAPI_HTTP_PORT=:3000
-      - OWLAPI_JWT_SECRET=dev-secret-do-not-use-in-production
-      - TZ=Asia/Shanghai
-      - GOPROXY=https://goproxy.cn,direct
+    # 所有 backend 服务环境变量统一从 backend/.env 读取——单一来源、好维护
+    env_file:
+      - ./backend/.env
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
       interval: 10s
@@ -64,13 +61,9 @@ services:
       - ./backend:/app
       - /app/tmp
       - gateway_data:/data
-    environment:
-      - OWLAPI_SERVER_URL=dns:///backend:9090
-      - OWLAPI_GATEWAY_ID=1
-      - OWLAPI_GATEWAY_TOKEN=gw_29a08942fd727da982fc56b3c750b643
-      - OWLAPI_TENANT_ID=1
-      - TZ=Asia/Shanghai
-      - GOPROXY=https://goproxy.cn,direct
+    # gateway 用到的 OWLAPI_SERVER_URL / GATEWAY_ID / TOKEN / TENANT_ID / TZ / GOPROXY 都已在 backend/.env
+    env_file:
+      - ./backend/.env
     depends_on:
       backend:
         condition: service_healthy
@@ -106,10 +99,8 @@ services:
     command: go run cmd/init/main.go
     volumes:
       - ./backend:/app
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/owlapi?sslmode=disable
-      - OWLAPI_GATEWAY_TOKEN=gw_29a08942fd727da982fc56b3c750b643
-      - GOPROXY=https://goproxy.cn,direct
+    env_file:
+      - ./backend/.env
     depends_on:
       postgres:
         condition: service_healthy

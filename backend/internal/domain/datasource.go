@@ -26,39 +26,27 @@ func (t DbType) IsValid() bool {
 	return false
 }
 
-// DataSource is a tenant-scoped database connection configuration that may
-// carry separate dev and prod environments.
+// DataSource is a tenant-scoped database connection — a single physical connection.
+// Multi-environment support lives at the project layer (project_environments +
+// endpoint_datasource_bindings), so the same logical database in dev/prod becomes
+// two independent DataSource rows.
 type DataSource struct {
-	ID         int64            `json:"id"`
-	TenantID   int64            `json:"tenant_id"`
-	Name       string           `json:"name"`
-	IsDual     bool             `json:"is_dual"`
-	IsPlatform bool             `json:"is_platform"`
-	Type       string           `json:"type"`
-	Envs       []*DataSourceEnv `json:"envs,omitempty"`
-	CreatedAt  time.Time        `json:"created_at"`
+	ID         int64     `json:"id"`
+	TenantID   int64     `json:"tenant_id"`
+	Name       string    `json:"name"`
+	IsPlatform bool      `json:"is_platform"`
+	Type       string    `json:"type"`
+	DSN        string    `json:"dsn,omitempty"`
+	GatewayID  int64     `json:"gateway_id"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
-// MaskEnvs returns a shallow copy of ds with all DSN passwords replaced by
-// "****". Use this before writing ds into an HTTP response.
-func (ds *DataSource) MaskEnvs() *DataSource {
-	masked := *ds
-	masked.Envs = make([]*DataSourceEnv, len(ds.Envs))
-	for i, e := range ds.Envs {
-		me := *e
-		me.DSN = maskDSN(e.DSN)
-		masked.Envs[i] = &me
-	}
-	return &masked
-}
-
-// DataSourceEnv holds connection details for one environment (dev or prod).
-type DataSourceEnv struct {
-	ID           int64  `json:"id"`
-	DataSourceID int64  `json:"datasource_id"`
-	Env          string `json:"env"` // "dev" | "prod"
-	DSN          string `json:"dsn,omitempty"`
-	GatewayID    int64  `json:"gateway_id"`
+// Masked returns a copy of ds with the DSN password replaced by "****".
+// Use this before writing ds into an HTTP response.
+func (ds *DataSource) Masked() *DataSource {
+	m := *ds
+	m.DSN = maskDSN(ds.DSN)
+	return &m
 }
 
 // maskDSN replaces the password segment of any supported DSN format with "****".
@@ -66,12 +54,10 @@ func maskDSN(dsn string) string {
 	if dsn == "" {
 		return ""
 	}
-	// URL-style: postgres://, postgresql://, sqlserver://
 	if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") ||
 		strings.HasPrefix(dsn, "sqlserver://") {
 		return maskURLPassword(dsn)
 	}
-	// go-sql-driver style: user:password@tcp(host)/db
 	atIdx := strings.LastIndex(dsn, "@")
 	if atIdx < 0 {
 		return dsn
@@ -85,7 +71,6 @@ func maskDSN(dsn string) string {
 	return creds[:colonIdx+1] + "****" + rest
 }
 
-// maskURLPassword replaces the password in a URL-style DSN (scheme://user:pass@host…).
 func maskURLPassword(rawURL string) string {
 	schemeEnd := strings.Index(rawURL, "://")
 	if schemeEnd < 0 {

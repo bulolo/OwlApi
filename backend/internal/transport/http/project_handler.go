@@ -8,7 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type ProjectHandler struct{ projects service.ProjectService }
+type ProjectHandler struct {
+	projects service.ProjectService
+	envs     service.EnvironmentService
+}
 
 // HandleList godoc
 // @Summary 获取项目列表
@@ -59,6 +62,12 @@ func (h *ProjectHandler) HandleCreate(c *gin.Context) {
 	}
 	p := &domain.Project{TenantID: tenant.ID, Slug: req.Slug, Name: req.Name, Description: req.Description, Avatar: req.Avatar}
 	if err := h.projects.Create(c.Request.Context(), p); err != nil {
+		FailErr(c, err)
+		return
+	}
+	// Materialize a default "prod" env immediately so the project is usable
+	// (env is mandatory in the call-time URL pattern).
+	if _, err := h.envs.CreateInitial(c.Request.Context(), tenant.ID, p.ID); err != nil {
 		FailErr(c, err)
 		return
 	}

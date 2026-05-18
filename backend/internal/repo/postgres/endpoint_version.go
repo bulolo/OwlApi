@@ -65,22 +65,20 @@ func (r *EndpointVersionRepo) GetByVersion(ctx context.Context, tenantID, endpoi
 }
 
 func (r *EndpointVersionRepo) ListByEndpoint(ctx context.Context, tenantID, endpointID int64, p domain.ListParams) ([]*domain.EndpointVersion, int, error) {
-	where := "WHERE ev.tenant_id=$1 AND ev.endpoint_id=$2"
+	where := "WHERE tenant_id=$1 AND endpoint_id=$2"
 	args := []interface{}{tenantID, endpointID}
 
 	var total int
-	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM endpoint_versions ev `+where, args...).Scan(&total); err != nil {
+	if err := r.DB.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM endpoint_versions `+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	pgSuffix, pgArgs := appendPagination(p, 3, args)
-	// LEFT JOIN endpoint_active_version to compute is_active in one shot.
+	// Per-env activation is tracked separately (endpoint_active_version has
+	// (tenant_id, endpoint_id, env_id) as PK). We deliberately do NOT join it
+	// here — a version active in multiple envs would multiply rows. Callers
+	// that need activation info use ListActiveByEndpoint and overlay client-side.
 	rows, err := r.DB.Pool.Query(ctx,
-		fmt.Sprintf(`SELECT ev.id, ev.tenant_id, ev.endpoint_id, ev.version, ev.snapshot, ev.snapshot_v, ev.pre_script_snapshot, ev.post_script_snapshot, ev.datasource_ref, ev.note, ev.created_by, ev.created_at,
-			   (eav.version_id = ev.id) AS is_active
-		FROM endpoint_versions ev
-		LEFT JOIN endpoint_active_version eav
-		  ON eav.tenant_id = ev.tenant_id AND eav.endpoint_id = ev.endpoint_id
-		%s ORDER BY ev.version DESC%s`, where, pgSuffix),
+		fmt.Sprintf(`SELECT %s FROM endpoint_versions %s ORDER BY version DESC%s`, evCols, where, pgSuffix),
 		pgArgs...)
 	if err != nil {
 		return nil, 0, err
@@ -88,7 +86,7 @@ func (r *EndpointVersionRepo) ListByEndpoint(ctx context.Context, tenantID, endp
 	defer rows.Close()
 	var list []*domain.EndpointVersion
 	for rows.Next() {
-		v, err := scanVersionWithActive(rows.Scan)
+		v, err := scanVersion(rows.Scan)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -165,21 +163,6 @@ func scanVersion(scan func(dest ...any) error) (*domain.EndpointVersion, error) 
 		return nil, err
 	}
 	hydrateVersionPayloads(&v, snapJSON, preJSON, postJSON, dsJSON)
-	return &v, nil
-}
-
-func scanVersionWithActive(scan func(dest ...any) error) (*domain.EndpointVersion, error) {
-	var v domain.EndpointVersion
-	var snapJSON, preJSON, postJSON, dsJSON []byte
-	var isActive *bool
-	err := scan(&v.ID, &v.TenantID, &v.EndpointID, &v.Version, &snapJSON, &v.SnapshotV, &preJSON, &postJSON, &dsJSON, &v.Note, &v.CreatedBy, &v.CreatedAt, &isActive)
-	if err != nil {
-		return nil, err
-	}
-	hydrateVersionPayloads(&v, snapJSON, preJSON, postJSON, dsJSON)
-	if isActive != nil {
-		v.IsActive = *isActive
-	}
 	return &v, nil
 }
 

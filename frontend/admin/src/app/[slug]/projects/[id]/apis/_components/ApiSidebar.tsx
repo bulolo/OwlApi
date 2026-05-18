@@ -3,12 +3,12 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, ChevronRight, Search, Trash2, PanelLeftClose, PanelLeftOpen, FileCode, Folder, FolderPlus, MoreVertical, Edit3, WifiOff } from "lucide-react"
+import { Plus, ChevronRight, Search, Trash2, PanelLeftClose, PanelLeftOpen, FileCode, Folder, FolderPlus, MoreVertical, Edit3 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useTenantProject } from "../_hooks/useTenantProject"
-import { useEndpointsQuery, useDeleteEndpoint, useUnpublishEndpointMutation, useUpdateEndpointGroup } from "../_hooks/useEndpointsQuery"
+import { useEndpointsQuery, useDeleteEndpoint, useUpdateEndpointGroup } from "../_hooks/useEndpointsQuery"
 import { useGroupsQuery, useDeleteGroup } from "../_hooks/useGroupsQuery"
 import { showConfirm } from "@/store/useConfirmStore"
 import type { ApiEndpoint, ApiGroup, HttpMethod } from "../_types"
@@ -183,8 +183,6 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
                             key={ep.id || `new-${idx}`}
                             ep={ep}
                             isSelected={selectedId === ep.id}
-                            slug={activeTenant}
-                            projectId={projectId}
                             onSelect={() => onSelectEndpoint(ep)}
                             onDelete={() => handleDelete(ep)}
                           />
@@ -215,46 +213,38 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
   )
 }
 
+/**
+ * 聚合所有 env 的状态：
+ *   - 任意 env 已激活 + 草稿有改动 → amber (有未发布修改)
+ *   - 任意 env 已激活 + latest 版本未上线 → primary (新版本待上线)
+ *   - 任意 env 已激活 → emerald (健康)
+ *   - 有版本但所有 env 都未激活 → zinc (草稿/已下线)
+ *   - 从未发版 → amber-dim
+ */
 function StatusDot({ ep }: { ep: ApiEndpoint }) {
-  // 5 色状态点（颜色映射跟编辑器顶栏 StatusBadge 保持一致）：
-  //   emerald — 已发布且与最新版本一致
-  //   amber   — 已发布，但草稿有未发布修改
-  //   primary — 已发布，且有更新的版本（vM）等待激活
-  //   zinc    — 已下线（有版本但无激活指针）
-  //   amber-dim — 全新接口（从未发布过）
-  const active = ep.active_version ?? 0
+  const anyActive = (ep.env_activations?.length ?? 0) > 0
   const latest = ep.latest_version ?? 0
-  const isPublished = ep.is_published
-  const hasPending = isPublished && !ep.has_draft && latest > active
+  const maxActive = (ep.env_activations ?? []).reduce((max, a) => Math.max(max, a.version), 0)
+  const hasPending = anyActive && !ep.has_draft && latest > maxActive
 
   const color =
-    !isPublished
-      ? latest > 0 ? "bg-zinc-400"        // 已下线
-      : "bg-amber-400"                     // 未发布过（草稿）
-    : ep.has_draft  ? "bg-amber-500"       // 有未发布修改
-    : hasPending    ? "bg-primary"         // v待上线
-    : "bg-emerald-500"                     // 完美态
+    !anyActive
+      ? latest > 0 ? "bg-zinc-400"
+      : "bg-amber-400"
+    : ep.has_draft  ? "bg-amber-500"
+    : hasPending    ? "bg-primary"
+    : "bg-emerald-500"
 
   return <span className={cn("shrink-0 w-1.5 h-1.5 rounded-full", color)} />
 }
 
-function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
+function EndpointItem({ ep, isSelected, onSelect, onDelete }: {
   ep: ApiEndpoint
   isSelected: boolean
-  slug: string
-  projectId: string
   onSelect: () => void
   onDelete: () => void
 }) {
-  // 发布相关的主操作搬到编辑器顶栏；侧边栏只保留"下线 + 删除"。
-  const unpublish = useUnpublishEndpointMutation(slug, projectId, ep.id ?? 0)
-  const canUnpublish = ep.is_published
-
-  async function handleUnpublish(e: React.MouseEvent) {
-    e.stopPropagation()
-    const ok = await showConfirm(`确认将「${ep.path ?? ""}」下线？下线后调用方会收到 404。`, "下线")
-    if (ok) unpublish.mutate()
-  }
+  const isPublishedAnywhere = (ep.env_activations?.length ?? 0) > 0
 
   return (
     <div
@@ -277,20 +267,12 @@ function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
       )}>
         {ep.path ?? ""}
       </span>
-      {ep.is_published && ep.has_draft && (
+      {isPublishedAnywhere && ep.has_draft && (
         <span
           className="shrink-0 text-2xs font-black px-1.5 py-0.5 rounded bg-amber-50 text-amber-500 border border-amber-200 leading-tight"
           title="草稿有未发布修改"
         >
           NEW
-        </span>
-      )}
-      {ep.is_published && !ep.has_draft && (ep.latest_version ?? 0) > (ep.active_version ?? 0) && (
-        <span
-          className="shrink-0 text-2xs font-black px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/30 leading-tight"
-          title={`v${ep.latest_version} 已创建但未上线`}
-        >
-          v{ep.latest_version}
         </span>
       )}
       <DropdownMenu>
@@ -302,21 +284,15 @@ function EndpointItem({ ep, isSelected, slug, projectId, onSelect, onDelete }: {
             <MoreVertical className="w-3.5 h-3.5" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-36 rounded-lg shadow-modal border-border p-1">
-          {canUnpublish && (
-            <DropdownMenuItem onClick={handleUnpublish} className="text-xs font-medium py-2 rounded-md text-zinc-600">
-              <WifiOff className="w-3.5 h-3.5 mr-2 text-muted-foreground" /> 下线
-            </DropdownMenuItem>
-          )}
-          {canUnpublish && <DropdownMenuSeparator />}
+        <DropdownMenuContent align="end" className="w-44 rounded-lg shadow-modal border-border p-1">
           <DropdownMenuItem
-            // 上线中的接口禁止删除——必须先下线（前端守卫；后端 service 也有同样的检查）
-            disabled={ep.is_published}
+            // 任何 env 上线中都禁止删除——必须先全部下线（在版本管理里做）。
+            disabled={isPublishedAnywhere}
             onClick={e => { e.stopPropagation(); onDelete() }}
             className="text-xs font-medium py-2 rounded-md text-red-600 focus:text-red-900 focus:bg-red-50 data-[disabled]:text-zinc-300 data-[disabled]:cursor-not-allowed"
-            title={ep.is_published ? "请先下线接口再删除" : undefined}
+            title={isPublishedAnywhere ? "请先在版本管理里把所有 env 下线" : undefined}
           >
-            <Trash2 className="w-3.5 h-3.5 mr-2" /> 删除{ep.is_published ? "（请先下线）" : ""}
+            <Trash2 className="w-3.5 h-3.5 mr-2" /> 删除{isPublishedAnywhere ? "（先下线）" : ""}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

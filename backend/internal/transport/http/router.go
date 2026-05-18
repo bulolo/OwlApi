@@ -14,6 +14,7 @@ type App struct {
 	Gateway          service.GatewayAdminService
 	GatewayBroker    service.GatewayBroker
 	DataSource       service.DataSourceService
+	Environment      service.EnvironmentService
 	Project          service.ProjectService
 	Endpoint         service.APIEndpointService
 	Version          service.EndpointVersionService
@@ -32,16 +33,17 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	tenantH := &TenantHandler{tenants: a.Tenant}
 	tuH := &TenantUserHandler{tenantUsers: a.TenantUser}
 	gatewayH := &GatewayHandler{gateways: a.Gateway}
-	dsH := &DataSourceHandler{dataSources: a.DataSource}
-	projectH := &ProjectHandler{projects: a.Project}
-	endpointH := &APIEndpointHandler{endpoints: a.Endpoint}
-	versionH := &EndpointVersionHandler{versions: a.Version}
+	dsH := &DataSourceAliasr{dataSources: a.DataSource}
+	envH := &EnvironmentHandler{envs: a.Environment}
+	projectH := &ProjectHandler{projects: a.Project, envs: a.Environment}
+	endpointH := &APIEndpointHandler{endpoints: a.Endpoint, active: a.Version, envs: a.Environment}
+	versionH := &EndpointVersionHandler{versions: a.Version, envs: a.Environment}
 	callLogH := &EndpointCallLogHandler{callLogs: a.CallLog}
 	groupH := &APIGroupHandler{groups: a.Group}
 	scriptH := &ScriptHandler{scripts: a.Script}
-	queryH := NewQueryHandler(a.Query, a.Endpoint, a.Version, a.Tenant, a.Project, a.CallLog)
-	queryTestH := &QueryTestHandler{tenants: a.Tenant, gateways: a.GatewayBroker, queries: a.Query, endpoints: a.Endpoint, dataSources: a.DataSource}
-	openAPIH := &OpenAPIHandler{projects: a.Project, endpoints: a.Endpoint, groups: a.Group}
+	queryH := NewQueryHandler(a.Query, a.Endpoint, a.Version, a.Tenant, a.Project, a.Environment, a.CallLog)
+	queryTestH := &QueryTestHandler{tenants: a.Tenant, gateways: a.GatewayBroker, queries: a.Query, endpoints: a.Endpoint, dataSources: a.DataSource, envs: a.Environment}
+	openAPIH := &OpenAPIHandler{projects: a.Project, endpoints: a.Endpoint, groups: a.Group, envs: a.Environment}
 
 	v1 := r.Group("/v1")
 	v1.POST("/auth/register", authH.HandleRegister)
@@ -69,8 +71,12 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	viewer.GET("/tenants/:slug/datasources/:datasourceId", dsH.HandleGet)
 	viewer.GET("/tenants/:slug/projects", projectH.HandleList)
 	viewer.GET("/tenants/:slug/projects/:projectId", projectH.HandleGet)
+	viewer.GET("/tenants/:slug/projects/:projectId/environments", envH.HandleList)
+	viewer.GET("/tenants/:slug/projects/:projectId/bindings", envH.HandleListBindings)
+	viewer.GET("/tenants/:slug/projects/:projectId/environments/:envId/bindings", envH.HandleListEnvBindings)
 	viewer.GET("/tenants/:slug/projects/:projectId/endpoints", endpointH.HandleList)
 	viewer.GET("/tenants/:slug/projects/:projectId/endpoints/:endpointId/versions", versionH.HandleList)
+	viewer.GET("/tenants/:slug/projects/:projectId/endpoints/:endpointId/actives", versionH.HandleListActives)
 	viewer.GET("/tenants/:slug/projects/:projectId/endpoints/:endpointId/activation-log", versionH.HandleListActivationLog)
 	viewer.GET("/tenants/:slug/projects/:projectId/endpoints/:endpointId/call-logs", callLogH.HandleList)
 	viewer.GET("/tenants/:slug/projects/:projectId/groups", groupH.HandleList)
@@ -91,12 +97,20 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	admin.POST("/tenants/:slug/projects", projectH.HandleCreate)
 	admin.PUT("/tenants/:slug/projects/:projectId", projectH.HandleUpdate)
 	admin.DELETE("/tenants/:slug/projects/:projectId", projectH.HandleDelete)
+	admin.POST("/tenants/:slug/projects/:projectId/environments", envH.HandleCreate)
+	admin.PUT("/tenants/:slug/projects/:projectId/environments/:envId", envH.HandleRename)
+	admin.DELETE("/tenants/:slug/projects/:projectId/environments/:envId", envH.HandleDelete)
+	admin.POST("/tenants/:slug/projects/:projectId/environments/:envId/default", envH.HandleSetDefault)
+	admin.POST("/tenants/:slug/projects/:projectId/environments/:envId/bindings", envH.HandleUpsertBinding)
+	admin.DELETE("/tenants/:slug/projects/:projectId/environments/:envId/bindings/:alias", envH.HandleDeleteBinding)
+	admin.POST("/tenants/:slug/projects/:projectId/aliases/rename", envH.HandleRenameAlias)
 	admin.POST("/tenants/:slug/projects/:projectId/endpoints", endpointH.HandleCreate)
 	admin.PUT("/tenants/:slug/projects/:projectId/endpoints/:endpointId", endpointH.HandleUpdate)
 	admin.DELETE("/tenants/:slug/projects/:projectId/endpoints/:endpointId", endpointH.HandleDelete)
 	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/publish", versionH.HandlePublish)
 	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/unpublish", versionH.HandleUnpublish)
 	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/revert", versionH.HandleRevertToActive)
+	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/promote", versionH.HandlePromote)
 	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/versions", versionH.HandleCreateVersion)
 	admin.POST("/tenants/:slug/projects/:projectId/endpoints/:endpointId/versions/:versionId/activate", versionH.HandleActivate)
 	admin.DELETE("/tenants/:slug/projects/:projectId/endpoints/:endpointId/versions/:versionId", versionH.HandleDeleteVersion)

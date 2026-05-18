@@ -11,9 +11,10 @@ type APIEndpointService interface {
 	List(ctx context.Context, tenantID, projectID int64, p domain.ListParams) ([]*domain.APIEndpoint, int, error)
 	GetByID(ctx context.Context, tenantID, id int64) (*domain.APIEndpoint, error)
 	GetByPath(ctx context.Context, tenantID int64, path string) (*domain.APIEndpoint, error)
-	// MatchByPath resolves a request path+method to an endpoint within a specific project.
-	// Tries exact path+method match first; falls back to pattern matching across published endpoints.
-	MatchByPath(ctx context.Context, tenantID, projectID int64, requestPath, method string) (*domain.APIEndpoint, map[string]string, error)
+	// MatchByPath resolves a request path+method to an endpoint within a specific (project, env).
+	// Tries exact path+method match first; falls back to pattern matching across endpoints
+	// that are published in that env.
+	MatchByPath(ctx context.Context, tenantID, projectID, envID int64, requestPath, method string) (*domain.APIEndpoint, map[string]string, error)
 	Create(ctx context.Context, ep *domain.APIEndpoint) error
 	Update(ctx context.Context, ep *domain.APIEndpoint) error
 	Delete(ctx context.Context, tenantID, id int64) error
@@ -51,22 +52,24 @@ func (s *apiEndpointService) Update(ctx context.Context, ep *domain.APIEndpoint)
 }
 
 func (s *apiEndpointService) Delete(ctx context.Context, tenantID, id int64) error {
-	// 上线中的接口必须先下线才能删除——避免外部调用方突然 404 / 残留 active_version 指针指向被删行
-	if av, err := s.active.Get(ctx, tenantID, id); err == nil && av != nil {
-		return domain.ErrConflict("接口仍在上线中，请先下线后再删除")
+	// Endpoints live in any env can't be deleted without first taking them
+	// offline everywhere — guard against ghost active pointers pointing at a
+	// deleted endpoint row.
+	if list, err := s.active.ListByEndpoint(ctx, tenantID, id); err == nil && len(list) > 0 {
+		return domain.ErrConflict("接口仍在上线中，请先在所有环境下线后再删除")
 	}
 	return s.repo.Delete(ctx, tenantID, id)
 }
 
-func (s *apiEndpointService) MatchByPath(ctx context.Context, tenantID, projectID int64, requestPath, method string) (*domain.APIEndpoint, map[string]string, error) {
+func (s *apiEndpointService) MatchByPath(ctx context.Context, tenantID, projectID, envID int64, requestPath, method string) (*domain.APIEndpoint, map[string]string, error) {
 	// Fast path: exact path + method match (O(1) DB lookup).
 	ep, err := s.repo.GetByPathAndMethod(ctx, tenantID, projectID, requestPath, method)
 	if err == nil {
 		return ep, nil, nil
 	}
 
-	// Fallback: pattern match across all published endpoints for this project.
-	all, err := s.repo.ListPublishedByProject(ctx, tenantID, projectID)
+	// Fallback: pattern match across endpoints that are published in this env.
+	all, err := s.repo.ListPublishedInEnv(ctx, tenantID, projectID, envID)
 	if err != nil {
 		return nil, nil, err
 	}

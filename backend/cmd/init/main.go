@@ -51,7 +51,10 @@ func main() {
 	activationLogRepo := &postgres.EndpointActivationLogRepo{DB: db}
 	scriptRepo := &postgres.ScriptRepo{DB: db}
 	dsRepo := &postgres.DataSourceRepo{DB: db}
+	envRepo := &postgres.ProjectEnvironmentRepo{DB: db}
+	bindingRepo := &postgres.EndpointDatasourceBindingRepo{DB: db}
 	versionSvc := service.NewEndpointVersionService(versionRepo, activeVersionRepo, activationLogRepo, endpointRepo, scriptRepo, dsRepo)
+	envSvc := service.NewEnvironmentService(envRepo, bindingRepo, activeVersionRepo, dsRepo)
 
 	seed(ctx, users, tenants, tenantUsers, gatewaySvc,
 		&postgres.ProjectRepo{DB: db},
@@ -61,6 +64,7 @@ func main() {
 		endpointRepo,
 		activeVersionRepo,
 		versionSvc,
+		envSvc,
 	)
 	fmt.Println("✅ Backend init completed.")
 }
@@ -88,6 +92,7 @@ type repos struct {
 	endpoints     *postgres.APIEndpointRepo
 	activeVersion *postgres.EndpointActiveVersionRepo
 	versions      service.EndpointVersionService
+	envs          service.EnvironmentService
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -159,7 +164,7 @@ func ensureDataSource(ctx context.Context, r *repos, tenantID, gatewayID int64, 
 	}
 	ds := &domain.DataSource{
 		TenantID: tenantID, Name: name, Type: dsType, IsPlatform: isPlatform,
-		Envs: []*domain.DataSourceEnv{{Env: "prod", DSN: dsn, GatewayID: gatewayID}},
+		DSN: dsn, GatewayID: gatewayID,
 	}
 	if err := r.dataSources.Create(ctx, ds); err != nil {
 		slog.Error("Failed to create datasource", "name", name, "error", err)
@@ -167,6 +172,51 @@ func ensureDataSource(ctx context.Context, r *repos, tenantID, gatewayID int64, 
 	}
 	slog.Info("Created datasource", "name", name)
 	return ds
+}
+
+// ensureProjectEnvAndBinding makes sure the project has its default "prod" env
+// and binds the default "main" alias to the supplied datasource. Returns the env.
+func ensureProjectEnvAndBinding(ctx context.Context, r *repos, tenantID, projectID, datasourceID int64) *domain.ProjectEnvironment {
+	env, err := r.envs.CreateInitial(ctx, tenantID, projectID)
+	if err != nil {
+		slog.Error("Failed to create initial env", "project_id", projectID, "error", err)
+		os.Exit(1)
+	}
+	if err := r.envs.UpsertBinding(ctx, tenantID, env.ID, "main", datasourceID); err != nil {
+		slog.Error("Failed to bind main alias", "env_id", env.ID, "error", err)
+		os.Exit(1)
+	}
+	return env
+}
+
+// ensureBinding upserts a (env, alias) → datasource binding. Used to register
+// extra aliases beyond "main" on the same env (e.g. an "analytics" alias
+// pointing at a warehouse DB).
+func ensureBinding(ctx context.Context, r *repos, tenantID, envID int64, alias string, datasourceID int64) {
+	if err := r.envs.UpsertBinding(ctx, tenantID, envID, alias, datasourceID); err != nil {
+		slog.Error("Failed to upsert alias binding", "env_id", envID, "alias", alias, "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Bound alias", "env_id", envID, "alias", alias, "datasource_id", datasourceID)
+}
+
+// ensureExtraEnv 创建一个非默认 env（如 "dev"），并复制 prod 的 alias 绑定。
+// 用户进 demo 项目第一眼就能看到多 env 模型 + 现成的绑定，不需要自己摸索。
+// 故意不把 endpoint 上线到这个 env——让用户去版本管理里手动点"上线到 dev"，
+// 体验两段式发布流程。
+func ensureExtraEnv(ctx context.Context, r *repos, tenantID, projectID int64, name string, srcEnvID int64) *domain.ProjectEnvironment {
+	if existing, _ := r.envs.GetByName(ctx, tenantID, projectID, name); existing != nil {
+		slog.Info("Env already exists", "project_id", projectID, "name", name)
+		return existing
+	}
+	// copy_from = srcEnvID, copy_bindings = true 让 dev 复用 prod 的物理库（demo 简化）
+	env, err := r.envs.Create(ctx, tenantID, projectID, name, false, srcEnvID, true)
+	if err != nil {
+		slog.Error("Failed to create extra env", "name", name, "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Created extra env", "name", name, "project_id", projectID)
+	return env
 }
 
 func ensureProject(ctx context.Context, r *repos, tenantID int64, slug, name, desc string) *domain.Project {
@@ -200,7 +250,9 @@ func ensureGroups(ctx context.Context, r *repos, tenantID, projectID int64, defs
 	return ids
 }
 
-func ensureEndpoints(ctx context.Context, r *repos, tenant *domain.Tenant, projectID, publisherID int64, eps []*domain.APIEndpoint) {
+// ensureEndpoints 跟随两段式发布心智：CreateVersion 拍快照，再 Activate 到指定 env。
+// 避免使用 Publish（CreateVersion + Activate 二合一）—— UI 上已没有这个一键动作，seeder 也保持一致。
+func ensureEndpoints(ctx context.Context, r *repos, tenant *domain.Tenant, projectID, envID, publisherID int64, eps []*domain.APIEndpoint) {
 	created := 0
 	for _, ep := range eps {
 		method := ""
@@ -216,15 +268,20 @@ func ensureEndpoints(ctx context.Context, r *repos, tenant *domain.Tenant, proje
 			existing = ep
 			created++
 		}
-		if _, err := r.activeVersion.Get(ctx, tenant.ID, existing.ID); err != nil {
-			note := "seed: 初始版本（由系统初始化脚本创建）"
-			if _, err := r.versions.Publish(ctx, tenant.ID, existing.ID, publisherID, note, tenant.MaxReleaseVersions); err != nil {
-				slog.Error("Failed to publish endpoint", "path", ep.Path, "error", err)
+		if _, err := r.activeVersion.Get(ctx, tenant.ID, existing.ID, envID); err != nil {
+			// 还没在该 env 激活：拍一个 v1 快照，再激活上去
+			v, err := r.versions.CreateVersion(ctx, tenant.ID, existing.ID, publisherID, "seed: 初始版本（由系统初始化脚本创建）", tenant.MaxReleaseVersions)
+			if err != nil {
+				slog.Error("Failed to create version", "path", ep.Path, "error", err)
+				os.Exit(1)
+			}
+			if err := r.versions.Activate(ctx, tenant.ID, existing.ID, envID, v.ID, publisherID); err != nil {
+				slog.Error("Failed to activate version", "path", ep.Path, "error", err)
 				os.Exit(1)
 			}
 		}
 	}
-	slog.Info("Endpoints checked/created/published", "created", created, "total", len(eps))
+	slog.Info("Endpoints checked/created/activated", "created", created, "total", len(eps))
 }
 
 // ── platform scripts ──────────────────────────────────────────────────────────
@@ -312,12 +369,13 @@ func seed(ctx context.Context,
 	scripts *postgres.ScriptRepo, groups *postgres.APIGroupRepo, endpoints *postgres.APIEndpointRepo,
 	activeVersion *postgres.EndpointActiveVersionRepo,
 	versionSvc service.EndpointVersionService,
+	envSvc service.EnvironmentService,
 ) {
 	r := &repos{
 		users: users, tenants: tenants, tenantUsers: tenantUsers,
 		gateways: gatewaySvc, projects: projects, dataSources: dataSources,
 		scripts: scripts, groups: groups, endpoints: endpoints,
-		activeVersion: activeVersion, versions: versionSvc,
+		activeVersion: activeVersion, versions: versionSvc, envs: envSvc,
 	}
 
 	// SuperAdmin 是平台级身份（users.is_superadmin = true），与 tenant_users 是正交的：
@@ -344,10 +402,19 @@ func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain
 	tenant := ensureTenant(ctx, r, "default", "研发中心")
 	admin := ensureUser(ctx, r, "admin@owlapi.cn", "Admin", "admin123", false)
 	ensureTenantUser(ctx, r, tenant.ID, admin.ID, domain.RoleAdmin)
-	ds := ensureDataSource(ctx, r, tenant.ID, gw.ID, "内置 SQLite (电商)", "sqlite", "/data/owlapi_ecommerce_demo.db", true)
-	proj := ensureProject(ctx, r, tenant.ID, "ecommerce", "电商平台 API", "经典电商场景演示：用户、商品、订单的完整 CRUD 接口")
 
-	t, p, d := tenant.ID, proj.ID, ds.ID
+	// 演示"一个项目跨两个库"的场景：业务库 (main) 跑 OLTP，数仓库 (analytics) 跑统计。
+	dsMain := ensureDataSource(ctx, r, tenant.ID, gw.ID, "内置 SQLite (电商-业务)", "sqlite", "/data/owlapi_ecommerce_demo.db", true)
+	dsWarehouse := ensureDataSource(ctx, r, tenant.ID, gw.ID, "内置 SQLite (电商-数仓)", "sqlite", "/data/owlapi_ecommerce_warehouse_demo.db", true)
+	proj := ensureProject(ctx, r, tenant.ID, "ecommerce", "电商平台 API", "经典电商场景演示：用户/商品/订单 (业务库) + 统计聚合 (数仓库)")
+
+	t, p := tenant.ID, proj.ID
+	// main alias → 业务库；同时再绑一个 analytics alias → 数仓库。
+	env := ensureProjectEnvAndBinding(ctx, r, t, p, dsMain.ID)
+	ensureBinding(ctx, r, t, env.ID, "analytics", dsWarehouse.ID)
+	// 顺手建一个 dev env (复用相同物理库做 demo)，用户进项目就能看到多 env 模型
+	// 故意不把 endpoints 上线到 dev，让用户去版本管理里手动体验"上线到 dev"。
+	ensureExtraEnv(ctx, r, t, p, "dev", env.ID)
 
 	groupIDs := ensureGroups(ctx, r, t, p, []struct{ name, desc string }{
 		{"用户管理", "用户账户与权限设置"},
@@ -367,16 +434,16 @@ func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain
 		{Name: "is_pager", Type: "integer", Default: "1", Desc: "是否分页：1/0"},
 	}
 
-	ensureEndpoints(ctx, r, tenant, p, admin.ID, []*domain.APIEndpoint{
+	ensureEndpoints(ctx, r, tenant, p, env.ID, admin.ID, []*domain.APIEndpoint{
 		// 用户
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["用户管理"], Path: "/api/users", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["用户管理"], Path: "/api/users", Methods: []string{"GET"},
 			Summary: "获取用户列表", SQL: "SELECT id, name, email, role, created_at FROM users ORDER BY id LIMIT :limit OFFSET :offset",
 			Params: []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs, PreScriptID: pre, PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["用户管理"], Path: "/api/users/:id", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["用户管理"], Path: "/api/users/:id", Methods: []string{"GET"},
 			Summary: "获取用户详情", SQL: "SELECT id, name, email, role, created_at FROM users WHERE id = :id",
 			Params: []string{"id"}, PostScriptID: postDetail,
 			ParamDefs: []domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "用户 ID"}}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["用户管理"], Path: "/api/users", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["用户管理"], Path: "/api/users", Methods: []string{"POST"},
 			Summary: "创建用户", SQL: "INSERT INTO users (name, email, role) VALUES (:name, :email, :role)",
 			Params: []string{"name", "email", "role"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
@@ -384,7 +451,7 @@ func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain
 				{Name: "email", Type: "string", Required: true, Desc: "邮箱地址"},
 				{Name: "role", Type: "string", Default: "user", Desc: "角色：admin / user / viewer"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["用户管理"], Path: "/api/users/:id", Methods: []string{"PUT"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["用户管理"], Path: "/api/users/:id", Methods: []string{"PUT"},
 			Summary: "更新用户信息", SQL: "UPDATE users SET name = :name, email = :email, role = :role WHERE id = :id",
 			Params: []string{"id", "name", "email", "role"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
@@ -393,16 +460,16 @@ func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain
 				{Name: "email", Type: "string", Required: true, Desc: "邮箱地址"},
 				{Name: "role", Type: "string", Default: "user", Desc: "角色"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["用户管理"], Path: "/api/users/:id", Methods: []string{"DELETE"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["用户管理"], Path: "/api/users/:id", Methods: []string{"DELETE"},
 			Summary: "删除用户", SQL: "DELETE FROM users WHERE id = :id",
 			Params: []string{"id"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "用户 ID"}}},
 
 		// 商品
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["商品中心"], Path: "/api/products", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["商品中心"], Path: "/api/products", Methods: []string{"GET"},
 			Summary: "获取商品列表", SQL: "SELECT id, name, price, stock, category FROM products ORDER BY id LIMIT :limit OFFSET :offset",
 			Params: []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs, PreScriptID: pre, PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["商品中心"], Path: "/api/products/search", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["商品中心"], Path: "/api/products/search", Methods: []string{"GET"},
 			Summary: "搜索商品", SQL: "SELECT id, name, price, stock, category FROM products WHERE category = :category AND price >= :min_price AND price <= :max_price ORDER BY id LIMIT :limit OFFSET :offset",
 			Params: []string{"category", "min_price", "max_price", "page", "size", "is_pager"}, PreScriptID: pre, PostScriptID: postList,
 			ParamDefs: []domain.ParamDef{
@@ -411,11 +478,11 @@ func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain
 				{Name: "max_price", Type: "number", Default: "99999", Desc: "最高价格"},
 				{Name: "page", Type: "integer", Default: "1"}, {Name: "size", Type: "integer", Default: "10"}, {Name: "is_pager", Type: "integer", Default: "1"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["商品中心"], Path: "/api/products/:id", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["商品中心"], Path: "/api/products/:id", Methods: []string{"GET"},
 			Summary: "获取商品详情", SQL: "SELECT id, name, price, stock, category FROM products WHERE id = :id",
 			Params: []string{"id"}, PostScriptID: postDetail,
 			ParamDefs: []domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "商品 ID"}}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["商品中心"], Path: "/api/products", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["商品中心"], Path: "/api/products", Methods: []string{"POST"},
 			Summary: "创建商品", SQL: "INSERT INTO products (name, price, stock, category) VALUES (:name, :price, :stock, :category)",
 			Params: []string{"name", "price", "stock", "category"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
@@ -424,23 +491,23 @@ func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain
 				{Name: "stock", Type: "integer", Default: "0", Desc: "初始库存"},
 				{Name: "category", Type: "string", Default: "electronics", Desc: "分类"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["商品中心"], Path: "/api/products/:id/stock", Methods: []string{"PUT"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["商品中心"], Path: "/api/products/:id/stock", Methods: []string{"PUT"},
 			Summary: "更新库存", SQL: "UPDATE products SET stock = :stock WHERE id = :id",
 			Params: []string{"id", "stock"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
 				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "商品 ID"},
 				{Name: "stock", Type: "integer", Required: true, Default: "100", Desc: "新库存"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["商品中心"], Path: "/api/products/:id", Methods: []string{"DELETE"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["商品中心"], Path: "/api/products/:id", Methods: []string{"DELETE"},
 			Summary: "删除商品", SQL: "DELETE FROM products WHERE id = :id",
 			Params: []string{"id"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "商品 ID"}}},
 
 		// 订单
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["订单中心"], Path: "/api/orders", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["订单中心"], Path: "/api/orders", Methods: []string{"GET"},
 			Summary: "获取订单列表", SQL: "SELECT o.id, u.name AS customer, p.name AS product, o.quantity, o.total, o.status, o.created_at FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id ORDER BY o.id DESC LIMIT :limit OFFSET :offset",
 			Params: []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs, PreScriptID: pre, PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["订单中心"], Path: "/api/orders", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["订单中心"], Path: "/api/orders", Methods: []string{"POST"},
 			Summary: "创建订单", SQL: "INSERT INTO orders (user_id, product_id, quantity, total, status) VALUES (:user_id, :product_id, :quantity, :total, 'pending')",
 			Params: []string{"user_id", "product_id", "quantity", "total"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
@@ -449,28 +516,31 @@ func seedEcommerce(ctx context.Context, r *repos, ps platformScripts, gw *domain
 				{Name: "quantity", Type: "integer", Required: true, Default: "1", Desc: "数量"},
 				{Name: "total", Type: "number", Required: true, Desc: "总金额"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["订单中心"], Path: "/api/orders/:id", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["订单中心"], Path: "/api/orders/:id", Methods: []string{"GET"},
 			Summary: "获取订单详情", SQL: "SELECT o.id, u.name AS customer, p.name AS product, o.quantity, o.total, o.status, o.created_at FROM orders o JOIN users u ON o.user_id = u.id JOIN products p ON o.product_id = p.id WHERE o.id = :id",
 			Params: []string{"id"}, PostScriptID: postDetail,
 			ParamDefs: []domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "订单 ID"}}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["订单中心"], Path: "/api/orders/:id", Methods: []string{"PUT"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["订单中心"], Path: "/api/orders/:id", Methods: []string{"PUT"},
 			Summary: "更新订单状态", SQL: "UPDATE orders SET status = :status WHERE id = :id",
 			Params: []string{"id", "status"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
 				{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "订单 ID"},
 				{Name: "status", Type: "string", Required: true, Default: "shipped", Desc: "状态：pending / paid / shipped / completed / cancelled"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["订单中心"], Path: "/api/orders/:id", Methods: []string{"DELETE"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["订单中心"], Path: "/api/orders/:id", Methods: []string{"DELETE"},
 			Summary: "删除订单", SQL: "DELETE FROM orders WHERE id = :id",
 			Params: []string{"id"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "订单 ID"}}},
 
-		// 统计
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["数据统计"], Path: "/api/stats/revenue", Methods: []string{"GET"},
-			Summary: "分类销售统计", SQL: "SELECT p.category, COUNT(o.id) AS order_count, SUM(o.total) AS revenue FROM orders o JOIN products p ON o.product_id = p.id GROUP BY p.category ORDER BY revenue DESC",
+		// 统计 — 走 analytics 别名（数仓库），与业务库（main）拆开
+		{TenantID: t, ProjectID: p, DataSourceAlias: "analytics", GroupID: groupIDs["数据统计"], Path: "/api/stats/revenue", Methods: []string{"GET"},
+			Summary: "分类销售统计（数仓预聚合）", SQL: "SELECT category, order_count, revenue FROM category_sales ORDER BY revenue DESC",
 			PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["数据统计"], Path: "/api/stats/top-customers", Methods: []string{"GET"},
-			Summary: "用户消费排行", SQL: "SELECT u.name, u.email, COUNT(o.id) AS orders, SUM(o.total) AS total_spent FROM users u JOIN orders o ON u.id = o.user_id GROUP BY u.id, u.name, u.email ORDER BY total_spent DESC",
+		{TenantID: t, ProjectID: p, DataSourceAlias: "analytics", GroupID: groupIDs["数据统计"], Path: "/api/stats/top-customers", Methods: []string{"GET"},
+			Summary: "用户消费排行（数仓预聚合）", SQL: "SELECT user_name AS name, email, orders, total_spent, rank FROM customer_rank ORDER BY rank",
+			PostScriptID: postList},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "analytics", GroupID: groupIDs["数据统计"], Path: "/api/stats/daily-revenue", Methods: []string{"GET"},
+			Summary: "每日营收趋势（数仓预聚合）", SQL: "SELECT day, order_count, revenue FROM daily_revenue ORDER BY day",
 			PostScriptID: postList},
 	})
 	return tenant
@@ -486,7 +556,11 @@ func seedCMS(ctx context.Context, r *repos, ps platformScripts, sharedGW *domain
 	ds := ensureDataSource(ctx, r, tenant.ID, gw.ID, "内置 SQLite (内容)", "sqlite", "/data/owlapi_cms_demo.db", true)
 	proj := ensureProject(ctx, r, tenant.ID, "cms", "内容管理 API", "文章、分类、标签与评论的完整内容管理接口")
 
-	t, p, d := tenant.ID, proj.ID, ds.ID
+	t, p := tenant.ID, proj.ID
+	env := ensureProjectEnvAndBinding(ctx, r, t, p, ds.ID)
+	// dev env 复用同一份 sqlite，让用户能直接体验"上线到 dev"
+	ensureExtraEnv(ctx, r, t, p, "dev", env.ID)
+	_ = ds
 
 	groupIDs := ensureGroups(ctx, r, t, p, []struct{ name, desc string }{
 		{"文章管理", "文章的创建、编辑与发布"},
@@ -505,16 +579,16 @@ func seedCMS(ctx context.Context, r *repos, ps platformScripts, sharedGW *domain
 		{Name: "is_pager", Type: "integer", Default: "1", Desc: "是否分页：1/0"},
 	}
 
-	ensureEndpoints(ctx, r, tenant, p, editor.ID, []*domain.APIEndpoint{
+	ensureEndpoints(ctx, r, tenant, p, env.ID, editor.ID, []*domain.APIEndpoint{
 		// 文章
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["文章管理"], Path: "/api/articles", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["文章管理"], Path: "/api/articles", Methods: []string{"GET"},
 			Summary: "获取文章列表", SQL: "SELECT id, title, summary, author_id, category_id, status, created_at FROM articles ORDER BY id DESC LIMIT :limit OFFSET :offset",
 			Params: []string{"page", "size", "is_pager"}, ParamDefs: pagerDefs, PreScriptID: pre, PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["文章管理"], Path: "/api/articles/:id", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["文章管理"], Path: "/api/articles/:id", Methods: []string{"GET"},
 			Summary: "获取文章详情", SQL: "SELECT a.id, a.title, a.content, a.summary, a.status, a.created_at, c.name AS category FROM articles a LEFT JOIN categories c ON a.category_id = c.id WHERE a.id = :id",
 			Params: []string{"id"}, PostScriptID: postDetail,
 			ParamDefs: []domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "文章 ID"}}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["文章管理"], Path: "/api/articles", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["文章管理"], Path: "/api/articles", Methods: []string{"POST"},
 			Summary: "创建文章", SQL: "INSERT INTO articles (title, content, summary, author_id, category_id, status) VALUES (:title, :content, :summary, :author_id, :category_id, :status)",
 			Params: []string{"title", "content", "summary", "author_id", "category_id", "status"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
@@ -525,7 +599,7 @@ func seedCMS(ctx context.Context, r *repos, ps platformScripts, sharedGW *domain
 				{Name: "category_id", Type: "integer", Default: "1", Desc: "分类 ID"},
 				{Name: "status", Type: "string", Default: "draft", Desc: "状态：draft / published"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["文章管理"], Path: "/api/articles/:id", Methods: []string{"PUT"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["文章管理"], Path: "/api/articles/:id", Methods: []string{"PUT"},
 			Summary: "更新文章", SQL: "UPDATE articles SET title = :title, content = :content, summary = :summary, status = :status WHERE id = :id",
 			Params: []string{"id", "title", "content", "summary", "status"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
@@ -535,16 +609,16 @@ func seedCMS(ctx context.Context, r *repos, ps platformScripts, sharedGW *domain
 				{Name: "summary", Type: "string", Desc: "摘要"},
 				{Name: "status", Type: "string", Default: "draft", Desc: "状态：draft / published"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["文章管理"], Path: "/api/articles/:id", Methods: []string{"DELETE"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["文章管理"], Path: "/api/articles/:id", Methods: []string{"DELETE"},
 			Summary: "删除文章", SQL: "DELETE FROM articles WHERE id = :id",
 			Params: []string{"id"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "文章 ID"}}},
 
 		// 分类
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["分类标签"], Path: "/api/categories", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["分类标签"], Path: "/api/categories", Methods: []string{"GET"},
 			Summary: "获取分类列表", SQL: "SELECT id, name, slug, description FROM categories ORDER BY id",
 			PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["分类标签"], Path: "/api/categories", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["分类标签"], Path: "/api/categories", Methods: []string{"POST"},
 			Summary: "创建分类", SQL: "INSERT INTO categories (name, slug, description) VALUES (:name, :slug, :description)",
 			Params: []string{"name", "slug", "description"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
@@ -554,10 +628,10 @@ func seedCMS(ctx context.Context, r *repos, ps platformScripts, sharedGW *domain
 			}},
 
 		// 标签
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["分类标签"], Path: "/api/tags", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["分类标签"], Path: "/api/tags", Methods: []string{"GET"},
 			Summary: "获取标签列表", SQL: "SELECT id, name, slug FROM tags ORDER BY id",
 			PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["分类标签"], Path: "/api/tags", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["分类标签"], Path: "/api/tags", Methods: []string{"POST"},
 			Summary: "创建标签", SQL: "INSERT INTO tags (name, slug) VALUES (:name, :slug)",
 			Params: []string{"name", "slug"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
@@ -566,12 +640,12 @@ func seedCMS(ctx context.Context, r *repos, ps platformScripts, sharedGW *domain
 			}},
 
 		// 评论
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["评论管理"], Path: "/api/articles/:id/comments", Methods: []string{"GET"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["评论管理"], Path: "/api/articles/:id/comments", Methods: []string{"GET"},
 			Summary: "获取文章评论", SQL: "SELECT id, article_id, author_name, content, status, created_at FROM comments WHERE article_id = :id ORDER BY id DESC LIMIT :limit OFFSET :offset",
 			Params:      []string{"id", "page", "size", "is_pager"},
 			ParamDefs:   append([]domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "文章 ID"}}, pagerDefs...),
 			PreScriptID: pre, PostScriptID: postList},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["评论管理"], Path: "/api/articles/:id/comments", Methods: []string{"POST"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["评论管理"], Path: "/api/articles/:id/comments", Methods: []string{"POST"},
 			Summary: "发表评论", SQL: "INSERT INTO comments (article_id, author_name, content, status) VALUES (:id, :author_name, :content, 'pending')",
 			Params: []string{"id", "author_name", "content"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{
@@ -579,11 +653,11 @@ func seedCMS(ctx context.Context, r *repos, ps platformScripts, sharedGW *domain
 				{Name: "author_name", Type: "string", Required: true, Desc: "评论者名称"},
 				{Name: "content", Type: "string", Required: true, Desc: "评论内容"},
 			}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["评论管理"], Path: "/api/comments/:id", Methods: []string{"DELETE"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["评论管理"], Path: "/api/comments/:id", Methods: []string{"DELETE"},
 			Summary: "删除评论", SQL: "DELETE FROM comments WHERE id = :id",
 			Params: []string{"id"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "评论 ID"}}},
-		{TenantID: t, ProjectID: p, DataSourceID: d, GroupID: groupIDs["评论管理"], Path: "/api/comments/:id/approve", Methods: []string{"PUT"},
+		{TenantID: t, ProjectID: p, DataSourceAlias: "main", GroupID: groupIDs["评论管理"], Path: "/api/comments/:id/approve", Methods: []string{"PUT"},
 			Summary: "审核通过评论", SQL: "UPDATE comments SET status = 'approved' WHERE id = :id",
 			Params: []string{"id"}, PostScriptID: postWrite,
 			ParamDefs: []domain.ParamDef{{Name: "id", Type: "integer", Required: true, Default: "1", Desc: "评论 ID"}}},

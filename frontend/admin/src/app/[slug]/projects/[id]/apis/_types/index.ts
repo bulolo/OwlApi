@@ -62,7 +62,7 @@ export interface EndpointFormState {
   method: HttpMethod
   summary: string
   sql: string
-  datasourceId: number
+  datasourceAlias: string
   groupId: number
   preScriptId: number
   postScriptId: number

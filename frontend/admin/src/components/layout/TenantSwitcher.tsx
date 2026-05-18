@@ -5,6 +5,7 @@ import { useIsClient } from "@/hooks/useIsClient"
 import { ChevronsUpDown, Building2, Check } from "lucide-react"
 import { useAuthStore } from "@/store/useAuthStore"
 import { useTenants } from "@/hooks"
+import { useEdition } from "@/hooks/useEdition"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,10 +21,12 @@ export function TenantSwitcher({ slug }: { slug?: string }) {
   const router = useRouter()
   const mounted = useIsClient()
   const { user } = useAuthStore()
+  const { canUseEeFeatures } = useEdition()
 
   const activeTenant = slug !== 'system' ? (slug ?? "") : ""
   const { tenants } = useTenants({ is_pager: 0 })
-  const isSuperAdmin = user?.is_superadmin === true
+  // 多租户切换是 EE 功能（社区版默认单租户）。即使是超管，CE 模式下也只展示当前租户。
+  const isSuperAdmin = user?.is_superadmin === true && canUseEeFeatures
 
   const currentTenantObj = tenants.find(t => t.slug === activeTenant) || tenants[0]
 

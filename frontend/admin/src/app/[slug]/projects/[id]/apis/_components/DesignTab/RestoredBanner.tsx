@@ -46,7 +46,7 @@ export function RestoredBanner() {
           正在基于 <span className="font-black">v{restored.version}</span> 编辑
         </p>
         <p className="text-xs opacity-70">
-          来源版本创建于 {formatDate(restored.createdAt)}；保存只更新草稿，需点「发布上线」生成新版本
+          来源版本创建于 {formatDate(restored.createdAt)}；保存只更新草稿，需点右上角「创建版本」打个新快照，再去版本管理上线
         </p>
       </div>
       <Button

@@ -14,16 +14,18 @@ type OpenAPIHandler struct {
 	projects  service.ProjectService
 	endpoints service.APIEndpointService
 	groups    service.APIGroupService
+	envs      service.EnvironmentService
 }
 
 // HandleExportOpenAPI godoc
-// @Summary 导出项目 OpenAPI 规范
+// @Summary 导出项目 OpenAPI 规范（按指定 env 导出；默认导出 default env）
 // @ID exportOpenApi
 // @Tags project
 // @Security BearerAuth
 // @Produce json
 // @Param slug path string true "租户slug"
 // @Param projectId path int true "项目ID"
+// @Param env query string false "环境名（默认: 项目默认 env）"
 // @Success 200 {object} object
 // @Router /v1/tenants/{slug}/projects/{projectId}/openapi.json [get]
 func (h *OpenAPIHandler) HandleExportOpenAPI(c *gin.Context) {
@@ -37,6 +39,18 @@ func (h *OpenAPIHandler) HandleExportOpenAPI(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
+
+	var env *domain.ProjectEnvironment
+	if name := c.Query("env"); name != "" {
+		env, err = h.envs.GetByName(c.Request.Context(), tenant.ID, pid, name)
+	} else {
+		env, err = h.envs.GetDefault(c.Request.Context(), tenant.ID, pid)
+	}
+	if err != nil || env == nil {
+		FailErr(c, domain.ErrNotFound("env not found"))
+		return
+	}
+
 	endpoints, _, err := h.endpoints.List(c.Request.Context(), tenant.ID, pid, domain.ListParams{Page: 1})
 	if err != nil {
 		FailErr(c, err)
@@ -48,14 +62,16 @@ func (h *OpenAPIHandler) HandleExportOpenAPI(c *gin.Context) {
 		return
 	}
 
-	spec := buildOpenAPISpec(project, endpoints, groups)
+	spec := buildOpenAPISpec(project, env, endpoints, groups)
 
-	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-openapi.json"`, project.Name))
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-%s-openapi.json"`, project.Name, env.Name))
 	OK(c, spec)
 }
 
-// buildOpenAPISpec constructs an OpenAPI 3.0 specification from project data.
-func buildOpenAPISpec(project *domain.Project, endpoints []*domain.APIEndpoint, groups []*domain.APIGroup) map[string]interface{} {
+// buildOpenAPISpec constructs an OpenAPI 3.0 specification scoped to one env.
+// The generated paths embed the env name so consumers know exactly which
+// environment they're hitting.
+func buildOpenAPISpec(project *domain.Project, env *domain.ProjectEnvironment, endpoints []*domain.APIEndpoint, groups []*domain.APIGroup) map[string]interface{} {
 	groupMap := make(map[int64]string)
 	for _, g := range groups {
 		groupMap[g.ID] = g.Name
@@ -63,7 +79,7 @@ func buildOpenAPISpec(project *domain.Project, endpoints []*domain.APIEndpoint, 
 	paths := make(map[string]interface{})
 
 	for _, ep := range endpoints {
-		fullPath := "/api/v1/tenants/{slug}/query" + ep.Path
+		fullPath := fmt.Sprintf("/-/%s/{tenantSlug}/{projectSlug}%s", env.Name, ep.Path)
 		pathItem, exists := paths[fullPath]
 		if !exists {
 			pathItem = make(map[string]interface{})
@@ -81,7 +97,7 @@ func buildOpenAPISpec(project *domain.Project, endpoints []*domain.APIEndpoint, 
 	return map[string]interface{}{
 		"openapi": "3.0.3",
 		"info": map[string]interface{}{
-			"title":       project.Name,
+			"title":       fmt.Sprintf("%s (%s)", project.Name, env.Name),
 			"description": project.Description,
 			"version":     "1.0.0",
 		},
@@ -100,16 +116,6 @@ func buildOperation(ep *domain.APIEndpoint, groupName string) map[string]interfa
 		"description": ep.Description,
 		"operationId": buildOperationID(ep.Path, ep.Methods),
 		"tags":        tags,
-		"parameters": []map[string]interface{}{
-			{
-				"name": "X-Tenant-ID", "in": "header", "required": true,
-				"description": "租户 ID", "schema": map[string]interface{}{"type": "string"},
-			},
-			{
-				"name": "X-Gateway-ID", "in": "header", "required": true,
-				"description": "网关 ID", "schema": map[string]interface{}{"type": "string"},
-			},
-		},
 	}
 
 	if len(ep.ParamDefs) > 0 {

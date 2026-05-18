@@ -15,37 +15,40 @@ type APIEndpointRepo struct{ DB *DB }
 var _ domain.APIEndpointRepository = (*APIEndpointRepo)(nil)
 
 // All columns are qualified with `ae.` so the same column list can be used
-// for plain selects and for the JOIN-flavoured one in List (where bare `id`,
-// `created_at`, `updated_at` would otherwise collide with endpoint_versions).
-const epCols = `ae.id, ae.tenant_id, ae.project_id, ae.group_id, ae.datasource_id, ae.path, ae.methods, ae.summary, ae.description, ae.sql_query, ae.params, ae.param_defs, ae.pre_script_id, ae.post_script_id, ae.created_at, ae.updated_at`
+// for plain selects and for the JOIN-flavoured one in List.
+const epCols = `ae.id, ae.tenant_id, ae.project_id, ae.group_id, ae.datasource_alias, ae.path, ae.methods, ae.summary, ae.description, ae.sql_query, ae.params, ae.param_defs, ae.pre_script_id, ae.post_script_id, ae.created_at, ae.updated_at`
 
-// epColsWithStatus appends derived columns:
+// epColsWithStatus adds derived columns:
 //
-//	is_published — whether endpoint_active_version row exists
-//	active_version — current live version number (0 if not published)
 //	latest_version — MAX(version) across endpoint_versions for this endpoint
-//	has_draft — ep.updated_at > eav.activated_at  (or eav is NULL ⇒ draft state if no versions yet)
+//	has_draft      — true iff no version exists yet OR ae.updated_at is newer than
+//	                 the most recent activation across ALL envs (i.e. there's an
+//	                 unpublished edit; if nothing is active anywhere yet but a
+//	                 version exists, draft state == false).
 const epColsWithStatus = epCols + `,
-	(eav.version_id IS NOT NULL)                                            AS is_published,
-	COALESCE(ev.version, 0)                                                 AS active_version,
-	COALESCE(lv.latest_version, 0)                                          AS latest_version,
-	(eav.activated_at IS NULL OR ae.updated_at > eav.activated_at)          AS has_draft`
+	COALESCE(lv.latest_version, 0) AS latest_version,
+	CASE
+	  WHEN lv.latest_version IS NULL THEN TRUE
+	  WHEN maxact.last_activated_at IS NULL THEN FALSE
+	  ELSE ae.updated_at > maxact.last_activated_at
+	END AS has_draft`
 
 const epJoinStatus = `
-	LEFT JOIN endpoint_active_version eav
-	  ON eav.tenant_id = ae.tenant_id AND eav.endpoint_id = ae.id
-	LEFT JOIN endpoint_versions ev
-	  ON ev.tenant_id  = eav.tenant_id AND ev.id          = eav.version_id
 	LEFT JOIN (
 	  SELECT tenant_id, endpoint_id, MAX(version) AS latest_version
 	  FROM endpoint_versions
 	  GROUP BY tenant_id, endpoint_id
-	) lv ON lv.tenant_id = ae.tenant_id AND lv.endpoint_id = ae.id`
+	) lv ON lv.tenant_id = ae.tenant_id AND lv.endpoint_id = ae.id
+	LEFT JOIN (
+	  SELECT tenant_id, endpoint_id, MAX(activated_at) AS last_activated_at
+	  FROM endpoint_active_version
+	  GROUP BY tenant_id, endpoint_id
+	) maxact ON maxact.tenant_id = ae.tenant_id AND maxact.endpoint_id = ae.id`
 
 func scanEP(scan func(dest ...any) error) (*domain.APIEndpoint, error) {
 	var ep domain.APIEndpoint
 	var paramDefsJSON []byte
-	err := scan(&ep.ID, &ep.TenantID, &ep.ProjectID, &ep.GroupID, &ep.DataSourceID, &ep.Path, &ep.Methods, &ep.Summary, &ep.Description, &ep.SQL, &ep.Params, &paramDefsJSON, &ep.PreScriptID, &ep.PostScriptID, &ep.CreatedAt, &ep.UpdatedAt)
+	err := scan(&ep.ID, &ep.TenantID, &ep.ProjectID, &ep.GroupID, &ep.DataSourceAlias, &ep.Path, &ep.Methods, &ep.Summary, &ep.Description, &ep.SQL, &ep.Params, &paramDefsJSON, &ep.PreScriptID, &ep.PostScriptID, &ep.CreatedAt, &ep.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +63,7 @@ func scanEP(scan func(dest ...any) error) (*domain.APIEndpoint, error) {
 func scanEPWithStatus(scan func(dest ...any) error) (*domain.APIEndpoint, error) {
 	var ep domain.APIEndpoint
 	var paramDefsJSON []byte
-	err := scan(&ep.ID, &ep.TenantID, &ep.ProjectID, &ep.GroupID, &ep.DataSourceID, &ep.Path, &ep.Methods, &ep.Summary, &ep.Description, &ep.SQL, &ep.Params, &paramDefsJSON, &ep.PreScriptID, &ep.PostScriptID, &ep.CreatedAt, &ep.UpdatedAt, &ep.IsPublished, &ep.ActiveVersion, &ep.LatestVersion, &ep.HasDraft)
+	err := scan(&ep.ID, &ep.TenantID, &ep.ProjectID, &ep.GroupID, &ep.DataSourceAlias, &ep.Path, &ep.Methods, &ep.Summary, &ep.Description, &ep.SQL, &ep.Params, &paramDefsJSON, &ep.PreScriptID, &ep.PostScriptID, &ep.CreatedAt, &ep.UpdatedAt, &ep.LatestVersion, &ep.HasDraft)
 	if err != nil {
 		return nil, err
 	}
@@ -91,14 +94,15 @@ func (r *APIEndpointRepo) GetByPathAndMethod(ctx context.Context, tenantID, proj
 	return scanEP(row.Scan)
 }
 
-func (r *APIEndpointRepo) ListPublishedByProject(ctx context.Context, tenantID, projectID int64) ([]*domain.APIEndpoint, error) {
+// ListPublishedInEnv returns endpoints that have an active version in the given env.
+func (r *APIEndpointRepo) ListPublishedInEnv(ctx context.Context, tenantID, projectID, envID int64) ([]*domain.APIEndpoint, error) {
 	rows, err := r.DB.Pool.Query(ctx,
 		`SELECT `+epCols+`
 		 FROM api_endpoints ae
 		 JOIN endpoint_active_version eav
-		   ON eav.tenant_id = ae.tenant_id AND eav.endpoint_id = ae.id
+		   ON eav.tenant_id = ae.tenant_id AND eav.endpoint_id = ae.id AND eav.env_id = $3
 		 WHERE ae.tenant_id=$1 AND ae.project_id=$2`,
-		tenantID, projectID)
+		tenantID, projectID, envID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,8 +129,8 @@ func (r *APIEndpointRepo) Create(ctx context.Context, ep *domain.APIEndpoint) er
 		return err
 	}
 	return r.DB.Pool.QueryRow(ctx,
-		`INSERT INTO api_endpoints (tenant_id, project_id, group_id, datasource_id, path, methods, summary, description, sql_query, params, param_defs, pre_script_id, post_script_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id, created_at, updated_at`,
-		ep.TenantID, ep.ProjectID, ep.GroupID, ep.DataSourceID, ep.Path, ep.Methods, ep.Summary, ep.Description, ep.SQL, ep.Params, paramDefs, ep.PreScriptID, ep.PostScriptID,
+		`INSERT INTO api_endpoints (tenant_id, project_id, group_id, datasource_alias, path, methods, summary, description, sql_query, params, param_defs, pre_script_id, post_script_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id, created_at, updated_at`,
+		ep.TenantID, ep.ProjectID, ep.GroupID, ep.DataSourceAlias, ep.Path, ep.Methods, ep.Summary, ep.Description, ep.SQL, ep.Params, paramDefs, ep.PreScriptID, ep.PostScriptID,
 	).Scan(&ep.ID, &ep.CreatedAt, &ep.UpdatedAt)
 }
 
@@ -136,14 +140,13 @@ func (r *APIEndpointRepo) Update(ctx context.Context, ep *domain.APIEndpoint) er
 		return err
 	}
 	_, err = r.DB.Pool.Exec(ctx,
-		`UPDATE api_endpoints SET group_id=$1, datasource_id=$2, path=$3, methods=$4, summary=$5, description=$6, sql_query=$7, params=$8, param_defs=$9, pre_script_id=$10, post_script_id=$11, updated_at=NOW() WHERE tenant_id=$12 AND id=$13`,
-		ep.GroupID, ep.DataSourceID, ep.Path, ep.Methods, ep.Summary, ep.Description, ep.SQL, ep.Params, paramDefs, ep.PreScriptID, ep.PostScriptID, ep.TenantID, ep.ID)
+		`UPDATE api_endpoints SET group_id=$1, datasource_alias=$2, path=$3, methods=$4, summary=$5, description=$6, sql_query=$7, params=$8, param_defs=$9, pre_script_id=$10, post_script_id=$11, updated_at=NOW() WHERE tenant_id=$12 AND id=$13`,
+		ep.GroupID, ep.DataSourceAlias, ep.Path, ep.Methods, ep.Summary, ep.Description, ep.SQL, ep.Params, paramDefs, ep.PreScriptID, ep.PostScriptID, ep.TenantID, ep.ID)
 	return err
 }
 
-// RevertFromSnapshot 用版本快照覆盖 api_endpoints，并把 updated_at 设回 activated_at。
-// 这样 derived 字段 has_draft = (updated_at > activated_at) 自然就是 false，
-// 不需要弄虚作假地写 NOW() 然后再改 activated_at。
+// RevertFromSnapshot rewrites api_endpoints from a version snapshot and sets
+// updated_at = activatedAt so derived has_draft becomes false for that env.
 func (r *APIEndpointRepo) RevertFromSnapshot(ctx context.Context, tenantID, endpointID int64, snap *domain.APIEndpoint, activatedAt time.Time) error {
 	paramDefs, err := marshalParamDefs(snap.ParamDefs)
 	if err != nil {
@@ -151,11 +154,11 @@ func (r *APIEndpointRepo) RevertFromSnapshot(ctx context.Context, tenantID, endp
 	}
 	_, err = r.DB.Pool.Exec(ctx,
 		`UPDATE api_endpoints
-		   SET group_id=$1, datasource_id=$2, path=$3, methods=$4, summary=$5, description=$6,
+		   SET group_id=$1, datasource_alias=$2, path=$3, methods=$4, summary=$5, description=$6,
 		       sql_query=$7, params=$8, param_defs=$9, pre_script_id=$10, post_script_id=$11,
 		       updated_at=$12
 		 WHERE tenant_id=$13 AND id=$14`,
-		snap.GroupID, snap.DataSourceID, snap.Path, snap.Methods, snap.Summary, snap.Description,
+		snap.GroupID, snap.DataSourceAlias, snap.Path, snap.Methods, snap.Summary, snap.Description,
 		snap.SQL, snap.Params, paramDefs, snap.PreScriptID, snap.PostScriptID,
 		activatedAt,
 		tenantID, endpointID)

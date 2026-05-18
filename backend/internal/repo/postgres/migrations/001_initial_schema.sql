@@ -105,44 +105,68 @@ COMMENT ON COLUMN projects.avatar      IS '项目头像/封面 URL';
 COMMENT ON COLUMN projects.created_at  IS '创建时间';
 
 -- +goose StatementBegin
+-- datasources 表 = 物理数据库连接 (单一连接，无 env 概念)。
+-- "环境" 概念上移到 project_environments；同一份逻辑数据在 dev/prod 各自是一个独立的 datasource 行。
 CREATE TABLE IF NOT EXISTS datasources (
     id          BIGSERIAL NOT NULL,
     tenant_id   BIGINT NOT NULL,
     name        TEXT NOT NULL,
-    is_dual     BOOLEAN NOT NULL DEFAULT FALSE,
     is_platform BOOLEAN NOT NULL DEFAULT FALSE,
     type        TEXT NOT NULL,
+    dsn         TEXT NOT NULL,
+    gateway_id  BIGINT NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (tenant_id, id)
+    PRIMARY KEY (tenant_id, id),
+    UNIQUE (tenant_id, name)
 );
 -- +goose StatementEnd
-COMMENT ON TABLE datasources IS '数据源';
+COMMENT ON TABLE datasources IS '数据源（单一物理连接）';
 COMMENT ON COLUMN datasources.id          IS '数据源ID';
-COMMENT ON COLUMN datasources.tenant_id   IS '所属租户ID（外键 → tenants.id）';
-COMMENT ON COLUMN datasources.name        IS '数据源名称';
-COMMENT ON COLUMN datasources.is_dual     IS '是否双环境（dev/prod 各一个连接串）';
+COMMENT ON COLUMN datasources.tenant_id   IS '所属租户ID';
+COMMENT ON COLUMN datasources.name        IS '数据源名称（租户内唯一）';
 COMMENT ON COLUMN datasources.is_platform IS '是否为平台内置数据源';
 COMMENT ON COLUMN datasources.type        IS '数据库类型：mysql / postgres / sqlserver / sqlite 等';
+COMMENT ON COLUMN datasources.dsn         IS '数据库连接串（DSN）';
+COMMENT ON COLUMN datasources.gateway_id  IS '通过哪个网关节点连接（外键 → gateways.id）';
 COMMENT ON COLUMN datasources.created_at  IS '创建时间';
 
 -- +goose StatementBegin
-CREATE TABLE IF NOT EXISTS datasource_envs (
-    id            BIGSERIAL PRIMARY KEY,
-    tenant_id     BIGINT NOT NULL,
-    datasource_id BIGINT NOT NULL,
-    env           TEXT NOT NULL DEFAULT 'prod',
-    dsn           TEXT NOT NULL,
-    gateway_id    BIGINT NOT NULL,
-    UNIQUE (tenant_id, datasource_id, env)
+-- project_environments 表 = 项目层"环境"实体；每项目至少一行 (默认 prod)。
+CREATE TABLE IF NOT EXISTS project_environments (
+    id         BIGSERIAL NOT NULL,
+    tenant_id  BIGINT NOT NULL,
+    project_id BIGINT NOT NULL,
+    name       TEXT NOT NULL,
+    is_default BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (tenant_id, id),
+    UNIQUE (tenant_id, project_id, name)
 );
 -- +goose StatementEnd
-COMMENT ON TABLE datasource_envs IS '数据源环境配置';
-COMMENT ON COLUMN datasource_envs.id            IS '环境配置ID';
-COMMENT ON COLUMN datasource_envs.tenant_id     IS '所属租户ID';
-COMMENT ON COLUMN datasource_envs.datasource_id IS '所属数据源ID';
-COMMENT ON COLUMN datasource_envs.env           IS '环境标识：prod / dev';
-COMMENT ON COLUMN datasource_envs.dsn           IS '数据库连接串（DSN）';
-COMMENT ON COLUMN datasource_envs.gateway_id    IS '通过哪个网关节点连接（外键 → gateways.id）';
+COMMENT ON TABLE project_environments IS '项目环境（dev / staging / prod / 任意命名）';
+COMMENT ON COLUMN project_environments.id         IS '环境ID';
+COMMENT ON COLUMN project_environments.tenant_id  IS '所属租户ID';
+COMMENT ON COLUMN project_environments.project_id IS '所属项目ID';
+COMMENT ON COLUMN project_environments.name       IS '环境名（项目内唯一）';
+COMMENT ON COLUMN project_environments.is_default IS '是否为默认环境（每项目应有且仅有一行 true）';
+COMMENT ON COLUMN project_environments.created_at IS '创建时间';
+
+-- +goose StatementBegin
+-- endpoint_datasource_bindings 表 = 在某 env 里, 一个数据源别名映射到哪个物理 datasource。
+-- alias 是项目级共享的"逻辑数据源名"，endpoint 通过 alias 引用而非直接 datasource_id。
+CREATE TABLE IF NOT EXISTS endpoint_datasource_bindings (
+    tenant_id     BIGINT NOT NULL,
+    env_id        BIGINT NOT NULL,
+    alias         TEXT NOT NULL,
+    datasource_id BIGINT NOT NULL,
+    PRIMARY KEY (tenant_id, env_id, alias)
+);
+-- +goose StatementEnd
+COMMENT ON TABLE endpoint_datasource_bindings IS '环境内 alias → datasource 绑定';
+COMMENT ON COLUMN endpoint_datasource_bindings.tenant_id     IS '所属租户ID';
+COMMENT ON COLUMN endpoint_datasource_bindings.env_id        IS '所属环境ID（外键 → project_environments.id）';
+COMMENT ON COLUMN endpoint_datasource_bindings.alias         IS '数据源别名（endpoint 引用此名，env 内决定指向哪个物理库）';
+COMMENT ON COLUMN endpoint_datasource_bindings.datasource_id IS '该 env 下 alias 实际指向的物理 datasource';
 
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS api_groups (
@@ -166,48 +190,48 @@ COMMENT ON COLUMN api_groups.created_at  IS '创建时间';
 -- +goose StatementBegin
 -- api_endpoints 表 = "草稿/工作区"：用户编辑直接改这里，永远是最新状态。
 -- 线上跑的是哪个版本由 endpoint_active_version 决定，与此表解耦。
+-- 数据源以 alias 名引用，运行时按 (env, alias) 查 endpoint_datasource_bindings 解析。
 CREATE TABLE IF NOT EXISTS api_endpoints (
-    id             BIGSERIAL NOT NULL,
-    tenant_id      BIGINT NOT NULL,
-    project_id     BIGINT NOT NULL,
-    group_id       BIGINT NOT NULL DEFAULT 0,
-    datasource_id  BIGINT NOT NULL DEFAULT 0,
-    path           TEXT NOT NULL,
-    methods        TEXT[] NOT NULL,
-    summary        TEXT NOT NULL DEFAULT '',
-    description    TEXT NOT NULL DEFAULT '',
-    sql_query      TEXT NOT NULL,
-    params         TEXT[] DEFAULT '{}',
-    param_defs     JSONB DEFAULT '[]',
-    pre_script_id  BIGINT NOT NULL DEFAULT 0,
-    post_script_id BIGINT NOT NULL DEFAULT 0,
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    id                BIGSERIAL NOT NULL,
+    tenant_id         BIGINT NOT NULL,
+    project_id        BIGINT NOT NULL,
+    group_id          BIGINT NOT NULL DEFAULT 0,
+    datasource_alias TEXT NOT NULL DEFAULT '',
+    path              TEXT NOT NULL,
+    methods           TEXT[] NOT NULL,
+    summary           TEXT NOT NULL DEFAULT '',
+    description       TEXT NOT NULL DEFAULT '',
+    sql_query         TEXT NOT NULL,
+    params            TEXT[] DEFAULT '{}',
+    param_defs        JSONB DEFAULT '[]',
+    pre_script_id     BIGINT NOT NULL DEFAULT 0,
+    post_script_id    BIGINT NOT NULL DEFAULT 0,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (tenant_id, id),
     UNIQUE (tenant_id, project_id, path, methods)
 );
 -- +goose StatementEnd
 COMMENT ON TABLE api_endpoints IS '接口（工作区/草稿；永远代表当前编辑中的状态）';
-COMMENT ON COLUMN api_endpoints.id             IS '接口ID';
-COMMENT ON COLUMN api_endpoints.tenant_id      IS '所属租户ID';
-COMMENT ON COLUMN api_endpoints.project_id     IS '所属项目ID';
-COMMENT ON COLUMN api_endpoints.group_id       IS '所属分组ID，0 表示未分组';
-COMMENT ON COLUMN api_endpoints.datasource_id  IS '绑定的数据源ID';
-COMMENT ON COLUMN api_endpoints.path           IS '接口路径，如 /users/list';
-COMMENT ON COLUMN api_endpoints.methods        IS 'HTTP 方法列表，如 {GET,POST}';
-COMMENT ON COLUMN api_endpoints.summary        IS '接口简短描述（用于 OpenAPI）';
-COMMENT ON COLUMN api_endpoints.description    IS '接口详细描述';
-COMMENT ON COLUMN api_endpoints.sql_query      IS '执行的 SQL 语句';
-COMMENT ON COLUMN api_endpoints.params         IS 'SQL 中提取的参数名列表';
-COMMENT ON COLUMN api_endpoints.param_defs     IS '参数定义（类型、是否必填、默认值等）';
-COMMENT ON COLUMN api_endpoints.pre_script_id  IS '前置脚本ID，0 表示不挂载';
-COMMENT ON COLUMN api_endpoints.post_script_id IS '后置脚本ID，0 表示不挂载';
-COMMENT ON COLUMN api_endpoints.created_at     IS '创建时间';
-COMMENT ON COLUMN api_endpoints.updated_at     IS '最后修改时间（用于判断 "有未发布修改"：updated_at > endpoint_active_version.activated_at）';
+COMMENT ON COLUMN api_endpoints.id                IS '接口ID';
+COMMENT ON COLUMN api_endpoints.tenant_id         IS '所属租户ID';
+COMMENT ON COLUMN api_endpoints.project_id        IS '所属项目ID';
+COMMENT ON COLUMN api_endpoints.group_id          IS '所属分组ID，0 表示未分组';
+COMMENT ON COLUMN api_endpoints.datasource_alias IS '引用的数据源别名（在 env 内解析为具体 datasource）';
+COMMENT ON COLUMN api_endpoints.path              IS '接口路径，如 /users/list';
+COMMENT ON COLUMN api_endpoints.methods           IS 'HTTP 方法列表，如 {GET,POST}';
+COMMENT ON COLUMN api_endpoints.summary           IS '接口简短描述（用于 OpenAPI）';
+COMMENT ON COLUMN api_endpoints.description       IS '接口详细描述';
+COMMENT ON COLUMN api_endpoints.sql_query         IS '执行的 SQL 语句';
+COMMENT ON COLUMN api_endpoints.params            IS 'SQL 中提取的参数名列表';
+COMMENT ON COLUMN api_endpoints.param_defs        IS '参数定义（类型、是否必填、默认值等）';
+COMMENT ON COLUMN api_endpoints.pre_script_id     IS '前置脚本ID，0 表示不挂载';
+COMMENT ON COLUMN api_endpoints.post_script_id    IS '后置脚本ID，0 表示不挂载';
+COMMENT ON COLUMN api_endpoints.created_at        IS '创建时间';
+COMMENT ON COLUMN api_endpoints.updated_at        IS '最后修改时间';
 
 -- +goose StatementBegin
--- endpoint_versions 表 = 不可变历史快照。
--- 每次"创建版本"插一行；激活/回滚/下线都不会改这里。
+-- endpoint_versions 表 = 不可变历史快照（version 跨 env 共享）。
 CREATE TABLE IF NOT EXISTS endpoint_versions (
     id                   BIGSERIAL NOT NULL,
     tenant_id            BIGINT NOT NULL,
@@ -225,47 +249,49 @@ CREATE TABLE IF NOT EXISTS endpoint_versions (
     UNIQUE (tenant_id, endpoint_id, version)
 );
 -- +goose StatementEnd
-COMMENT ON TABLE  endpoint_versions IS '接口版本快照（不可变）';
+COMMENT ON TABLE  endpoint_versions IS '接口版本快照（不可变，跨 env 共享）';
 COMMENT ON COLUMN endpoint_versions.id                   IS '版本记录ID';
 COMMENT ON COLUMN endpoint_versions.tenant_id            IS '所属租户ID';
 COMMENT ON COLUMN endpoint_versions.endpoint_id          IS '所属接口ID';
 COMMENT ON COLUMN endpoint_versions.version              IS '版本号（per endpoint 自增，从 1 起）';
 COMMENT ON COLUMN endpoint_versions.snapshot             IS 'APIEndpoint 完整 JSON 快照';
-COMMENT ON COLUMN endpoint_versions.snapshot_v           IS '快照 schema 版本（便于将来格式演进）';
-COMMENT ON COLUMN endpoint_versions.pre_script_snapshot  IS '前置脚本快照 {id,name,type,code}，NULL 表示无脚本';
-COMMENT ON COLUMN endpoint_versions.post_script_snapshot IS '后置脚本快照 {id,name,type,code}，NULL 表示无脚本';
-COMMENT ON COLUMN endpoint_versions.datasource_ref       IS '数据源引用 {id,name,type}（DSN 永远走最新，不入快照）';
+COMMENT ON COLUMN endpoint_versions.snapshot_v           IS '快照 schema 版本';
+COMMENT ON COLUMN endpoint_versions.pre_script_snapshot  IS '前置脚本快照 {id,name,type,code}';
+COMMENT ON COLUMN endpoint_versions.post_script_snapshot IS '后置脚本快照 {id,name,type,code}';
+COMMENT ON COLUMN endpoint_versions.datasource_ref       IS '数据源引用 {alias}（运行时按 env 解析具体 datasource）';
 COMMENT ON COLUMN endpoint_versions.note                 IS '版本说明 / changelog';
 COMMENT ON COLUMN endpoint_versions.created_by           IS '创建该版本的用户ID';
 COMMENT ON COLUMN endpoint_versions.created_at           IS '版本创建时间';
 
 -- +goose StatementBegin
--- endpoint_active_version 表 = 单一权威指针，标识"线上当前跑的是哪个版本"。
--- 主键 (tenant_id, endpoint_id) 强制保证一个接口至多一个 active 版本。
--- 下线 = 删除此表中对应行。
+-- endpoint_active_version 表 = 单一权威指针，标识 "某 env 当前跑的是哪个版本"。
+-- PK (tenant_id, endpoint_id, env_id) 保证一个接口在一个 env 内至多一个 active 版本；
+-- 不同 env 可同时跑不同版本（例如 dev=v5, prod=v3，灰度/promote 流程的基础）。
 CREATE TABLE IF NOT EXISTS endpoint_active_version (
     tenant_id    BIGINT NOT NULL,
     endpoint_id  BIGINT NOT NULL,
+    env_id       BIGINT NOT NULL,
     version_id   BIGINT NOT NULL,
     activated_by BIGINT NOT NULL DEFAULT 0,
     activated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    PRIMARY KEY (tenant_id, endpoint_id)
+    PRIMARY KEY (tenant_id, endpoint_id, env_id)
 );
 -- +goose StatementEnd
-COMMENT ON TABLE  endpoint_active_version IS '接口当前生效版本指针（一行 = 一个 endpoint 正在线上）';
+COMMENT ON TABLE  endpoint_active_version IS '某 env 内接口当前生效版本指针';
 COMMENT ON COLUMN endpoint_active_version.tenant_id    IS '所属租户ID';
 COMMENT ON COLUMN endpoint_active_version.endpoint_id  IS '接口ID';
+COMMENT ON COLUMN endpoint_active_version.env_id       IS '环境ID';
 COMMENT ON COLUMN endpoint_active_version.version_id   IS '当前生效版本ID（外键 → endpoint_versions.id）';
 COMMENT ON COLUMN endpoint_active_version.activated_by IS '执行激活/发布操作的用户ID';
-COMMENT ON COLUMN endpoint_active_version.activated_at IS '激活时间（用于和 api_endpoints.updated_at 比较判断 has_draft）';
+COMMENT ON COLUMN endpoint_active_version.activated_at IS '激活时间';
 
 -- +goose StatementBegin
--- endpoint_activation_log 表 = 激活历史审计流水。
--- version 字段冗余记录写入时的版本号，便于在版本被删除后仍可显示"删了 v3"。
+-- endpoint_activation_log 表 = 激活历史审计流水（env 维度）。
 CREATE TABLE IF NOT EXISTS endpoint_activation_log (
     id          BIGSERIAL PRIMARY KEY,
     tenant_id   BIGINT NOT NULL,
     endpoint_id BIGINT NOT NULL,
+    env_id      BIGINT,
     version_id  BIGINT,
     version     INT,
     action      TEXT NOT NULL,
@@ -277,19 +303,20 @@ COMMENT ON TABLE  endpoint_activation_log IS '接口激活/下线/回滚操作�
 COMMENT ON COLUMN endpoint_activation_log.id          IS '流水ID';
 COMMENT ON COLUMN endpoint_activation_log.tenant_id   IS '所属租户ID';
 COMMENT ON COLUMN endpoint_activation_log.endpoint_id IS '接口ID';
-COMMENT ON COLUMN endpoint_activation_log.version_id  IS '相关版本ID（下线时可为 NULL）';
-COMMENT ON COLUMN endpoint_activation_log.version     IS '相关版本号（冗余存储，便于版本被删除后仍可还原 vN）';
-COMMENT ON COLUMN endpoint_activation_log.action      IS '操作类型：publish / activate / rollback / unpublish / version_deleted';
+COMMENT ON COLUMN endpoint_activation_log.env_id      IS '操作发生的环境ID（无 env 上下文时 NULL）';
+COMMENT ON COLUMN endpoint_activation_log.version_id  IS '相关版本ID';
+COMMENT ON COLUMN endpoint_activation_log.version     IS '相关版本号（冗余，便于版本被删后仍可还原 vN）';
+COMMENT ON COLUMN endpoint_activation_log.action      IS '操作类型：publish / activate / rollback / unpublish / version_deleted / promote / revert';
 COMMENT ON COLUMN endpoint_activation_log.actor_id    IS '操作人用户ID';
 COMMENT ON COLUMN endpoint_activation_log.at          IS '操作时间';
 
 -- +goose StatementBegin
--- endpoint_call_logs 表 = 每次调用通过 /:tenantSlug/:projectSlug/:path 进来的请求流水。
--- 写入是 fire-and-forget（异步 goroutine），不影响主请求路径。
+-- endpoint_call_logs 表 = 每次调用通过 /-/:env/:tenantSlug/:projectSlug/:path 进来的请求流水。
 CREATE TABLE IF NOT EXISTS endpoint_call_logs (
     id          BIGSERIAL PRIMARY KEY,
     tenant_id   BIGINT NOT NULL,
     endpoint_id BIGINT NOT NULL,
+    env_id      BIGINT,
     version_id  BIGINT,
     version     INT,
     method      TEXT NOT NULL,
@@ -303,18 +330,19 @@ CREATE TABLE IF NOT EXISTS endpoint_call_logs (
     at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 -- +goose StatementEnd
-COMMENT ON TABLE  endpoint_call_logs IS '接口调用流水（每次外部调用 /:tenantSlug/:projectSlug/* 都写一条）';
+COMMENT ON TABLE  endpoint_call_logs IS '接口调用流水（按 env 区分）';
 COMMENT ON COLUMN endpoint_call_logs.id          IS '流水ID';
 COMMENT ON COLUMN endpoint_call_logs.tenant_id   IS '所属租户ID';
 COMMENT ON COLUMN endpoint_call_logs.endpoint_id IS '接口ID';
-COMMENT ON COLUMN endpoint_call_logs.version_id  IS '调用时跑的版本ID（版本被删后 NULL）';
-COMMENT ON COLUMN endpoint_call_logs.version     IS '调用时版本号（冗余，便于版本被删后仍可显示 vN）';
+COMMENT ON COLUMN endpoint_call_logs.env_id      IS '调用环境ID';
+COMMENT ON COLUMN endpoint_call_logs.version_id  IS '调用时跑的版本ID';
+COMMENT ON COLUMN endpoint_call_logs.version     IS '调用时版本号（冗余）';
 COMMENT ON COLUMN endpoint_call_logs.method      IS '实际请求方法 GET / POST / ...';
 COMMENT ON COLUMN endpoint_call_logs.path        IS '实际请求路径（path 参数已展开）';
-COMMENT ON COLUMN endpoint_call_logs.params      IS '实际入参 JSON（query + body 合并，超 4KB 截断）';
-COMMENT ON COLUMN endpoint_call_logs.status      IS 'HTTP 状态码：200 / 400 / 404 / 405 / 500 ...';
+COMMENT ON COLUMN endpoint_call_logs.params      IS '实际入参 JSON';
+COMMENT ON COLUMN endpoint_call_logs.status      IS 'HTTP 状态码';
 COMMENT ON COLUMN endpoint_call_logs.latency_ms  IS '处理耗时（毫秒）';
-COMMENT ON COLUMN endpoint_call_logs.error       IS '错误信息（success 为空字符串）';
+COMMENT ON COLUMN endpoint_call_logs.error       IS '错误信息';
 COMMENT ON COLUMN endpoint_call_logs.ip          IS '调用方 IP';
 COMMENT ON COLUMN endpoint_call_logs.user_agent  IS '调用方 User-Agent';
 COMMENT ON COLUMN endpoint_call_logs.at          IS '请求时间';
@@ -350,19 +378,22 @@ CREATE TABLE IF NOT EXISTS platform_settings (
 -- +goose StatementEnd
 COMMENT ON TABLE platform_settings IS '平台全局配置（单行表）';
 COMMENT ON COLUMN platform_settings.id                  IS '固定 id=1';
-COMMENT ON COLUMN platform_settings.allow_self_register IS '是否允许开放注册（登录页显示「申请注册」入口）';
+COMMENT ON COLUMN platform_settings.allow_self_register IS '是否允许开放注册';
 
 -- +goose StatementBegin
 INSERT INTO platform_settings (id, allow_self_register) VALUES (1, false) ON CONFLICT DO NOTHING;
 -- +goose StatementEnd
 
 CREATE INDEX IF NOT EXISTS idx_tenant_users_user_id            ON tenant_users(user_id);
-CREATE INDEX IF NOT EXISTS idx_datasource_envs_lookup          ON datasource_envs(tenant_id, datasource_id, env);
+CREATE INDEX IF NOT EXISTS idx_project_environments_lookup     ON project_environments(tenant_id, project_id);
+CREATE INDEX IF NOT EXISTS idx_endpoint_bindings_env           ON endpoint_datasource_bindings(tenant_id, env_id);
 CREATE INDEX IF NOT EXISTS idx_api_endpoints_project           ON api_endpoints(tenant_id, project_id);
 CREATE INDEX IF NOT EXISTS idx_api_groups_project              ON api_groups(tenant_id, project_id);
 CREATE INDEX IF NOT EXISTS idx_endpoint_versions_endpoint      ON endpoint_versions(tenant_id, endpoint_id, version DESC);
+CREATE INDEX IF NOT EXISTS idx_endpoint_active_version_env     ON endpoint_active_version(tenant_id, env_id);
 CREATE INDEX IF NOT EXISTS idx_endpoint_activation_log_lookup  ON endpoint_activation_log(tenant_id, endpoint_id, at DESC);
 CREATE INDEX IF NOT EXISTS idx_endpoint_call_logs_lookup       ON endpoint_call_logs(tenant_id, endpoint_id, at DESC);
+CREATE INDEX IF NOT EXISTS idx_endpoint_call_logs_env          ON endpoint_call_logs(tenant_id, endpoint_id, env_id, at DESC);
 CREATE INDEX IF NOT EXISTS idx_endpoint_call_logs_status       ON endpoint_call_logs(tenant_id, endpoint_id, status, at DESC);
 CREATE INDEX IF NOT EXISTS idx_gateways_token                  ON gateways(token);
 CREATE INDEX IF NOT EXISTS idx_datasources_tenant              ON datasources(tenant_id);
@@ -370,12 +401,15 @@ CREATE INDEX IF NOT EXISTS idx_scripts_tenant                  ON scripts(tenant
 
 -- +goose Down
 DROP INDEX IF EXISTS idx_tenant_users_user_id;
-DROP INDEX IF EXISTS idx_datasource_envs_lookup;
+DROP INDEX IF EXISTS idx_project_environments_lookup;
+DROP INDEX IF EXISTS idx_endpoint_bindings_env;
 DROP INDEX IF EXISTS idx_api_endpoints_project;
 DROP INDEX IF EXISTS idx_api_groups_project;
 DROP INDEX IF EXISTS idx_endpoint_versions_endpoint;
+DROP INDEX IF EXISTS idx_endpoint_active_version_env;
 DROP INDEX IF EXISTS idx_endpoint_activation_log_lookup;
 DROP INDEX IF EXISTS idx_endpoint_call_logs_lookup;
+DROP INDEX IF EXISTS idx_endpoint_call_logs_env;
 DROP INDEX IF EXISTS idx_endpoint_call_logs_status;
 DROP INDEX IF EXISTS idx_gateways_token;
 DROP INDEX IF EXISTS idx_datasources_tenant;
@@ -388,7 +422,8 @@ DROP TABLE IF EXISTS endpoint_active_version;
 DROP TABLE IF EXISTS endpoint_versions;
 DROP TABLE IF EXISTS api_endpoints;
 DROP TABLE IF EXISTS api_groups;
-DROP TABLE IF EXISTS datasource_envs;
+DROP TABLE IF EXISTS endpoint_datasource_bindings;
+DROP TABLE IF EXISTS project_environments;
 DROP TABLE IF EXISTS datasources;
 DROP TABLE IF EXISTS projects;
 DROP TABLE IF EXISTS gateways;

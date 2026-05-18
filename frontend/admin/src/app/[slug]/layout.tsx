@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header"
 import { DemoBanner } from "@/components/layout/DemoBanner"
 import { useEffect, use } from "react"
 import { useUIStore } from "@/store/useUIStore"
+import { useIsCompactViewport } from "@/hooks/useIsCompactViewport"
 import { useAuthStore } from "@/store/useAuthStore"
 import { TenantProvider } from "@/providers/TenantProvider"
 import { cn } from "@/lib/utils"
@@ -18,6 +19,9 @@ export default function DashboardLayout({
   params: Promise<{ slug: string }>
 }) {
   const { setViewContext, sidebarCollapsed } = useUIStore()
+  const isCompact = useIsCompactViewport()
+  // 小屏强制 collapsed（跟 Sidebar 里逻辑一致），保证 padding 跟 sidebar 实际宽度匹配
+  const effectiveCollapsed = sidebarCollapsed || isCompact
   const { restoreSession } = useAuthStore()
   const { slug } = use(params)
 
@@ -39,7 +43,8 @@ export default function DashboardLayout({
         {isTenantView && <Sidebar slug={slug} />}
         <div className={cn(
           "flex-1 flex flex-col min-h-screen min-w-0",
-          isTenantView ? (sidebarCollapsed ? "lg:pl-[60px]" : "lg:pl-56") : "pl-0"
+          // 不再用 lg: 前缀——小屏 sidebar 也是可见的（强制 60px），padding 必须跟上
+          isTenantView ? (effectiveCollapsed ? "pl-[60px]" : "pl-56") : "pl-0"
         )}>
           <Header slug={slug} />
           <DemoBanner />

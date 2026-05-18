@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ActivateEndpointVersionData, ActivateEndpointVersionResponses, AddUserData, AddUserResponses, ChangePasswordData, ChangePasswordResponses, CreateDataSourceData, CreateDataSourceResponses, CreateEndpointData, CreateEndpointResponses, CreateEndpointVersionData, CreateEndpointVersionResponses, CreateGatewayData, CreateGatewayResponses, CreateGroupData, CreateGroupResponses, CreateProjectData, CreateProjectResponses, CreateScriptData, CreateScriptResponses, CreateTenantData, CreateTenantResponses, DeleteDataSourceData, DeleteDataSourceResponses, DeleteEndpointData, DeleteEndpointResponses, DeleteEndpointVersionData, DeleteEndpointVersionResponses, DeleteGatewayData, DeleteGatewayResponses, DeleteGroupData, DeleteGroupResponses, DeleteProjectData, DeleteProjectResponses, DeleteScriptData, DeleteScriptResponses, DeleteTenantData, DeleteTenantResponses, ExecuteQuery2Data, ExecuteQuery2Responses, ExecuteQuery3Data, ExecuteQuery3Responses, ExecuteQuery4Data, ExecuteQuery4Responses, ExecuteQueryData, ExecuteQueryResponses, ExportOpenApiData, ExportOpenApiResponses, GetDataSourceData, GetDataSourceResponses, GetDatasourceSchemaData, GetDatasourceSchemaResponses, GetGatewayData, GetGatewayResponses, GetPlatformSettingsData, GetPlatformSettingsResponses, GetProjectData, GetProjectResponses, GetTenantData, GetTenantResponses, ListAllTenantsData, ListAllTenantsResponses, ListDataSourcesData, ListDataSourcesResponses, ListEndpointActivationLogData, ListEndpointActivationLogResponses, ListEndpointCallLogsData, ListEndpointCallLogsResponses, ListEndpointsData, ListEndpointsResponses, ListEndpointVersionsData, ListEndpointVersionsResponses, ListGatewaysData, ListGatewaysResponses, ListGroupsData, ListGroupsResponses, ListProjectsData, ListProjectsResponses, ListScriptsData, ListScriptsResponses, ListUsersData, ListUsersResponses, LoginData, LoginResponses, MyTenantsData, MyTenantsResponses, PreviewTableData, PreviewTableResponses, PublishEndpointData, PublishEndpointResponses, RegisterData, RegisterResponses, RemoveUserData, RemoveUserResponses, RevertEndpointToActiveData, RevertEndpointToActiveResponses, TestDatasourceData, TestDatasourceResponses, TestQueryData, TestQueryResponses, UnpublishEndpointData, UnpublishEndpointResponses, UpdateDataSourceData, UpdateDataSourceResponses, UpdateEndpointData, UpdateEndpointResponses, UpdateGroupData, UpdateGroupResponses, UpdatePlatformSettingsData, UpdatePlatformSettingsResponses, UpdateProjectData, UpdateProjectResponses, UpdateScriptData, UpdateScriptResponses, UpdateTenantData, UpdateTenantResponses, UpdateTenantSettingsData, UpdateTenantSettingsResponses, UpdateUserRoleData, UpdateUserRoleResponses } from './types.gen';
+import type { ActivateEndpointVersionData, ActivateEndpointVersionResponses, AddUserData, AddUserResponses, ChangePasswordData, ChangePasswordResponses, CreateDataSourceData, CreateDataSourceResponses, CreateEndpointData, CreateEndpointResponses, CreateEndpointVersionData, CreateEndpointVersionResponses, CreateGatewayData, CreateGatewayResponses, CreateGroupData, CreateGroupResponses, CreateProjectData, CreateProjectEnvironmentData, CreateProjectEnvironmentResponses, CreateProjectResponses, CreateScriptData, CreateScriptResponses, CreateTenantData, CreateTenantResponses, DeleteDataSourceData, DeleteDataSourceResponses, DeleteEndpointData, DeleteEndpointResponses, DeleteEndpointVersionData, DeleteEndpointVersionResponses, DeleteEnvBindingData, DeleteEnvBindingResponses, DeleteGatewayData, DeleteGatewayResponses, DeleteGroupData, DeleteGroupResponses, DeleteProjectData, DeleteProjectEnvironmentData, DeleteProjectEnvironmentResponses, DeleteProjectResponses, DeleteScriptData, DeleteScriptResponses, DeleteTenantData, DeleteTenantResponses, ExecuteQuery2Data, ExecuteQuery2Responses, ExecuteQuery3Data, ExecuteQuery3Responses, ExecuteQuery4Data, ExecuteQuery4Responses, ExecuteQueryData, ExecuteQueryResponses, ExportOpenApiData, ExportOpenApiResponses, GetDataSourceData, GetDataSourceResponses, GetDatasourceSchemaData, GetDatasourceSchemaResponses, GetGatewayData, GetGatewayResponses, GetPlatformSettingsData, GetPlatformSettingsResponses, GetProjectData, GetProjectResponses, GetTenantData, GetTenantResponses, HealthData, HealthResponses, ListAllTenantsData, ListAllTenantsResponses, ListDataSourcesData, ListDataSourcesResponses, ListEndpointActivationLogData, ListEndpointActivationLogResponses, ListEndpointActivesData, ListEndpointActivesResponses, ListEndpointCallLogsData, ListEndpointCallLogsResponses, ListEndpointsData, ListEndpointsResponses, ListEndpointVersionsData, ListEndpointVersionsResponses, ListEnvBindingsData, ListEnvBindingsResponses, ListGatewaysData, ListGatewaysResponses, ListGroupsData, ListGroupsResponses, ListProjectBindingsData, ListProjectBindingsResponses, ListProjectEnvironmentsData, ListProjectEnvironmentsResponses, ListProjectsData, ListProjectsResponses, ListScriptsData, ListScriptsResponses, ListUsersData, ListUsersResponses, LoginData, LoginResponses, MyTenantsData, MyTenantsResponses, PreviewTableData, PreviewTableResponses, PromoteEndpointVersionData, PromoteEndpointVersionResponses, PublishEndpointData, PublishEndpointResponses, RegisterData, RegisterResponses, RemoveUserData, RemoveUserResponses, RenameProjectAliasData, RenameProjectAliasResponses, RenameProjectEnvironmentData, RenameProjectEnvironmentResponses, RevertEndpointToActiveData, RevertEndpointToActiveResponses, SetDefaultProjectEnvironmentData, SetDefaultProjectEnvironmentResponses, TestDatasourceData, TestDatasourceResponses, TestQueryData, TestQueryResponses, UnpublishEndpointData, UnpublishEndpointResponses, UpdateDataSourceData, UpdateDataSourceResponses, UpdateEndpointData, UpdateEndpointResponses, UpdateGroupData, UpdateGroupResponses, UpdatePlatformSettingsData, UpdatePlatformSettingsResponses, UpdateProjectData, UpdateProjectResponses, UpdateScriptData, UpdateScriptResponses, UpdateTenantData, UpdateTenantResponses, UpdateTenantSettingsData, UpdateTenantSettingsResponses, UpdateUserRoleData, UpdateUserRoleResponses, UpsertEnvBindingData, UpsertEnvBindingResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -17,6 +17,69 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      */
     meta?: Record<string, unknown>;
 };
+
+/**
+ * 执行已发布的 API 接口
+ */
+export const executeQuery = <ThrowOnError extends boolean = false>(options: Options<ExecuteQueryData, ThrowOnError>) => (options.client ?? client).delete<ExecuteQueryResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/-/{env}/{tenantSlug}/{projectSlug}/{path}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 执行已发布的 API 接口
+ */
+export const executeQuery2 = <ThrowOnError extends boolean = false>(options: Options<ExecuteQuery2Data, ThrowOnError>) => (options.client ?? client).get<ExecuteQuery2Responses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/-/{env}/{tenantSlug}/{projectSlug}/{path}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 执行已发布的 API 接口
+ */
+export const executeQuery3 = <ThrowOnError extends boolean = false>(options: Options<ExecuteQuery3Data, ThrowOnError>) => (options.client ?? client).post<ExecuteQuery3Responses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/-/{env}/{tenantSlug}/{projectSlug}/{path}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 执行已发布的 API 接口
+ */
+export const executeQuery4 = <ThrowOnError extends boolean = false>(options: Options<ExecuteQuery4Data, ThrowOnError>) => (options.client ?? client).put<ExecuteQuery4Responses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/-/{env}/{tenantSlug}/{projectSlug}/{path}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 健康检查 / 版本信息
+ *
+ * 公开接口，返回服务状态、当前 edition (community/enterprise) 与 license 状态
+ */
+export const health = <ThrowOnError extends boolean = false>(options?: Options<HealthData, ThrowOnError>) => (options?.client ?? client).get<HealthResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    url: '/health',
+    ...options
+});
 
 /**
  * 修改当前用户密码
@@ -343,6 +406,30 @@ export const updateProject = <ThrowOnError extends boolean = false>(options: Opt
 });
 
 /**
+ * 跨 env 重命名 alias
+ */
+export const renameProjectAlias = <ThrowOnError extends boolean = false>(options: Options<RenameProjectAliasData, ThrowOnError>) => (options.client ?? client).post<RenameProjectAliasResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/aliases/rename',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 获取项目所有 env 的 alias 绑定（用于编辑器解析弹窗）
+ */
+export const listProjectBindings = <ThrowOnError extends boolean = false>(options: Options<ListProjectBindingsData, ThrowOnError>) => (options.client ?? client).get<ListProjectBindingsResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/bindings',
+    ...options
+});
+
+/**
  * 获取 API 端点列表
  */
 export const listEndpoints = <ThrowOnError extends boolean = false>(options: Options<ListEndpointsData, ThrowOnError>) => (options.client ?? client).get<ListEndpointsResponses, unknown, ThrowOnError, 'data'>({
@@ -391,12 +478,22 @@ export const updateEndpoint = <ThrowOnError extends boolean = false>(options: Op
 });
 
 /**
- * 查询接口激活流水（谁、何时、做了什么）
+ * 查询接口激活流水
  */
 export const listEndpointActivationLog = <ThrowOnError extends boolean = false>(options: Options<ListEndpointActivationLogData, ThrowOnError>) => (options.client ?? client).get<ListEndpointActivationLogResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/activation-log',
+    ...options
+});
+
+/**
+ * 列出该接口在各 env 的当前激活版本（per-env 激活快照）
+ */
+export const listEndpointActives = <ThrowOnError extends boolean = false>(options: Options<ListEndpointActivesData, ThrowOnError>) => (options.client ?? client).get<ListEndpointActivesResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/actives',
     ...options
 });
 
@@ -413,7 +510,21 @@ export const listEndpointCallLogs = <ThrowOnError extends boolean = false>(optio
 });
 
 /**
- * 发布接口（创建版本 + 激活，一键上线）
+ * 把 source env 当前激活版本提升到 target env（无需新建 version）
+ */
+export const promoteEndpointVersion = <ThrowOnError extends boolean = false>(options: Options<PromoteEndpointVersionData, ThrowOnError>) => (options.client ?? client).post<PromoteEndpointVersionResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/promote',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 在某 env 发布接口（创建版本 + 激活）
  */
 export const publishEndpoint = <ThrowOnError extends boolean = false>(options: Options<PublishEndpointData, ThrowOnError>) => (options.client ?? client).post<PublishEndpointResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -427,9 +538,7 @@ export const publishEndpoint = <ThrowOnError extends boolean = false>(options: O
 });
 
 /**
- * 还原到线上版本（丢弃所有未发布修改）
- *
- * 把 api_endpoints 草稿恢复成当前激活版本的内容；操作后 has_draft 立即变 false
+ * 还原草稿到某 env 的当前激活版本（丢弃未发布修改）
  */
 export const revertEndpointToActive = <ThrowOnError extends boolean = false>(options: Options<RevertEndpointToActiveData, ThrowOnError>) => (options.client ?? client).post<RevertEndpointToActiveResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -439,7 +548,7 @@ export const revertEndpointToActive = <ThrowOnError extends boolean = false>(opt
 });
 
 /**
- * 下线接口（删除激活指针）
+ * 在某 env 下线接口（清掉该 env 的激活指针）
  */
 export const unpublishEndpoint = <ThrowOnError extends boolean = false>(options: Options<UnpublishEndpointData, ThrowOnError>) => (options.client ?? client).post<UnpublishEndpointResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -459,7 +568,7 @@ export const listEndpointVersions = <ThrowOnError extends boolean = false>(optio
 });
 
 /**
- * 创建版本快照（不激活）
+ * 创建版本快照（不激活任何 env）
  */
 export const createEndpointVersion = <ThrowOnError extends boolean = false>(options: Options<CreateEndpointVersionData, ThrowOnError>) => (options.client ?? client).post<CreateEndpointVersionResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -475,7 +584,7 @@ export const createEndpointVersion = <ThrowOnError extends boolean = false>(opti
 /**
  * 删除指定版本（不可恢复）
  *
- * 受三道护栏保护：不能删 active、不能删唯一版本、删除事件本身会写入流水
+ * 任何 env 仍激活该版本时不可删除
  */
 export const deleteEndpointVersion = <ThrowOnError extends boolean = false>(options: Options<DeleteEndpointVersionData, ThrowOnError>) => (options.client ?? client).delete<DeleteEndpointVersionResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -485,12 +594,104 @@ export const deleteEndpointVersion = <ThrowOnError extends boolean = false>(opti
 });
 
 /**
- * 激活指定版本（=回滚 / 切换到此版本）
+ * 在某 env 激活指定版本（=切换 / 回滚）
  */
 export const activateEndpointVersion = <ThrowOnError extends boolean = false>(options: Options<ActivateEndpointVersionData, ThrowOnError>) => (options.client ?? client).post<ActivateEndpointVersionResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/versions/{versionId}/activate',
+    ...options
+});
+
+/**
+ * 获取项目环境列表
+ */
+export const listProjectEnvironments = <ThrowOnError extends boolean = false>(options: Options<ListProjectEnvironmentsData, ThrowOnError>) => (options.client ?? client).get<ListProjectEnvironmentsResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments',
+    ...options
+});
+
+/**
+ * 创建项目环境
+ */
+export const createProjectEnvironment = <ThrowOnError extends boolean = false>(options: Options<CreateProjectEnvironmentData, ThrowOnError>) => (options.client ?? client).post<CreateProjectEnvironmentResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 删除环境
+ */
+export const deleteProjectEnvironment = <ThrowOnError extends boolean = false>(options: Options<DeleteProjectEnvironmentData, ThrowOnError>) => (options.client ?? client).delete<DeleteProjectEnvironmentResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}',
+    ...options
+});
+
+/**
+ * 重命名环境
+ */
+export const renameProjectEnvironment = <ThrowOnError extends boolean = false>(options: Options<RenameProjectEnvironmentData, ThrowOnError>) => (options.client ?? client).put<RenameProjectEnvironmentResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 获取单个环境的 binding 列表
+ */
+export const listEnvBindings = <ThrowOnError extends boolean = false>(options: Options<ListEnvBindingsData, ThrowOnError>) => (options.client ?? client).get<ListEnvBindingsResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings',
+    ...options
+});
+
+/**
+ * 新增/更新一个 alias 绑定
+ */
+export const upsertEnvBinding = <ThrowOnError extends boolean = false>(options: Options<UpsertEnvBindingData, ThrowOnError>) => (options.client ?? client).post<UpsertEnvBindingResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * 删除一个 alias 绑定
+ */
+export const deleteEnvBinding = <ThrowOnError extends boolean = false>(options: Options<DeleteEnvBindingData, ThrowOnError>) => (options.client ?? client).delete<DeleteEnvBindingResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings/{alias}',
+    ...options
+});
+
+/**
+ * 设置默认环境
+ */
+export const setDefaultProjectEnvironment = <ThrowOnError extends boolean = false>(options: Options<SetDefaultProjectEnvironmentData, ThrowOnError>) => (options.client ?? client).post<SetDefaultProjectEnvironmentResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ name: 'Authorization', type: 'apiKey' }],
+    url: '/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/default',
     ...options
 });
 
@@ -543,7 +744,7 @@ export const updateGroup = <ThrowOnError extends boolean = false>(options: Optio
 });
 
 /**
- * 导出项目 OpenAPI 规范
+ * 导出项目 OpenAPI 规范（按指定 env 导出；默认导出 default env）
  */
 export const exportOpenApi = <ThrowOnError extends boolean = false>(options: Options<ExportOpenApiData, ThrowOnError>) => (options.client ?? client).get<ExportOpenApiResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -553,7 +754,7 @@ export const exportOpenApi = <ThrowOnError extends boolean = false>(options: Opt
 });
 
 /**
- * 测试执行 API 端点
+ * 测试执行 API 端点（按指定 env 解析数据源）
  */
 export const testQuery = <ThrowOnError extends boolean = false>(options: Options<TestQueryData, ThrowOnError>) => (options.client ?? client).post<TestQueryResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
@@ -669,58 +870,6 @@ export const updateUserRole = <ThrowOnError extends boolean = false>(options: Op
     responseStyle: 'data',
     security: [{ name: 'Authorization', type: 'apiKey' }],
     url: '/v1/tenants/{slug}/users/{userId}/role',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * 执行已发布的 API 接口
- */
-export const executeQuery = <ThrowOnError extends boolean = false>(options: Options<ExecuteQueryData, ThrowOnError>) => (options.client ?? client).delete<ExecuteQueryResponses, unknown, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    url: '/{tenantSlug}/{projectSlug}/{path}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * 执行已发布的 API 接口
- */
-export const executeQuery2 = <ThrowOnError extends boolean = false>(options: Options<ExecuteQuery2Data, ThrowOnError>) => (options.client ?? client).get<ExecuteQuery2Responses, unknown, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    url: '/{tenantSlug}/{projectSlug}/{path}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * 执行已发布的 API 接口
- */
-export const executeQuery3 = <ThrowOnError extends boolean = false>(options: Options<ExecuteQuery3Data, ThrowOnError>) => (options.client ?? client).post<ExecuteQuery3Responses, unknown, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    url: '/{tenantSlug}/{projectSlug}/{path}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * 执行已发布的 API 接口
- */
-export const executeQuery4 = <ThrowOnError extends boolean = false>(options: Options<ExecuteQuery4Data, ThrowOnError>) => (options.client ?? client).put<ExecuteQuery4Responses, unknown, ThrowOnError, 'data'>({
-    responseStyle: 'data',
-    url: '/{tenantSlug}/{projectSlug}/{path}',
     ...options,
     headers: {
         'Content-Type': 'application/json',

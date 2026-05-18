@@ -8,8 +8,8 @@ import (
 
 type DataSourceService interface {
 	List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.DataSource, int, error)
+	ListByIDs(ctx context.Context, tenantID int64, ids []int64) ([]*domain.DataSource, error)
 	GetByID(ctx context.Context, tenantID, id int64) (*domain.DataSource, error)
-	GetEnv(ctx context.Context, tenantID, datasourceID int64, env string) (*domain.DataSourceEnv, error)
 	Create(ctx context.Context, ds *domain.DataSource) error
 	Update(ctx context.Context, ds *domain.DataSource) error
 	Delete(ctx context.Context, tenantID, id int64) error
@@ -23,6 +23,10 @@ func NewDataSourceService(repo domain.DataSourceRepository) DataSourceService {
 
 func (s *dataSourceService) List(ctx context.Context, tenantID int64, p domain.ListParams) ([]*domain.DataSource, int, error) {
 	return s.repo.List(ctx, tenantID, p)
+}
+
+func (s *dataSourceService) ListByIDs(ctx context.Context, tenantID int64, ids []int64) ([]*domain.DataSource, error) {
+	return s.repo.ListByIDs(ctx, tenantID, ids)
 }
 
 func (s *dataSourceService) GetByID(ctx context.Context, tenantID, id int64) (*domain.DataSource, error) {
@@ -57,8 +61,4 @@ func (s *dataSourceService) Delete(ctx context.Context, tenantID, id int64) erro
 		return domain.ErrForbidden("内置数据源不可删除")
 	}
 	return s.repo.Delete(ctx, tenantID, id)
-}
-
-func (s *dataSourceService) GetEnv(ctx context.Context, tenantID, datasourceID int64, env string) (*domain.DataSourceEnv, error) {
-	return s.repo.GetEnv(ctx, tenantID, datasourceID, env)
 }

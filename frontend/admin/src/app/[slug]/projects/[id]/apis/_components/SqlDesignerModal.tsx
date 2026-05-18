@@ -10,6 +10,8 @@ import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useReferenceData } from "../_hooks/useReferenceData"
 import { useSchemaQuery } from "../_hooks/useSchemaQuery"
 import { useTenantProject } from "../_hooks/useTenantProject"
+import { useEnvironments, useEnvBindings, useProjectBindings, useDataSources } from "@/hooks"
+import { useMemo } from "react"
 import { showConfirm } from "@/store/useConfirmStore"
 import { ParamDefCard } from "./DesignTab/ParamDefCard"
 import { SqlEditorPanel } from "./SqlEditorPanel"
@@ -45,8 +47,29 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
   const designExecResult = useEndpointFormStore(s => s.designExecResult)
   const setDesignExecResult = useEndpointFormStore(s => s.setDesignExecResult)
 
-  const { dataSources, scripts } = useReferenceData(activeTenant)
-  const { data: tables = [], isLoading: schemaLoading } = useSchemaQuery(activeTenant, form.datasourceId)
+  const { scripts } = useReferenceData(activeTenant)
+  const { data: envs = [] } = useEnvironments(activeTenant, Number(projectId))
+  // schema 浏览没有"当前 env"概念了，用项目的默认 env 解析 alias → datasource
+  const defaultEnv = useMemo(() => envs.find(e => e.is_default) ?? envs[0], [envs])
+  const defaultEnvId = defaultEnv?.id ?? 0
+  const defaultEnvName = defaultEnv?.name ?? ''
+  const { data: defaultEnvBindings = [] } = useEnvBindings(activeTenant, Number(projectId), defaultEnvId)
+  const { data: allBindings = [] } = useProjectBindings(activeTenant, Number(projectId))
+  const { dataSources } = useDataSources(activeTenant, { is_pager: 0 })
+
+  // Resolve current alias → physical datasource for schema panel (uses default env).
+  const aliasBinding = defaultEnvBindings.find(b => b.alias === form.datasourceAlias)
+  const resolvedDsId = aliasBinding?.datasource_id ?? 0
+  const { data: tables = [], isLoading: schemaLoading } = useSchemaQuery(activeTenant, resolvedDsId)
+
+  // Project-level alias union for the dropdown.
+  const aliasNames = Array.from(new Set(allBindings.map(b => b.alias)))
+  if (aliasNames.length === 0) aliasNames.push("main")
+  const dsNameById = new Map(dataSources.map(d => [d.id, d.name]))
+  const aliases = aliasNames.map(name => {
+    const b = defaultEnvBindings.find(x => x.alias === name)
+    return { name, resolvedName: b ? dsNameById.get(b.datasource_id) : undefined }
+  })
 
   /**
    * 关闭模态前的守卫：表单写到全局 store（用于"执行"功能能读到最新 SQL），
@@ -138,8 +161,8 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
 
             <Button
               size="sm"
-              onClick={() => runDesign(activeTenant, projectId, selectedId, isNew)}
-              disabled={designExecuting}
+              onClick={() => runDesign(activeTenant, projectId, defaultEnvId, selectedId, isNew)}
+              disabled={designExecuting || !defaultEnvId}
               className="h-8 bg-zinc-800 hover:bg-zinc-700 text-white text-xs px-4 rounded-lg gap-1.5"
             >
               {designExecuting
@@ -175,16 +198,17 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
         <div className="flex flex-1 min-h-0">
           <SqlEditorPanel
             sql={form.sql}
-            datasourceId={form.datasourceId}
+            datasourceAlias={form.datasourceAlias}
             preScriptId={form.preScriptId}
             postScriptId={form.postScriptId}
-            dataSources={dataSources}
+            aliases={aliases}
+            currentEnvName={defaultEnvName}
             scripts={scripts}
             tables={tables}
             schemaLoading={schemaLoading}
             designExecResult={designExecResult}
             onSqlChange={val => setFormField("sql", val)}
-            onDatasourceChange={id => setFormField("datasourceId", id)}
+            onDatasourceAliasChange={h => setFormField("datasourceAlias", h)}
             onPreScriptChange={id => setFormField("preScriptId", id)}
             onPostScriptChange={id => setFormField("postScriptId", id)}
             onClearResult={() => setDesignExecResult(null)}

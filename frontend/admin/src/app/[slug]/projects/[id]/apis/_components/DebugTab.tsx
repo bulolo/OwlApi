@@ -13,6 +13,9 @@ import Editor from "@monaco-editor/react"
 import { useEndpointFormStore } from "../_store/useEndpointFormStore"
 import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useTenantProject } from "../_hooks/useTenantProject"
+import { useEnvironments } from "@/hooks"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { envColor } from "../../_utils/envColor"
 import { apiRun } from "@/lib/api-client"
 import { getErrorMessage } from "@/lib/errors"
 import type { ParamDef, ExecutionResult } from "../_types"
@@ -35,7 +38,15 @@ const colorMap: Record<TagColor, { tag: string; bar: string }> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function DebugTab() {
-  const { activeTenant } = useTenantProject()
+  const { activeTenant, projectId } = useTenantProject()
+  const { data: envs = [] } = useEnvironments(activeTenant, Number(projectId))
+  const defaultEnv = useMemo(() => envs.find(e => e.is_default) ?? envs[0], [envs])
+  const [runEnvId, setRunEnvId] = useState<number>(0)
+  // Sync default once envs are loaded (only on first load — don't clobber user's selection)
+  useEffect(() => {
+    if (runEnvId === 0 && defaultEnv) setRunEnvId(defaultEnv.id)
+  }, [defaultEnv, runEnvId])
+  const currentEnvId = runEnvId || defaultEnv?.id || 0
   const authToken    = useEndpointFormStore(s => s.authToken)
   const setAuthToken = useEndpointFormStore(s => s.setAuthToken)
   const paramJSON    = useEndpointFormStore(s => s.paramJSON)
@@ -99,7 +110,7 @@ export function DebugTab() {
         const val = paramValues[def.name] ?? def.default ?? ""
         params[def.name] = val
       }
-      const data = await apiRun(activeTenant, selectedId, params)
+      const data = await apiRun(activeTenant, selectedId, currentEnvId, params)
       setExecResult(data as ExecutionResult)
     } catch (err) {
       setExecResult({ error: getErrorMessage(err) })
@@ -180,10 +191,30 @@ export function DebugTab() {
             </div>
           </CardContent>
 
-          <div className="p-4 border-t border-border-subtle bg-white">
+          <div className="p-4 border-t border-border-subtle bg-white space-y-2">
+            {envs.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Label className="text-2xs font-bold text-muted-foreground uppercase tracking-wider shrink-0">在哪个环境运行</Label>
+                <Select value={String(currentEnvId)} onValueChange={v => setRunEnvId(Number(v))}>
+                  <SelectTrigger className="h-8 text-xs flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {envs.map(e => (
+                      <SelectItem key={e.id} value={String(e.id)}>
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className={cn("w-1.5 h-1.5 rounded-full", envColor(e.name).bg)} />
+                          <span className="font-bold">{e.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <Button
               onClick={handleRun}
-              disabled={executing}
+              disabled={executing || !currentEnvId}
               className="w-full h-9 font-bold text-xs shadow-sm rounded-lg"
             >
               <Send className={cn("w-3.5 h-3.5 mr-2", executing && "animate-pulse")} />

@@ -62,9 +62,34 @@ type DataSourceRepository interface {
 	GetByID(ctx context.Context, tenantID, id int64) (*DataSource, error)
 	GetByName(ctx context.Context, tenantID int64, name string) (*DataSource, error)
 	List(ctx context.Context, tenantID int64, p ListParams) ([]*DataSource, int, error)
+	ListByIDs(ctx context.Context, tenantID int64, ids []int64) ([]*DataSource, error)
 	Delete(ctx context.Context, tenantID, id int64) error
 	Update(ctx context.Context, ds *DataSource) error
-	GetEnv(ctx context.Context, tenantID, datasourceID int64, env string) (*DataSourceEnv, error)
+}
+
+// ProjectEnvironmentRepository manages a project's environment list.
+type ProjectEnvironmentRepository interface {
+	Create(ctx context.Context, env *ProjectEnvironment) error
+	GetByID(ctx context.Context, tenantID, id int64) (*ProjectEnvironment, error)
+	GetByName(ctx context.Context, tenantID, projectID int64, name string) (*ProjectEnvironment, error)
+	GetDefault(ctx context.Context, tenantID, projectID int64) (*ProjectEnvironment, error)
+	ListByProject(ctx context.Context, tenantID, projectID int64) ([]*ProjectEnvironment, error)
+	Update(ctx context.Context, env *ProjectEnvironment) error
+	Delete(ctx context.Context, tenantID, id int64) error
+}
+
+// EndpointDatasourceBindingRepository manages alias → datasource bindings per env.
+type EndpointDatasourceBindingRepository interface {
+	Upsert(ctx context.Context, b *EndpointDatasourceBinding) error
+	Delete(ctx context.Context, tenantID, envID int64, alias string) error
+	Get(ctx context.Context, tenantID, envID int64, alias string) (*EndpointDatasourceBinding, error)
+	ListByEnv(ctx context.Context, tenantID, envID int64) ([]*EndpointDatasourceBinding, error)
+	// ListByProject returns all bindings across all envs of a project (for "resolve alias X across envs" lookups).
+	ListByProject(ctx context.Context, tenantID, projectID int64) ([]*EndpointDatasourceBinding, error)
+	// DeleteByEnv removes all bindings for an env (used when env itself is deleted).
+	DeleteByEnv(ctx context.Context, tenantID, envID int64) error
+	// RenameAlias bulk-renames an alias across all envs of a project (cascade rename support).
+	RenameAlias(ctx context.Context, tenantID, projectID int64, oldAlias, newAlias string) error
 }
 
 type ProjectRepository interface {
@@ -97,8 +122,8 @@ type APIEndpointRepository interface {
 	// (Regular Update bumps updated_at = NOW(), which would still leave has_draft = true.)
 	RevertFromSnapshot(ctx context.Context, tenantID, endpointID int64, snap *APIEndpoint, activatedAt time.Time) error
 	List(ctx context.Context, tenantID, projectID int64, p ListParams) ([]*APIEndpoint, int, error)
-	// ListPublishedByProject returns endpoints whose endpoint_active_version row exists in the given project.
-	ListPublishedByProject(ctx context.Context, tenantID, projectID int64) ([]*APIEndpoint, error)
+	// ListPublishedInEnv returns endpoints whose endpoint_active_version row exists in (project, env).
+	ListPublishedInEnv(ctx context.Context, tenantID, projectID, envID int64) ([]*APIEndpoint, error)
 	Delete(ctx context.Context, tenantID, id int64) error
 }
 
@@ -121,13 +146,21 @@ type EndpointVersionRepository interface {
 }
 
 type EndpointActiveVersionRepository interface {
-	// Upsert replaces the active version pointer for (tenant, endpoint).
-	Upsert(ctx context.Context, tenantID, endpointID, versionID, actorID int64) error
-	Get(ctx context.Context, tenantID, endpointID int64) (*EndpointActiveVersion, error)
-	// Delete clears the active version pointer (= take endpoint offline).
-	Delete(ctx context.Context, tenantID, endpointID int64) error
-	// ListByProject returns active pointers for all published endpoints of a project, joined with version numbers.
+	// Upsert replaces the active version pointer for (tenant, endpoint, env).
+	Upsert(ctx context.Context, tenantID, endpointID, envID, versionID, actorID int64) error
+	Get(ctx context.Context, tenantID, endpointID, envID int64) (*EndpointActiveVersion, error)
+	// ListByEndpoint returns all per-env active pointers for one endpoint.
+	ListByEndpoint(ctx context.Context, tenantID, endpointID int64) ([]*EndpointActiveVersion, error)
+	// Delete clears the active version pointer for a single (endpoint, env).
+	Delete(ctx context.Context, tenantID, endpointID, envID int64) error
+	// DeleteByEndpoint clears active pointers across all envs for one endpoint (used when endpoint is deleted).
+	DeleteByEndpoint(ctx context.Context, tenantID, endpointID int64) error
+	// DeleteByEnv clears all active pointers for an env (used when env itself is deleted).
+	DeleteByEnv(ctx context.Context, tenantID, envID int64) error
+	// ListByProject returns per-env active pointers across all endpoints of a project.
 	ListByProject(ctx context.Context, tenantID, projectID int64) ([]*EndpointActiveVersion, error)
+	// ListByProjectAndEnv returns active pointers for one (project, env).
+	ListByProjectAndEnv(ctx context.Context, tenantID, projectID, envID int64) ([]*EndpointActiveVersion, error)
 }
 
 type EndpointCallLogRepository interface {
@@ -138,10 +171,10 @@ type EndpointCallLogRepository interface {
 }
 
 type EndpointActivationLogRepository interface {
-	// Append writes one log row. versionNumber is the human-readable v3 number;
-	// stored redundantly so the log still displays correctly after the version row is deleted.
-	// Pass 0 for both versionID and versionNumber on unpublish-style events with no associated version.
-	Append(ctx context.Context, tenantID, endpointID, versionID int64, versionNumber int, actorID int64, action ActivationAction) error
+	// Append writes one log row. envID may be 0 for events with no env context.
+	// versionNumber is the human-readable v3 number; stored redundantly so the log
+	// still displays correctly after the version row is deleted.
+	Append(ctx context.Context, tenantID, endpointID, envID, versionID int64, versionNumber int, actorID int64, action ActivationAction) error
 	ListByEndpoint(ctx context.Context, tenantID, endpointID int64, p ListParams) ([]*EndpointActivationLog, int, error)
 }
 

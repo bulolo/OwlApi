@@ -1,5 +1,5 @@
 // @title           OwlApi Control Plane
-// @version         0.1.9
+// @version         0.2.0
 // @description     企业级 SQL to API 智能网关平台管理接口
 // @host            localhost:3000
 // @BasePath        /
@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/bulolo/owlapi/internal/config"
+	"github.com/bulolo/owlapi/internal/edition"
 	"github.com/bulolo/owlapi/internal/pb"
 	"github.com/bulolo/owlapi/internal/pkg/auth"
 	"github.com/bulolo/owlapi/internal/pkg/logger"
@@ -41,6 +42,9 @@ func main() {
 	}
 	logger.Init(cfg.LogLevel)
 	slog.Info("Starting OwlApi Control Plane...")
+
+	// Edition / License 在所有业务初始化之前确定，后续模块通过 edition.IsLicensed() 决策。
+	edition.Init(cfg.Edition, cfg.LicenseKey)
 
 	auth.Init(cfg.JWTSecret)
 
@@ -68,6 +72,8 @@ func main() {
 	callLogRepo := &postgres.EndpointCallLogRepo{DB: db}
 	groupRepo := &postgres.APIGroupRepo{DB: db}
 	scriptRepo := &postgres.ScriptRepo{DB: db}
+	projectEnvRepo := &postgres.ProjectEnvironmentRepo{DB: db}
+	bindingRepo := &postgres.EndpointDatasourceBindingRepo{DB: db}
 
 	// Services
 	platformSettingsSvc := service.NewPlatformSettingsService(platformSettingsRepo)
@@ -76,17 +82,25 @@ func main() {
 	tenantUserSvc := service.NewTenantUserService(userRepo, tenantUserRepo)
 	gatewaySvc := service.NewGatewayService(gatewayRepo)
 	dsSvc := service.NewDataSourceService(dsRepo)
+	envSvc := service.NewEnvironmentService(projectEnvRepo, bindingRepo, activeVersionRepo, dsRepo)
 	projectSvc := service.NewProjectService(projectRepo)
 	endpointSvc := service.NewAPIEndpointService(endpointRepo, activeVersionRepo)
 	versionSvc := service.NewEndpointVersionService(versionRepo, activeVersionRepo, activationLogRepo, endpointRepo, scriptRepo, dsRepo)
 	callLogSvc := service.NewEndpointCallLogService(callLogRepo)
 	groupSvc := service.NewAPIGroupService(groupRepo)
 	scriptSvc := service.NewScriptService(scriptRepo)
-	querySvc := service.NewQueryService(gatewaySvc, dsSvc, scriptSvc, cfg.QueryTimeoutSeconds+5)
+	querySvc := service.NewQueryService(gatewaySvc, envSvc, scriptSvc, cfg.QueryTimeoutSeconds+5)
 	authzSvc := service.NewAuthorizationService(tenantRepo, tenantUserRepo)
 
 	// HTTP Server
 	r := gin.Default()
+	// Disable gin's auto-redirect on trailing slash / fixed path. Cross-origin
+	// 307 redirects fail CORS preflight (browsers don't follow OPTIONS redirects),
+	// and the gateway wildcard route `/:env/:tenant/:project/*path` interacts
+	// badly with the trailing-slash heuristic — better to 404 cleanly than
+	// silently redirect.
+	r.RedirectTrailingSlash = false
+	r.RedirectFixedPath = false
 	r.Use(transport_http.RequestID())
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.CORSOrigin},
@@ -94,13 +108,13 @@ func main() {
 		AllowHeaders:     []string{"Content-Type", "Authorization", "X-Tenant-ID", "X-Gateway-ID", "X-Request-ID"},
 		AllowCredentials: cfg.CORSOrigin != "*",
 	}))
-	r.GET("/health", func(c *gin.Context) { transport_http.OK(c, gin.H{"status": "ok"}) })
+	r.GET("/health", transport_http.HandleHealth)
 	transport_http.RegisterSwagger(r)
 
 	app := &transport_http.App{
 		Auth: authSvc, Tenant: tenantSvc, TenantUser: tenantUserSvc,
 		Gateway: gatewaySvc, GatewayBroker: gatewaySvc,
-		DataSource: dsSvc, Project: projectSvc,
+		DataSource: dsSvc, Environment: envSvc, Project: projectSvc,
 		Endpoint: endpointSvc, Version: versionSvc, Group: groupSvc, Script: scriptSvc, Query: querySvc, CallLog: callLogSvc,
 		PlatformSettings: platformSettingsSvc,
 		Authz:            authzSvc,

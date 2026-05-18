@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Info, ShieldCheck } from "lucide-react"
 import { DB_TYPES } from "@/lib/constants"
@@ -14,15 +13,13 @@ type DbType = keyof typeof DB_TYPES
 interface DataSourceFormProps {
   name: string
   type: DbType
-  isDual: boolean
   onNameChange: (v: string) => void
   onTypeChange: (v: DbType) => void
-  onIsDualChange: (v: boolean) => void
 }
 
 export function DataSourceForm({
-  name, type, isDual,
-  onNameChange, onTypeChange, onIsDualChange,
+  name, type,
+  onNameChange, onTypeChange,
 }: DataSourceFormProps) {
   return (
     <>
@@ -40,11 +37,14 @@ export function DataSourceForm({
               <span className="text-2xs text-zinc-300 font-bold">REQUIRED</span>
             </Label>
             <Input
-              placeholder="例如：核心业务从库"
+              placeholder="例如：核心业务从库_prod"
               value={name}
               onChange={e => onNameChange(e.target.value)}
               className="h-9 text-sm focus:ring-1 border-border shadow-none"
             />
+            <p className="text-2xs text-muted-foreground leading-relaxed">
+              一个数据源 = 一根物理连接。多环境通过项目层的 Environments 配置（同一逻辑库在 dev/prod 各建一个数据源）。
+            </p>
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-bold text-muted-foreground uppercase">数据库类型</Label>
@@ -56,15 +56,6 @@ export function DataSourceForm({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="pt-4 border-t border-border-subtle">
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-xs font-bold text-muted-foreground uppercase">多环境支持</Label>
-              <Switch checked={isDual} onCheckedChange={onIsDualChange} />
-            </div>
-            <p className="text-2xs text-muted-foreground leading-relaxed">
-              开启后可分别配置 开发(DEV) 和 生产(PROD) 两个独立节点与地址。
-            </p>
           </div>
         </div>
       </Card>

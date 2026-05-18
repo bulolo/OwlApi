@@ -86,32 +86,21 @@ func (h *QueryTestHandler) HandleGetSchema(c *gin.Context) {
 	}
 
 	ds, err := h.dataSources.GetByID(c.Request.Context(), tenant.ID, dsID)
-	if err != nil || len(ds.Envs) == 0 {
+	if err != nil {
 		FailErr(c, domain.ErrNotFound("datasource not found"))
-		return
-	}
-	var prodEnv *domain.DataSourceEnv
-	for _, e := range ds.Envs {
-		if e.Env == "prod" {
-			prodEnv = e
-			break
-		}
-	}
-	if prodEnv == nil {
-		FailErr(c, domain.ErrNotFound("datasource prod env not found"))
 		return
 	}
 
 	tenantID := strconv.FormatInt(tenant.ID, 10)
-	gatewayID := strconv.FormatInt(prodEnv.GatewayID, 10)
+	gatewayID := strconv.FormatInt(ds.GatewayID, 10)
 
 	if stream := h.gateways.GetStream(gatewayID); stream == nil {
 		FailErr(c, domain.ErrUnavailable(fmt.Sprintf("gateway %s is not connected", gatewayID)))
 		return
 	}
 
-	schemaSQL := schemaQueryForDSN(prodEnv.DSN)
-	result, err := h.queries.ExecuteDirect(c.Request.Context(), tenantID, gatewayID, prodEnv.DSN, schemaSQL)
+	schemaSQL := schemaQueryForDSN(ds.DSN)
+	result, err := h.queries.ExecuteDirect(c.Request.Context(), tenantID, gatewayID, ds.DSN, schemaSQL)
 	if err != nil {
 		FailErr(c, err)
 		return
@@ -121,7 +110,6 @@ func (h *QueryTestHandler) HandleGetSchema(c *gin.Context) {
 		return
 	}
 
-	// Parse rows — use interface{} to handle any value type, then stringify.
 	var rawRows []map[string]interface{}
 	if err := json.Unmarshal(result.Data, &rawRows); err != nil {
 		Fail(c, http.StatusInternalServerError, "failed to parse schema result")
@@ -141,8 +129,6 @@ func (h *QueryTestHandler) HandleGetSchema(c *gin.Context) {
 	tableMap := make(map[string]*SchemaTable)
 	tableOrder := []string{}
 	for _, raw := range rawRows {
-		// Normalize keys to lowercase — MySQL may return information_schema
-		// column names in uppercase (TABLE_NAME, COLUMN_NAME, etc.)
 		row := make(map[string]interface{}, len(raw))
 		for k, v := range raw {
 			row[strings.ToLower(k)] = v
@@ -204,32 +190,20 @@ func (h *QueryTestHandler) HandlePreviewTable(c *gin.Context) {
 	}
 
 	ds, err := h.dataSources.GetByID(c.Request.Context(), tenant.ID, dsID)
-	if err != nil || len(ds.Envs) == 0 {
+	if err != nil {
 		FailErr(c, domain.ErrNotFound("datasource not found"))
-		return
-	}
-	var prodEnv *domain.DataSourceEnv
-	for _, e := range ds.Envs {
-		if e.Env == "prod" {
-			prodEnv = e
-			break
-		}
-	}
-	if prodEnv == nil {
-		FailErr(c, domain.ErrNotFound("datasource prod env not found"))
 		return
 	}
 
 	tenantID := strconv.FormatInt(tenant.ID, 10)
-	gatewayID := strconv.FormatInt(prodEnv.GatewayID, 10)
+	gatewayID := strconv.FormatInt(ds.GatewayID, 10)
 	if stream := h.gateways.GetStream(gatewayID); stream == nil {
 		FailErr(c, domain.ErrUnavailable(fmt.Sprintf("gateway %s is not connected", gatewayID)))
 		return
 	}
 
 	var previewSQL string
-	if strings.HasPrefix(prodEnv.DSN, "sqlserver://") {
-		// Quote schema.table as [schema].[table] to handle any casing/special chars
+	if strings.HasPrefix(ds.DSN, "sqlserver://") {
 		parts := strings.SplitN(table, ".", 2)
 		var quoted string
 		if len(parts) == 2 {
@@ -241,7 +215,7 @@ func (h *QueryTestHandler) HandlePreviewTable(c *gin.Context) {
 	} else {
 		previewSQL = fmt.Sprintf("SELECT * FROM %s LIMIT %d", table, limit)
 	}
-	result, err := h.queries.ExecuteDirect(c.Request.Context(), tenantID, gatewayID, prodEnv.DSN, previewSQL)
+	result, err := h.queries.ExecuteDirect(c.Request.Context(), tenantID, gatewayID, ds.DSN, previewSQL)
 	if err != nil {
 		FailErr(c, err)
 		return

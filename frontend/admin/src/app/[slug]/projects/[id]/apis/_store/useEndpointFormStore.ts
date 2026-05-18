@@ -15,15 +15,12 @@ import { getErrorMessage } from "@/lib/errors"
 import { PARAM_PLACEHOLDER_PREFIX } from "@/lib/constants"
 import type { HttpMethod, ParamDef, ExecutionResult, EndpointFormState } from "../_types"
 
-// ── SQL 初始模板（按 HTTP 方法对应 REST 语义）──
 export const SQL_TEMPLATES: Record<HttpMethod, string> = {
   GET:    "SELECT *\nFROM table_name\nWHERE id = :id",
   POST:   "INSERT INTO table_name (column1, column2)\nVALUES (:value1, :value2)",
   PUT:    "UPDATE table_name\nSET column1 = :value1\nWHERE id = :id",
   DELETE: "DELETE FROM table_name\nWHERE id = :id",
 }
-
-// ── Helpers ──
 
 function buildParamJSON(paramDefs: ParamDef[]): string {
   if (paramDefs.length === 0) return "{}"
@@ -32,13 +29,13 @@ function buildParamJSON(paramDefs: ParamDef[]): string {
   return JSON.stringify(obj, null, 2)
 }
 
-function epToForm(ep: ApiEndpoint, defaultDatasourceId = 0): EndpointFormState {
+function epToForm(ep: ApiEndpoint, defaultHandle = "main"): EndpointFormState {
   return {
     path: ep.path ?? "",
     method: (ep.methods?.[0] ?? "POST") as HttpMethod,
     summary: ep.summary ?? "",
     sql: ep.sql ?? "",
-    datasourceId: ep.datasource_id || defaultDatasourceId,
+    datasourceAlias: ep.datasource_alias || defaultHandle,
     groupId: ep.group_id || 0,
     preScriptId: ep.pre_script_id || 0,
     postScriptId: ep.post_script_id || 0,
@@ -52,7 +49,7 @@ const initialForm: EndpointFormState = {
   method: "POST",
   summary: "",
   sql: "",
-  datasourceId: 0,
+  datasourceAlias: "main",
   groupId: 0,
   preScriptId: 0,
   postScriptId: 0,
@@ -60,9 +57,6 @@ const initialForm: EndpointFormState = {
   paramInput: "",
 }
 
-// ── Store ──
-
-/** 当编辑器内容来自某个历史版本时记录的"来源"信息，用于在设计 Tab 顶部展示告示条。 */
 export interface RestoredFromVersion {
   versionId: number
   version: number
@@ -80,33 +74,25 @@ interface FormState {
   execResult: ExecutionResult
   designExecuting: boolean
   designExecResult: ExecutionResult
-  /** 当前编辑内容是否来自某个历史版本的复制（用于显示提示条）。 */
   restoredFromVersion: RestoredFromVersion | null
-  /** 复制前的表单状态，用于「撤销」回到复制前。 */
   _preRestoreForm: EndpointFormState | null
 }
 
 interface FormActions {
-  initForm: (ep: ApiEndpoint | null, defaultDatasourceId?: number, initialMethod?: HttpMethod) => void
+  initForm: (ep: ApiEndpoint | null, defaultHandle?: string, initialMethod?: HttpMethod) => void
   setFormField: <K extends keyof EndpointFormState>(key: K, value: EndpointFormState[K]) => void
   setParamDefs: (updater: ParamDef[] | ((prev: ParamDef[]) => ParamDef[])) => void
-  /** 仅用于 useParamSync 自动同步，不触发 isDirty */
   syncParamDefs: (updater: ParamDef[] | ((prev: ParamDef[]) => ParamDef[])) => void
 
-  // returns saved endpoint or null on failure
   save: (tenant: string, projectId: string, isNew: boolean, selectedId: number | null) => Promise<ApiEndpoint | null>
 
-  runDebug: (tenant: string, selectedId: number) => Promise<void>
-  runDesign: (tenant: string, projectId: string, selectedId: number | null, isNew: boolean) => Promise<void>
+  runDebug: (tenant: string, envId: number, selectedId: number) => Promise<void>
+  runDesign: (tenant: string, projectId: string, envId: number, selectedId: number | null, isNew: boolean) => Promise<void>
 
   formatSQL: () => void
-  /** 把某个历史版本的内容复制到当前编辑器（不会修改线上）。会记录来源 + 复制前快照以便撤销。 */
   restoreFromVersion: (version: EndpointVersion) => void
-  /** 撤销 restoreFromVersion，回到复制前的草稿状态。 */
   undoRestore: () => void
-  /** 保留当前表单，但清除"基于某版本编辑"的标记（用于发布/创建版本成功后）。 */
   clearRestoredBanner: () => void
-  /** 丢弃所有未保存的修改，把表单恢复到上次保存的状态。 */
   revertToSaved: () => void
 
   setAuthToken: (token: string) => void
@@ -131,12 +117,12 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
   restoredFromVersion: null,
   _preRestoreForm: null,
 
-  initForm: (ep, defaultDatasourceId = 0, initialMethod?) => {
+  initForm: (ep, defaultHandle = "main", initialMethod?) => {
     const form = ep
-      ? epToForm(ep, defaultDatasourceId)
+      ? epToForm(ep, defaultHandle)
       : {
           ...initialForm,
-          datasourceId: defaultDatasourceId,
+          datasourceAlias: defaultHandle,
           ...(initialMethod && { method: initialMethod, sql: SQL_TEMPLATES[initialMethod] }),
         }
     set({
@@ -175,7 +161,6 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
       return {
         form: { ...s.form, paramDefs: newDefs },
         paramJSON: buildParamJSON(newDefs),
-        // isDirty intentionally not changed
       }
     }),
 
@@ -192,7 +177,7 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
       sql: form.sql,
       params: form.paramDefs.map((d) => d.name).filter(Boolean),
       param_defs: form.paramDefs,
-      datasource_id: form.datasourceId,
+      datasource_alias: form.datasourceAlias,
       group_id: form.groupId,
       pre_script_id: form.preScriptId,
       post_script_id: form.postScriptId,
@@ -220,7 +205,7 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
     }
   },
 
-  runDebug: async (tenant, selectedId) => {
+  runDebug: async (tenant, envId, selectedId) => {
     const { paramJSON, form } = get()
     set({ executing: true, execResult: null })
     try {
@@ -235,7 +220,7 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
       for (const def of form.paramDefs) {
         if (def.name && !(def.name in params) && def.default) params[def.name] = def.default
       }
-      const data = await apiRun(tenant, selectedId, params)
+      const data = await apiRun(tenant, selectedId, envId, params)
       set({ execResult: data as ExecutionResult })
     } catch (err) {
       set({ execResult: { error: getErrorMessage(err) } })
@@ -244,14 +229,14 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
     }
   },
 
-  runDesign: async (tenant, projectId, selectedId, isNew) => {
+  runDesign: async (tenant, projectId, envId, selectedId, isNew) => {
     if (isNew || !selectedId) {
       toast.error("请先保存接口再执行")
       return
     }
     const { form, paramJSON } = get()
-    if (!form.datasourceId) {
-      set({ designExecResult: { error: "请先选择数据源" } })
+    if (!form.datasourceAlias) {
+      set({ designExecResult: { error: "请先选择数据源别名" } })
       return
     }
     if (!form.sql.trim()) {
@@ -260,12 +245,11 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
     }
     set({ designExecuting: true, designExecResult: null })
     try {
-      // Auto-save draft so the executed SQL matches what's on screen
       await apiUpdateEndpoint(tenant, Number(projectId), selectedId, {
         path: form.path,
         methods: [form.method],
         sql: form.sql,
-        datasource_id: form.datasourceId,
+        datasource_alias: form.datasourceAlias,
         pre_script_id: form.preScriptId || undefined,
         post_script_id: form.postScriptId || undefined,
         group_id: form.groupId || undefined,
@@ -283,7 +267,7 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
       for (const def of form.paramDefs) {
         if (def.name && !(def.name in params) && def.default) params[def.name] = def.default
       }
-      const data = await apiRun(tenant, selectedId, params, true)
+      const data = await apiRun(tenant, selectedId, envId, params, true)
       set({ designExecResult: data as ExecutionResult })
     } catch (err) {
       set({ designExecResult: { error: getErrorMessage(err) } })
@@ -307,7 +291,7 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
       )
       set((s) => ({ form: { ...s.form, sql }, isDirty: true }))
     } catch {
-      // sql-formatter 可能失败，静默忽略
+      // ignore
     }
   },
 
@@ -321,10 +305,10 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
         ...(snap.sql !== undefined && { sql: snap.sql }),
         ...(snap.path !== undefined && { path: snap.path }),
         ...(snap.methods?.[0] && { method: snap.methods[0] as HttpMethod }),
+        ...(snap.datasource_alias && { datasourceAlias: snap.datasource_alias }),
         paramDefs,
       }
       return {
-        // 复制前的状态备份，供「撤销」使用。如果已有备份，保留最早的那次。
         _preRestoreForm: s._preRestoreForm ?? { ...s.form },
         form: nextForm,
         paramJSON: buildParamJSON(paramDefs),
@@ -345,7 +329,6 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
       return {
         form: { ...target },
         paramJSON: buildParamJSON(target.paramDefs),
-        // 如果撤销后内容与上次保存版一致，标记 isDirty=false；否则保留为 true
         isDirty: JSON.stringify(target) !== JSON.stringify(s._savedForm),
         restoredFromVersion: null,
         _preRestoreForm: null,

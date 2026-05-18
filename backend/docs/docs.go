@@ -15,6 +15,265 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/-/{env}/{tenantSlug}/{projectSlug}/{path}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gateway"
+                ],
+                "summary": "执行已发布的 API 接口",
+                "operationId": "executeQuery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "环境名（项目级，例如 prod / dev / staging）",
+                        "name": "env",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "租户 slug",
+                        "name": "tenantSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "项目 slug",
+                        "name": "projectSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "接口路径（用户在项目中定义的路径）",
+                        "name": "path",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gateway"
+                ],
+                "summary": "执行已发布的 API 接口",
+                "operationId": "executeQuery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "环境名（项目级，例如 prod / dev / staging）",
+                        "name": "env",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "租户 slug",
+                        "name": "tenantSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "项目 slug",
+                        "name": "projectSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "接口路径（用户在项目中定义的路径）",
+                        "name": "path",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gateway"
+                ],
+                "summary": "执行已发布的 API 接口",
+                "operationId": "executeQuery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "环境名（项目级，例如 prod / dev / staging）",
+                        "name": "env",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "租户 slug",
+                        "name": "tenantSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "项目 slug",
+                        "name": "projectSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "接口路径（用户在项目中定义的路径）",
+                        "name": "path",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gateway"
+                ],
+                "summary": "执行已发布的 API 接口",
+                "operationId": "executeQuery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "环境名（项目级，例如 prod / dev / staging）",
+                        "name": "env",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "租户 slug",
+                        "name": "tenantSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "项目 slug",
+                        "name": "projectSlug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "接口路径（用户在项目中定义的路径）",
+                        "name": "path",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "公开接口，返回服务状态、当前 edition (community/enterprise) 与 license 状态",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "meta"
+                ],
+                "summary": "健康检查 / 版本信息",
+                "operationId": "health",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RHealth"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/auth/change-password": {
             "put": {
                 "security": [
@@ -1325,6 +1584,100 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/tenants/{slug}/projects/{projectId}/aliases/rename": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "跨 env 重命名 alias",
+                "operationId": "renameProjectAlias",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "old/new alias",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.renameAliasReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/bindings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "获取项目所有 env 的 alias 绑定（用于编辑器解析弹窗）",
+                "operationId": "listProjectBindings",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/tenants/{slug}/projects/{projectId}/endpoints": {
             "get": {
                 "security": [
@@ -1429,8 +1782,8 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "datasource_id": {
-                                    "type": "integer"
+                                "datasource_alias": {
+                                    "type": "string"
                                 },
                                 "description": {
                                     "type": "string"
@@ -1520,8 +1873,8 @@ const docTemplate = `{
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "datasource_id": {
-                                    "type": "integer"
+                                "datasource_alias": {
+                                    "type": "string"
                                 },
                                 "description": {
                                     "type": "string"
@@ -1623,7 +1976,7 @@ const docTemplate = `{
                 "tags": [
                     "endpoint-version"
                 ],
-                "summary": "查询接口激活流水（谁、何时、做了什么）",
+                "summary": "查询接口激活流水",
                 "operationId": "listEndpointActivationLog",
                 "parameters": [
                     {
@@ -1665,6 +2018,54 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/http.REndpointActivationLogList"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/actives": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "endpoint-version"
+                ],
+                "summary": "列出该接口在各 env 的当前激活版本（per-env 激活快照）",
+                "operationId": "listEndpointActives",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "端点ID",
+                        "name": "endpointId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
                         }
                     }
                 }
@@ -1749,6 +2150,74 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/promote": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "endpoint-version"
+                ],
+                "summary": "把 source env 当前激活版本提升到 target env（无需新建 version）",
+                "operationId": "promoteEndpointVersion",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "端点ID",
+                        "name": "endpointId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "promote 参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "source_env_id": {
+                                    "type": "integer"
+                                },
+                                "target_env_id": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/publish": {
             "post": {
                 "security": [
@@ -1765,7 +2234,7 @@ const docTemplate = `{
                 "tags": [
                     "endpoint-version"
                 ],
-                "summary": "发布接口（创建版本 + 激活，一键上线）",
+                "summary": "在某 env 发布接口（创建版本 + 激活）",
                 "operationId": "publishEndpoint",
                 "parameters": [
                     {
@@ -1788,6 +2257,18 @@ const docTemplate = `{
                         "name": "endpointId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "环境名（默认为项目默认 env）",
+                        "name": "env",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "环境ID（优先于 env）",
+                        "name": "env_id",
+                        "in": "query"
                     },
                     {
                         "description": "版本说明",
@@ -1820,14 +2301,13 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "把 api_endpoints 草稿恢复成当前激活版本的内容；操作后 has_draft 立即变 false",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "endpoint-version"
                 ],
-                "summary": "还原到线上版本（丢弃所有未发布修改）",
+                "summary": "还原草稿到某 env 的当前激活版本（丢弃未发布修改）",
                 "operationId": "revertEndpointToActive",
                 "parameters": [
                     {
@@ -1850,6 +2330,18 @@ const docTemplate = `{
                         "name": "endpointId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "环境名",
+                        "name": "env",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "环境ID",
+                        "name": "env_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1875,7 +2367,7 @@ const docTemplate = `{
                 "tags": [
                     "endpoint-version"
                 ],
-                "summary": "下线接口（删除激活指针）",
+                "summary": "在某 env 下线接口（清掉该 env 的激活指针）",
                 "operationId": "unpublishEndpoint",
                 "parameters": [
                     {
@@ -1898,6 +2390,18 @@ const docTemplate = `{
                         "name": "endpointId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "环境名",
+                        "name": "env",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "环境ID",
+                        "name": "env_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1984,7 +2488,7 @@ const docTemplate = `{
                 "tags": [
                     "endpoint-version"
                 ],
-                "summary": "创建版本快照（不激活）",
+                "summary": "创建版本快照（不激活任何 env）",
                 "operationId": "createEndpointVersion",
                 "parameters": [
                     {
@@ -2039,7 +2543,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "受三道护栏保护：不能删 active、不能删唯一版本、删除事件本身会写入流水",
+                "description": "任何 env 仍激活该版本时不可删除",
                 "produces": [
                     "application/json"
                 ],
@@ -2101,7 +2605,7 @@ const docTemplate = `{
                 "tags": [
                     "endpoint-version"
                 ],
-                "summary": "激活指定版本（=回滚 / 切换到此版本）",
+                "summary": "在某 env 激活指定版本（=切换 / 回滚）",
                 "operationId": "activateEndpointVersion",
                 "parameters": [
                     {
@@ -2129,6 +2633,425 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "版本ID",
                         "name": "versionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "环境名",
+                        "name": "env",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "环境ID",
+                        "name": "env_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/environments": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "获取项目环境列表",
+                "operationId": "listProjectEnvironments",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "创建项目环境",
+                "operationId": "createProjectEnvironment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "环境信息",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.createEnvReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/environments/{envId}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "重命名环境",
+                "operationId": "renameProjectEnvironment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "环境ID",
+                        "name": "envId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "新名称",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.renameEnvReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "删除环境",
+                "operationId": "deleteProjectEnvironment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "环境ID",
+                        "name": "envId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "获取单个环境的 binding 列表",
+                "operationId": "listEnvBindings",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "环境ID",
+                        "name": "envId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "新增/更新一个 alias 绑定",
+                "operationId": "upsertEnvBinding",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "环境ID",
+                        "name": "envId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "binding",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.upsertBindingReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings/{alias}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "删除一个 alias 绑定",
+                "operationId": "deleteEnvBinding",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "环境ID",
+                        "name": "envId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "别名",
+                        "name": "alias",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/environments/{envId}/default": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "environment"
+                ],
+                "summary": "设置默认环境",
+                "operationId": "setDefaultProjectEnvironment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "环境ID",
+                        "name": "envId",
                         "in": "path",
                         "required": true
                     }
@@ -2394,7 +3317,7 @@ const docTemplate = `{
                 "tags": [
                     "project"
                 ],
-                "summary": "导出项目 OpenAPI 规范",
+                "summary": "导出项目 OpenAPI 规范（按指定 env 导出；默认导出 default env）",
                 "operationId": "exportOpenApi",
                 "parameters": [
                     {
@@ -2410,6 +3333,12 @@ const docTemplate = `{
                         "name": "projectId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "环境名（默认: 项目默认 env）",
+                        "name": "env",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2438,7 +3367,7 @@ const docTemplate = `{
                 "tags": [
                     "query"
                 ],
-                "summary": "测试执行 API 端点",
+                "summary": "测试执行 API 端点（按指定 env 解析数据源）",
                 "operationId": "testQuery",
                 "parameters": [
                     {
@@ -2457,6 +3386,9 @@ const docTemplate = `{
                             "type": "object",
                             "properties": {
                                 "endpoint_id": {
+                                    "type": "integer"
+                                },
+                                "env_id": {
                                     "type": "integer"
                                 },
                                 "ignore_scripts": {
@@ -2965,251 +3897,40 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/{tenantSlug}/{projectSlug}/{path}": {
-            "get": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "gateway"
-                ],
-                "summary": "执行已发布的 API 接口",
-                "operationId": "executeQuery",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "租户 slug",
-                        "name": "tenantSlug",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "项目 slug",
-                        "name": "projectSlug",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "接口路径（用户在项目中定义的路径）",
-                        "name": "path",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
-                        "name": "body",
-                        "in": "body",
-                        "schema": {
-                            "type": "object"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object"
-                        }
-                    }
-                }
-            },
-            "put": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "gateway"
-                ],
-                "summary": "执行已发布的 API 接口",
-                "operationId": "executeQuery",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "租户 slug",
-                        "name": "tenantSlug",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "项目 slug",
-                        "name": "projectSlug",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "接口路径（用户在项目中定义的路径）",
-                        "name": "path",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
-                        "name": "body",
-                        "in": "body",
-                        "schema": {
-                            "type": "object"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "gateway"
-                ],
-                "summary": "执行已发布的 API 接口",
-                "operationId": "executeQuery",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "租户 slug",
-                        "name": "tenantSlug",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "项目 slug",
-                        "name": "projectSlug",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "接口路径（用户在项目中定义的路径）",
-                        "name": "path",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
-                        "name": "body",
-                        "in": "body",
-                        "schema": {
-                            "type": "object"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "gateway"
-                ],
-                "summary": "执行已发布的 API 接口",
-                "operationId": "executeQuery",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "租户 slug",
-                        "name": "tenantSlug",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "项目 slug",
-                        "name": "projectSlug",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "接口路径（用户在项目中定义的路径）",
-                        "name": "path",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)",
-                        "name": "body",
-                        "in": "body",
-                        "schema": {
-                            "type": "object"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
         "domain.APIEndpoint": {
             "type": "object",
             "properties": {
-                "active_version": {
-                    "description": "current live version number (0 if not published)",
-                    "type": "integer"
-                },
                 "created_at": {
                     "type": "string"
                 },
-                "datasource_id": {
-                    "type": "integer"
+                "datasource_alias": {
+                    "type": "string"
                 },
                 "description": {
                     "type": "string"
+                },
+                "env_activations": {
+                    "description": "per-env active version snapshot (one row per env where this endpoint is live)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.EndpointEnvActivity"
+                    }
                 },
                 "group_id": {
                     "type": "integer"
                 },
                 "has_draft": {
-                    "description": "true iff updated_at \u003e activated_at (or not published yet but at least one version exists)",
+                    "description": "Derived/computed fields (not stored on the row itself):",
                     "type": "boolean"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "is_published": {
-                    "description": "Derived/computed fields (not stored on the row itself):",
-                    "type": "boolean"
-                },
                 "latest_version": {
-                    "description": "newest version number in endpoint_versions for this endpoint (0 if no versions)",
+                    "description": "newest version number in endpoint_versions for this endpoint",
                     "type": "integer"
                 },
                 "methods": {
@@ -3256,6 +3977,23 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.EndpointEnvActivity": {
+            "type": "object",
+            "properties": {
+                "env_id": {
+                    "type": "integer"
+                },
+                "env_name": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "version_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "domain.ParamDef": {
             "type": "object",
             "properties": {
@@ -3299,11 +4037,10 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "created_at",
-                "datasource_id",
+                "datasource_alias",
                 "group_id",
                 "has_draft",
                 "id",
-                "is_published",
                 "methods",
                 "params",
                 "path",
@@ -3314,17 +4051,20 @@ const docTemplate = `{
                 "updated_at"
             ],
             "properties": {
-                "active_version": {
-                    "type": "integer"
-                },
                 "created_at": {
                     "type": "string"
                 },
-                "datasource_id": {
-                    "type": "integer"
+                "datasource_alias": {
+                    "type": "string"
                 },
                 "description": {
                     "type": "string"
+                },
+                "env_activations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.EndpointEnvActivityResp"
+                    }
                 },
                 "group_id": {
                     "type": "integer"
@@ -3334,9 +4074,6 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
-                },
-                "is_published": {
-                    "type": "boolean"
                 },
                 "latest_version": {
                     "type": "integer"
@@ -3457,32 +4194,6 @@ const docTemplate = `{
                 }
             }
         },
-        "http.DataSourceEnvResp": {
-            "type": "object",
-            "required": [
-                "datasource_id",
-                "env",
-                "gateway_id",
-                "id"
-            ],
-            "properties": {
-                "datasource_id": {
-                    "type": "integer"
-                },
-                "dsn": {
-                    "type": "string"
-                },
-                "env": {
-                    "type": "string"
-                },
-                "gateway_id": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "integer"
-                }
-            }
-        },
         "http.DataSourceListResp": {
             "type": "object",
             "required": [
@@ -3504,18 +4215,10 @@ const docTemplate = `{
         "http.DataSourceRefResp": {
             "type": "object",
             "required": [
-                "id",
-                "name",
-                "type"
+                "alias"
             ],
             "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "type": {
+                "alias": {
                     "type": "string"
                 }
             }
@@ -3524,8 +4227,8 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "created_at",
+                "gateway_id",
                 "id",
-                "is_dual",
                 "is_platform",
                 "name",
                 "tenant_id",
@@ -3535,17 +4238,14 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
-                "envs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/http.DataSourceEnvResp"
-                    }
+                "dsn": {
+                    "type": "string"
+                },
+                "gateway_id": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "integer"
-                },
-                "is_dual": {
-                    "type": "boolean"
                 },
                 "is_platform": {
                     "type": "boolean"
@@ -3591,14 +4291,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "action": {
-                    "description": "publish / activate / rollback / unpublish",
                     "type": "string"
                 },
                 "actor_id": {
                     "type": "integer"
                 },
                 "actor_name": {
-                    "description": "操作人显示名；空 = 系统",
                     "type": "string"
                 },
                 "at": {
@@ -3607,6 +4305,12 @@ const docTemplate = `{
                 "endpoint_id": {
                     "type": "integer"
                 },
+                "env_id": {
+                    "type": "integer"
+                },
+                "env_name": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -3614,7 +4318,6 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "version": {
-                    "description": "版本号 (vN)，便于直接展示",
                     "type": "integer"
                 },
                 "version_id": {
@@ -3659,6 +4362,12 @@ const docTemplate = `{
                 "endpoint_id": {
                     "type": "integer"
                 },
+                "env_id": {
+                    "type": "integer"
+                },
+                "env_name": {
+                    "type": "string"
+                },
                 "error": {
                     "type": "string"
                 },
@@ -3688,6 +4397,29 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "user_agent": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "version_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "http.EndpointEnvActivityResp": {
+            "type": "object",
+            "required": [
+                "env_id",
+                "env_name",
+                "version",
+                "version_id"
+            ],
+            "properties": {
+                "env_id": {
+                    "type": "integer"
+                },
+                "env_name": {
                     "type": "string"
                 },
                 "version": {
@@ -3826,6 +4558,28 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "version": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.HealthResp": {
+            "type": "object",
+            "required": [
+                "edition",
+                "is_licensed",
+                "status"
+            ],
+            "properties": {
+                "edition": {
+                    "description": "\"community\" | \"enterprise\"",
+                    "type": "string"
+                },
+                "is_licensed": {
+                    "description": "EE 模式下 license 是否已通过校验",
+                    "type": "boolean"
+                },
+                "status": {
+                    "description": "\"ok\"",
                     "type": "string"
                 }
             }
@@ -4194,6 +4948,25 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/http.GatewayListResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.RHealth": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/http.HealthResp"
                 },
                 "msg": {
                     "type": "string"
@@ -4584,20 +5357,17 @@ const docTemplate = `{
         "http.createDataSourceReq": {
             "type": "object",
             "required": [
-                "envs",
+                "dsn",
+                "gateway_id",
                 "name",
                 "type"
             ],
             "properties": {
-                "envs": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "$ref": "#/definitions/http.dsEnvReq"
-                    }
+                "dsn": {
+                    "type": "string"
                 },
-                "is_dual": {
-                    "type": "boolean"
+                "gateway_id": {
+                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
@@ -4615,39 +5385,60 @@ const docTemplate = `{
                 }
             }
         },
-        "http.dsEnvReq": {
+        "http.createEnvReq": {
             "type": "object",
             "required": [
-                "env",
-                "gateway_id"
+                "name"
             ],
             "properties": {
-                "dsn": {
+                "copy_bindings": {
+                    "type": "boolean"
+                },
+                "copy_from_env_id": {
+                    "type": "integer"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.renameAliasReq": {
+            "type": "object",
+            "required": [
+                "new_alias",
+                "old_alias"
+            ],
+            "properties": {
+                "new_alias": {
                     "type": "string"
                 },
-                "env": {
-                    "type": "string",
-                    "enum": [
-                        "dev",
-                        "prod"
-                    ]
-                },
-                "gateway_id": {
-                    "type": "integer"
+                "old_alias": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.renameEnvReq": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
                 }
             }
         },
         "http.updateDataSourceReq": {
             "type": "object",
             "properties": {
-                "envs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/http.dsEnvReq"
-                    }
+                "dsn": {
+                    "type": "string"
                 },
-                "is_dual": {
-                    "type": "boolean"
+                "gateway_id": {
+                    "type": "integer"
                 },
                 "name": {
                     "type": "string"
@@ -4662,6 +5453,21 @@ const docTemplate = `{
                         "doris",
                         "sqlite"
                     ]
+                }
+            }
+        },
+        "http.upsertBindingReq": {
+            "type": "object",
+            "required": [
+                "alias",
+                "datasource_id"
+            ],
+            "properties": {
+                "alias": {
+                    "type": "string"
+                },
+                "datasource_id": {
+                    "type": "integer"
                 }
             }
         }
@@ -4678,7 +5484,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.1.9",
+	Version:          "0.2.0",
 	Host:             "localhost:3000",
 	BasePath:         "/",
 	Schemes:          []string{},

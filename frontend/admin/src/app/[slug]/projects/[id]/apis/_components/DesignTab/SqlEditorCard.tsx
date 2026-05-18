@@ -7,10 +7,14 @@ import Editor from "@monaco-editor/react"
 import { useEndpointFormStore } from "../../_store/useEndpointFormStore"
 import { useApiEditorStore } from "../../_store/useApiEditorStore"
 import { useTenantProject } from "../../_hooks/useTenantProject"
+import { useEnvironments } from "@/hooks"
 import { QueryPreview } from "./QueryPreview"
 
 export function SqlEditorCard() {
   const { activeTenant, projectId } = useTenantProject()
+  const { data: envs = [] } = useEnvironments(activeTenant, Number(projectId))
+  const defaultEnv = envs.find(e => e.is_default) ?? envs[0]
+  const defaultEnvId = defaultEnv?.id ?? 0
   const sql = useEndpointFormStore(s => s.form.sql)
   const setFormField = useEndpointFormStore(s => s.setFormField)
   const designExecuting = useEndpointFormStore(s => s.designExecuting)
@@ -28,7 +32,7 @@ export function SqlEditorCard() {
           </CardTitle>
           <div className="flex items-center gap-1.5">
             <Button
-              onClick={() => runDesign(activeTenant, projectId, selectedId, isNew)}
+              onClick={() => runDesign(activeTenant, projectId, defaultEnvId, selectedId, isNew)}
               disabled={designExecuting}
               size="sm"
               className="h-7 font-bold px-3 text-xs rounded-lg shadow-sm"

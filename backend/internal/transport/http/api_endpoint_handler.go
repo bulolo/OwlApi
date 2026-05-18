@@ -10,6 +10,8 @@ import (
 
 type APIEndpointHandler struct {
 	endpoints service.APIEndpointService
+	active    service.EndpointVersionService
+	envs      service.EnvironmentService
 }
 
 // HandleList godoc
@@ -38,6 +40,32 @@ func (h *APIEndpointHandler) HandleList(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
+
+	// Enrich each endpoint with its per-env activation status so the list UI
+	// can show "prod v3 / dev v5" badges in one round-trip.
+	if len(list) > 0 {
+		envs, _ := h.envs.List(c.Request.Context(), tenant.ID, pid)
+		envNames := make(map[int64]string, len(envs))
+		for _, e := range envs {
+			envNames[e.ID] = e.Name
+		}
+		for _, ep := range list {
+			actives, err := h.active.ListActiveByEndpoint(c.Request.Context(), tenant.ID, ep.ID)
+			if err != nil {
+				continue
+			}
+			ep.EnvActivations = make([]domain.EndpointEnvActivity, 0, len(actives))
+			for _, av := range actives {
+				ep.EnvActivations = append(ep.EnvActivations, domain.EndpointEnvActivity{
+					EnvID:     av.EnvID,
+					EnvName:   envNames[av.EnvID],
+					Version:   av.Version,
+					VersionID: av.VersionID,
+				})
+			}
+		}
+	}
+
 	OKPaged(c, list, lp, total)
 }
 
@@ -50,7 +78,7 @@ func (h *APIEndpointHandler) HandleList(c *gin.Context) {
 // @Produce json
 // @Param slug path string true "租户slug"
 // @Param projectId path int true "项目ID"
-// @Param body body object{path=string,methods=array,sql=string,summary=string,description=string,datasource_id=int,group_id=int,pre_script_id=int,post_script_id=int,param_defs=array} true "端点信息"
+// @Param body body object{path=string,methods=array,sql=string,summary=string,description=string,datasource_alias=string,group_id=int,pre_script_id=int,post_script_id=int,param_defs=array} true "端点信息"
 // @Success 200 {object} RAPIEndpoint
 // @Router /v1/tenants/{slug}/projects/{projectId}/endpoints [post]
 func (h *APIEndpointHandler) HandleCreate(c *gin.Context) {
@@ -60,17 +88,17 @@ func (h *APIEndpointHandler) HandleCreate(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Path         string            `json:"path" binding:"required"`
-		Methods      []string          `json:"methods" binding:"required"`
-		SQL          string            `json:"sql" binding:"required"`
-		Summary      string            `json:"summary"`
-		Description  string            `json:"description"`
-		Params       []string          `json:"params"`
-		ParamDefs    []domain.ParamDef `json:"param_defs"`
-		DataSourceID int64             `json:"datasource_id"`
-		GroupID      int64             `json:"group_id"`
-		PreScriptID  int64             `json:"pre_script_id"`
-		PostScriptID int64             `json:"post_script_id"`
+		Path            string            `json:"path" binding:"required"`
+		Methods         []string          `json:"methods" binding:"required"`
+		SQL             string            `json:"sql" binding:"required"`
+		Summary         string            `json:"summary"`
+		Description     string            `json:"description"`
+		Params          []string          `json:"params"`
+		ParamDefs       []domain.ParamDef `json:"param_defs"`
+		DataSourceAlias string            `json:"datasource_alias"`
+		GroupID         int64             `json:"group_id"`
+		PreScriptID     int64             `json:"pre_script_id"`
+		PostScriptID    int64             `json:"post_script_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
@@ -81,7 +109,7 @@ func (h *APIEndpointHandler) HandleCreate(c *gin.Context) {
 	}
 	ep := &domain.APIEndpoint{
 		TenantID: tenant.ID, ProjectID: pid,
-		DataSourceID: req.DataSourceID, GroupID: req.GroupID,
+		DataSourceAlias: req.DataSourceAlias, GroupID: req.GroupID,
 		Path: req.Path, Methods: req.Methods,
 		Summary: req.Summary, Description: req.Description,
 		SQL: req.SQL, Params: req.Params, ParamDefs: req.ParamDefs,
@@ -104,7 +132,7 @@ func (h *APIEndpointHandler) HandleCreate(c *gin.Context) {
 // @Param slug path string true "租户slug"
 // @Param projectId path int true "项目ID"
 // @Param endpointId path int true "端点ID"
-// @Param body body object{path=string,methods=array,sql=string,summary=string,description=string,datasource_id=int,group_id=int,pre_script_id=int,post_script_id=int,param_defs=array} false "更新信息"
+// @Param body body object{path=string,methods=array,sql=string,summary=string,description=string,datasource_alias=string,group_id=int,pre_script_id=int,post_script_id=int,param_defs=array} false "更新信息"
 // @Success 200 {object} RAPIEndpoint
 // @Router /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId} [put]
 func (h *APIEndpointHandler) HandleUpdate(c *gin.Context) {
@@ -114,17 +142,17 @@ func (h *APIEndpointHandler) HandleUpdate(c *gin.Context) {
 		return
 	}
 	var req struct {
-		Path         string            `json:"path"`
-		Methods      []string          `json:"methods"`
-		SQL          string            `json:"sql"`
-		Summary      string            `json:"summary"`
-		Description  string            `json:"description"`
-		Params       []string          `json:"params"`
-		ParamDefs    []domain.ParamDef `json:"param_defs"`
-		DataSourceID *int64            `json:"datasource_id"`
-		GroupID      *int64            `json:"group_id"`
-		PreScriptID  *int64            `json:"pre_script_id"`
-		PostScriptID *int64            `json:"post_script_id"`
+		Path            string            `json:"path"`
+		Methods         []string          `json:"methods"`
+		SQL             string            `json:"sql"`
+		Summary         string            `json:"summary"`
+		Description     string            `json:"description"`
+		Params          []string          `json:"params"`
+		ParamDefs       []domain.ParamDef `json:"param_defs"`
+		DataSourceAlias *string           `json:"datasource_alias"`
+		GroupID         *int64            `json:"group_id"`
+		PreScriptID     *int64            `json:"pre_script_id"`
+		PostScriptID    *int64            `json:"post_script_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
@@ -136,8 +164,8 @@ func (h *APIEndpointHandler) HandleUpdate(c *gin.Context) {
 		Summary: req.Summary, Description: req.Description,
 		SQL: req.SQL, Params: req.Params, ParamDefs: req.ParamDefs,
 	}
-	if req.DataSourceID != nil {
-		ep.DataSourceID = *req.DataSourceID
+	if req.DataSourceAlias != nil {
+		ep.DataSourceAlias = *req.DataSourceAlias
 	}
 	if req.GroupID != nil {
 		ep.GroupID = *req.GroupID

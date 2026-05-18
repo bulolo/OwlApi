@@ -42,7 +42,7 @@ export function VersionDiff({ current, previous }: { current: EndpointVersion; p
     { label: "路径",      a: snapA.path,                  b: snapB.path },
     { label: "方法",      a: (snapA.methods ?? []).join(", "), b: (snapB.methods ?? []).join(", ") },
     { label: "摘要",      a: snapA.summary,               b: snapB.summary },
-    { label: "数据源",    a: refLabel(previous.datasource_ref), b: refLabel(current.datasource_ref) },
+    { label: "数据源别名", a: refLabel(previous.datasource_ref), b: refLabel(current.datasource_ref) },
     { label: "前置脚本",  a: scriptLabel(previous.pre_script_snapshot),  b: scriptLabel(current.pre_script_snapshot) },
     { label: "后置脚本",  a: scriptLabel(previous.post_script_snapshot), b: scriptLabel(current.post_script_snapshot) },
   ].filter(c => (c.a ?? "") !== (c.b ?? ""))
@@ -132,8 +132,8 @@ export function VersionDiff({ current, previous }: { current: EndpointVersion; p
 interface ScalarDiff { label: string; a?: string; b?: string }
 interface ParamLite { name: string; type?: string; required?: boolean; default?: string; desc?: string }
 
-function refLabel(ref?: { name?: string } | null) {
-  return ref?.name ?? ""
+function refLabel(ref?: { alias?: string } | null) {
+  return ref?.alias ?? ""
 }
 
 function scriptLabel(snap?: { name?: string } | null) {

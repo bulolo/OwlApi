@@ -19,42 +19,43 @@ var (
 )
 
 type QueryService interface {
-	Execute(ctx context.Context, tenantID string, endpoint *domain.APIEndpoint, params map[string]string) (*pb.QueryResult, error)
+	Execute(ctx context.Context, tenantID string, envID int64, endpoint *domain.APIEndpoint, params map[string]string) (*pb.QueryResult, error)
 	ExecuteDirect(ctx context.Context, tenantID, gatewayID, dsn, sql string) (*pb.QueryResult, error)
 	NotifyResult(result *pb.QueryResult)
 }
 
 type queryService struct {
 	gateways          GatewayBroker
-	dataSources       DataSourceService
+	envs              EnvironmentService
 	scripts           ScriptService
 	pending           sync.Map
 	serverWaitSeconds int
 }
 
-func NewQueryService(gateways GatewayBroker, dataSources DataSourceService, scripts ScriptService, serverWaitSeconds int) QueryService {
+func NewQueryService(gateways GatewayBroker, envs EnvironmentService, scripts ScriptService, serverWaitSeconds int) QueryService {
 	if serverWaitSeconds <= 0 {
 		serverWaitSeconds = 35
 	}
-	return &queryService{gateways: gateways, dataSources: dataSources, scripts: scripts, serverWaitSeconds: serverWaitSeconds}
+	return &queryService{gateways: gateways, envs: envs, scripts: scripts, serverWaitSeconds: serverWaitSeconds}
 }
 
 func generateRequestID() string {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		// Fallback to timestamp if crypto/rand fails
 		return fmt.Sprintf("req_%d", time.Now().UnixNano())
 	}
 	return "req_" + hex.EncodeToString(b)
 }
 
-func (s *queryService) Execute(ctx context.Context, tenantID string, endpoint *domain.APIEndpoint, params map[string]string) (*pb.QueryResult, error) {
-	dsEnv, err := s.dataSources.GetEnv(ctx, endpoint.TenantID, endpoint.DataSourceID, "prod")
+// Execute resolves the endpoint's datasource_alias within the given env to a
+// physical DataSource, then dispatches the SQL through the bound gateway.
+func (s *queryService) Execute(ctx context.Context, tenantID string, envID int64, endpoint *domain.APIEndpoint, params map[string]string) (*pb.QueryResult, error) {
+	ds, err := s.envs.Resolve(ctx, endpoint.TenantID, envID, endpoint.DataSourceAlias)
 	if err != nil {
-		return nil, domain.ErrNotFoundf("datasource %d not found", endpoint.DataSourceID)
+		return nil, domain.ErrBadRequestf("alias '%s' not bound in this env", endpoint.DataSourceAlias)
 	}
 
-	gatewayID := strconv.FormatInt(dsEnv.GatewayID, 10)
+	gatewayID := strconv.FormatInt(ds.GatewayID, 10)
 	stream := s.gateways.GetStream(gatewayID)
 	if stream == nil {
 		return nil, domain.ErrUnavailablef("gateway %s not connected", gatewayID)
@@ -85,7 +86,7 @@ func (s *queryService) Execute(ctx context.Context, tenantID string, endpoint *d
 		Payload: &pb.ServerMessage_ExecuteQuery{
 			ExecuteQuery: &pb.ExecuteQueryRequest{
 				RequestId:      requestID,
-				Dsn:            dsEnv.DSN,
+				Dsn:            ds.DSN,
 				DbType:         "",
 				Sql:            endpoint.SQL,
 				Params:         params,
@@ -99,7 +100,6 @@ func (s *queryService) Execute(ctx context.Context, tenantID string, endpoint *d
 		return nil, err
 	}
 
-	// serverWaitSeconds = gateway QueryTimeout + 5s buffer
 	timer := time.NewTimer(time.Duration(s.serverWaitSeconds) * time.Second)
 	defer timer.Stop()
 
@@ -139,7 +139,6 @@ func (s *queryService) ExecuteDirect(ctx context.Context, tenantID, gatewayID, d
 		return nil, err
 	}
 
-	// serverWaitSeconds = gateway QueryTimeout + 5s buffer
 	timer := time.NewTimer(time.Duration(s.serverWaitSeconds) * time.Second)
 	defer timer.Stop()
 

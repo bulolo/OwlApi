@@ -35,17 +35,6 @@ function DbTypeIcon({ type }: { type: string }) {
 }
 
 
-function EnvRow({ type, dsn, label, colors }: { type: string; dsn: string; label: string; colors: string }) {
-  const { host, db } = parseDsnPreview(type, dsn)
-  return (
-    <div className="flex items-center gap-2">
-      <span className={cn("w-10 text-center px-1 py-0.5 rounded text-2xs font-black border uppercase shrink-0", colors)}>
-        {label}
-      </span>
-      <span className="font-mono text-xs text-muted-foreground truncate">{host} / {db}</span>
-    </div>
-  )
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -102,11 +91,7 @@ export default function DataSources() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {dataSources.map(ds => {
-            const prodEnv   = ds.envs?.find(e => e.env === 'prod')
-            const devEnv    = ds.envs?.find(e => e.env === 'dev')
-            const singleEnv = ds.envs?.[0]
-            const isDual    = ds.is_dual
-            const { host, db } = parseDsnPreview(ds.type, (isDual ? prodEnv : singleEnv)?.dsn ?? '')
+            const { host, db } = parseDsnPreview(ds.type, ds.dsn ?? '')
 
             return (
               <Card
@@ -122,11 +107,6 @@ export default function DataSources() {
                           <Lock className="w-2.5 h-2.5" /> 内置
                         </span>
                       )}
-                      {isDual && (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-bold border bg-violet-50 text-violet-600 border-violet-100 uppercase tracking-tight">
-                          双环境
-                        </span>
-                      )}
                       <span className={cn("px-2 py-0.5 rounded-full text-2xs font-bold border uppercase tracking-tight", DB_TYPES[ds.type as keyof typeof DB_TYPES]?.color ?? "bg-zinc-50 text-muted-foreground border-border-subtle")}>
                         {DB_TYPES[ds.type as keyof typeof DB_TYPES]?.label ?? ds.type}
                       </span>
@@ -140,34 +120,22 @@ export default function DataSources() {
                     ID {ds.id} · {new Date(ds.created_at).toLocaleDateString()}
                   </p>
 
-                  {isDual ? (
-                    <div className="space-y-2">
-                      {devEnv  && <EnvRow type={ds.type} dsn={devEnv.dsn  ?? ''} label="DEV"  colors="bg-emerald-50 text-emerald-600 border-emerald-100" />}
-                      {prodEnv && <EnvRow type={ds.type} dsn={prodEnv.dsn ?? ''} label="PROD" colors="bg-primary/10 text-primary border-primary/20" />}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-2xs font-bold text-muted-foreground shrink-0">主机</span>
+                      <span className="text-xs font-mono text-foreground truncate">{host || '-'}</span>
                     </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-2xs font-bold text-muted-foreground shrink-0">主机</span>
-                        <span className="text-xs font-mono text-foreground truncate">{host || '-'}</span>
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-2xs font-bold text-muted-foreground shrink-0">库名</span>
-                        <span className="text-xs font-mono text-foreground truncate">{db || '-'}</span>
-                      </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-2xs font-bold text-muted-foreground shrink-0">库名</span>
+                      <span className="text-xs font-mono text-foreground truncate">{db || '-'}</span>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 <div className="px-5 py-3 border-t border-border-subtle bg-zinc-50/30 flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-2xs font-bold text-muted-foreground truncate min-w-0">
                     <Server className="w-3.5 h-3.5 text-primary/60 shrink-0" />
-                    <span className="truncate">
-                      {isDual
-                        ? `${gwName(devEnv?.gateway_id)} / ${gwName(prodEnv?.gateway_id)}`
-                        : gwName(singleEnv?.gateway_id)
-                      }
-                    </span>
+                    <span className="truncate">{gwName(ds.gateway_id)}</span>
                   </div>
                   <div className="flex gap-1 shrink-0 ml-2">
                     <Button

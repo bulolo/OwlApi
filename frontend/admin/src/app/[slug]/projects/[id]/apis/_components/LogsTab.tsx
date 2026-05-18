@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useTenantProject } from "../_hooks/useTenantProject"
+import { useEnvironments } from "@/hooks"
 import { useEndpointCallLogs } from "@/hooks/useEndpointCallLogs"
+import { envColor } from "../../_utils/envColor"
 import type { EndpointCallLog, CallLogQuery } from "@/lib/api-client"
 
 type StatusFilter = 'all' | '2xx' | '4xx' | '5xx'
@@ -29,16 +31,20 @@ function formatFullDate(d: string) {
 
 export function LogsTab() {
   const { activeTenant, projectId } = useTenantProject()
+  const { data: envs = [] } = useEnvironments(activeTenant, Number(projectId))
   const selectedId = useApiEditorStore(s => s.selectedId)
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [keyword, setKeyword] = useState("")
   const [autoRefresh, setAutoRefresh] = useState(true)
+  // 0 = 全部 env；具体 id = 只看那个 env 的日志
+  const [envFilter, setEnvFilter] = useState<number>(0)
 
   const query: CallLogQuery = {
     page: 1, size: 50,
     status: statusFilter === 'all' ? '' : statusFilter,
     keyword: keyword.trim() || undefined,
+    env_id: envFilter || undefined,
   }
 
   const { logs, isLoading, refetch, isFetching } = useEndpointCallLogs(
@@ -68,6 +74,34 @@ export function LogsTab() {
             </button>
           ))}
         </div>
+
+        {/* Env filter pills */}
+        {envs.length > 0 && (
+          <div className="inline-flex bg-zinc-100/80 rounded-lg p-0.5 border border-border-subtle">
+            <button
+              onClick={() => setEnvFilter(0)}
+              className={cn(
+                "text-2xs font-bold px-3 py-1 rounded-md transition-colors",
+                envFilter === 0 ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-zinc-700",
+              )}
+            >
+              全部 env
+            </button>
+            {envs.map(env => (
+              <button
+                key={env.id}
+                onClick={() => setEnvFilter(env.id)}
+                className={cn(
+                  "text-2xs font-bold px-3 py-1 rounded-md transition-colors inline-flex items-center gap-1.5",
+                  envFilter === env.id ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-zinc-700",
+                )}
+              >
+                <span className={cn("w-1.5 h-1.5 rounded-full", envColor(env.name).bg)} />
+                {env.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Keyword search */}
         <Input

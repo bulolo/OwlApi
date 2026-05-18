@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Server, Globe, ShieldCheck, Loader2, Zap, CheckCircle2, XCircle, Eye, EyeOff } from "lucide-react"
+import { Server, ShieldCheck, Loader2, Zap, CheckCircle2, XCircle, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { defaultPort, type ConnParams } from "@/lib/database-helpers"
 import type { Gateway } from "@/lib/api-client"
@@ -88,12 +88,11 @@ export function ConnFields({ type, env, showPass, onTogglePass, onChange }: Conn
 // ─── ConnTestPanel ────────────────────────────────────────────────────────────
 
 interface ConnTestPanelProps {
-  envKey: 'prod' | 'dev'
   state: EnvTestState
-  onTest: (env: 'prod' | 'dev') => void
+  onTest: () => void
 }
 
-export function ConnTestPanel({ envKey, state, onTest }: ConnTestPanelProps) {
+export function ConnTestPanel({ state, onTest }: ConnTestPanelProps) {
   const isOk      = state.status === 'ok'
   const isFail    = state.status === 'fail'
   const isTesting = state.status === 'testing'
@@ -104,7 +103,7 @@ export function ConnTestPanel({ envKey, state, onTest }: ConnTestPanelProps) {
         variant="outline"
         size="sm"
         disabled={isTesting}
-        onClick={() => onTest(envKey)}
+        onClick={() => onTest()}
         className={cn(
           "h-8 px-4 text-xs font-bold border transition-colors",
           isOk   ? "border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100" :
@@ -134,7 +133,6 @@ export function ConnTestPanel({ envKey, state, onTest }: ConnTestPanelProps) {
 // ─── EnvCard ─────────────────────────────────────────────────────────────────
 
 interface EnvCardProps {
-  envKey: 'prod' | 'dev'
   type: string
   env: EnvData
   testState: EnvTestState
@@ -143,35 +141,22 @@ interface EnvCardProps {
   showPass: boolean
   onTogglePass: () => void
   onChange: (upd: Partial<EnvData>) => void
-  onTest: (env: 'prod' | 'dev') => void
-  /** Card accent: 'emerald' for DEV, 'blue' for PROD */
-  accent: 'emerald' | 'blue'
+  onTest: () => void
   title: string
   subtitle: string
 }
 
 export function EnvCard({
-  envKey, type, env, testState, gateways, effectiveGwId,
+  type, env, testState, gateways, effectiveGwId,
   showPass, onTogglePass, onChange, onTest,
-  accent, title, subtitle,
+  title, subtitle,
 }: EnvCardProps) {
-  const accentBar  = accent === 'emerald' ? 'bg-emerald-500' : 'bg-primary'
-  const iconBg     = accent === 'emerald' ? 'bg-emerald-50 border-emerald-100' : 'bg-primary/10 border-primary/20'
-  const iconColor  = accent === 'emerald' ? 'text-emerald-600' : 'text-primary'
-  const triggerBg  = accent === 'emerald'
-    ? 'bg-white hover:bg-zinc-50'
-    : 'bg-primary/10 hover:bg-primary/10'
-  const serverIcon = accent === 'emerald' ? 'text-emerald-500' : 'text-primary/80'
-
   return (
     <div className="p-6 border border-border-subtle rounded-xl shadow-card overflow-hidden relative bg-white">
-      <div className={`absolute top-0 left-0 w-1 h-full ${accentBar}`} />
+      <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
       <div className="flex items-center gap-3 mb-8">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${iconBg}`}>
-          {accent === 'emerald'
-            ? <Globe className={`w-4 h-4 ${iconColor}`} />
-            : <ShieldCheck className={`w-4 h-4 ${iconColor}`} />
-          }
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center border bg-primary/10 border-primary/20">
+          <ShieldCheck className="w-4 h-4 text-primary" />
         </div>
         <div>
           <h3 className="text-lg font-bold text-foreground uppercase">{title}</h3>
@@ -192,14 +177,14 @@ export function EnvCard({
             value={String(effectiveGwId)}
             onValueChange={v => onChange({ gatewayId: Number(v) })}
           >
-            <SelectTrigger className={`h-9 border-border ${triggerBg} transition-colors`}>
+            <SelectTrigger className="h-9 border-border bg-primary/10 hover:bg-primary/10 transition-colors">
               <SelectValue placeholder="选择网关节点..." />
             </SelectTrigger>
             <SelectContent className="bg-white">
               {gateways.map(gw => (
                 <SelectItem key={gw.id} value={String(gw.id)} className="focus:bg-zinc-50">
                   <div className="flex items-center">
-                    <Server className={cn("w-3.5 h-3.5 mr-2", gw.status === 'online' ? serverIcon : "text-zinc-300")} />
+                    <Server className={cn("w-3.5 h-3.5 mr-2", gw.status === 'online' ? "text-primary/80" : "text-zinc-300")} />
                     <span className="font-bold">{gw.name}</span>
                     {gw.ip && <span className="ml-2 text-2xs text-muted-foreground font-mono px-1.5 py-0.5 bg-zinc-100 rounded tracking-tight">{gw.ip}</span>}
                   </div>
@@ -209,7 +194,7 @@ export function EnvCard({
           </Select>
         </div>
         <div className="col-span-2">
-          <ConnTestPanel envKey={envKey} state={testState} onTest={onTest} />
+          <ConnTestPanel state={testState} onTest={onTest} />
         </div>
       </div>
     </div>

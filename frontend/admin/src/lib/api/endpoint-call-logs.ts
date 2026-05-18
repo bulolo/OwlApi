@@ -9,6 +9,7 @@ export interface CallLogQuery extends ListQuery {
   status?: 'all' | '2xx' | '4xx' | '5xx' | ''
   keyword?: string
   since?: string
+  env_id?: number
 }
 
 export const apiListEndpointCallLogs = (slug: string, projectId: number, endpointId: number, q: CallLogQuery = {}) =>

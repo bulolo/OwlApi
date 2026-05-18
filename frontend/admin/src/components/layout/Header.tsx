@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useIsClient } from "@/hooks/useIsClient"
 import { LogOut, Settings, ShieldCheck, ChevronDown, KeyRound } from "lucide-react"
-import PlatformSettingsModal from "./PlatformSettingsModal"
+import PlatformSettingsModal from "@/ee/components/PlatformSettingsModal"
 import TenantSettingsModal from "./TenantSettingsModal"
 import { ChangePasswordModal } from "./ChangePasswordModal"
 import { LanguageSwitcher } from "./LanguageSwitcher"
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { TenantSwitcher } from "./TenantSwitcher"
 import { useAuthStore } from "@/store/useAuthStore"
+import { EeOnly } from "@/components/edition/EditionGate"
 
 export function Header({ slug }: { slug?: string }) {
   const router = useRouter()
@@ -36,16 +37,19 @@ export function Header({ slug }: { slug?: string }) {
       <div className="flex items-center gap-3">
         {mounted ? (
           <>
-            {/* 1. Platform Settings (SuperAdmin only) */}
+            {/* 1. Platform Settings — 仅 SuperAdmin 且企业版（EE）可见。
+                  CE 用户即使是超管也看不到，因为 CE 不暴露平台级跨租户管理界面。 */}
             {user?.is_superadmin && (
-              <button
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors"
-                onClick={() => setOpenSettings(true)}
-                title="平台设置"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                平台设置
-              </button>
+              <EeOnly>
+                <button
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200 rounded-xl hover:bg-amber-100 transition-colors"
+                  onClick={() => setOpenSettings(true)}
+                  title="平台设置（企业版）"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  平台设置
+                </button>
+              </EeOnly>
             )}
 
             {/* 2. Tenant Settings (all users) */}

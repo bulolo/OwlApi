@@ -52,6 +52,7 @@ func New() *App {
 
 func (a *App) Run() {
 	a.executor.InitDemoData("/data/owlapi_ecommerce_demo.db")
+	a.executor.InitWarehouseDemoData("/data/owlapi_ecommerce_warehouse_demo.db")
 	a.executor.InitCMSDemoData("/data/owlapi_cms_demo.db")
 	slog.Info("OwlApi Gateway starting...",
 		"tenant_id", a.config.TenantID,
@@ -97,7 +98,7 @@ func (a *App) connectAndServe() error {
 			Register: &pb.RegisterRequest{
 				GatewayId:    a.config.GatewayID,
 				GatewayToken: a.config.GatewayToken,
-				Version:      "v0.1.9",
+				Version:      "v0.2.0",
 				TenantId:     a.config.TenantID,
 			},
 		},

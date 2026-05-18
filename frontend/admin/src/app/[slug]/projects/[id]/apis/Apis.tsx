@@ -7,7 +7,6 @@ import { Play, BookOpen, Code2, ScrollText, History } from "lucide-react"
 import { useApiEditorStore } from "./_store/useApiEditorStore"
 import { useEndpointFormStore } from "./_store/useEndpointFormStore"
 import { useEndpointsQuery } from "./_hooks/useEndpointsQuery"
-import { useReferenceData } from "./_hooks/useReferenceData"
 import { useTenantProject } from "./_hooks/useTenantProject"
 import { showConfirm } from "@/store/useConfirmStore"
 
@@ -28,7 +27,7 @@ const TABS = [
   { value: "design" as const, icon: Code2, label: "设计" },
   { value: "run" as const, icon: Play, label: "运行" },
   { value: "logs" as const, icon: ScrollText, label: "日志" },
-  { value: "releases" as const, icon: History, label: "版本历史" },
+  { value: "releases" as const, icon: History, label: "版本管理" },
 ]
 
 export default function Apis() {
@@ -49,7 +48,6 @@ export default function Apis() {
 
   // Server data
   const { list: endpoints } = useEndpointsQuery(activeTenant, projectId)
-  const { dataSources } = useReferenceData(activeTenant)
 
   const [createModalOpen, setCreateModalOpen] = useState(false)
 
@@ -58,7 +56,7 @@ export default function Apis() {
     if (selectedId && endpoints.length > 0) {
       const ep = endpoints.find(e => e.id === selectedId)
       // Only re-init if form is clean (don't overwrite user's edits)
-      if (ep && !isDirty) initForm(ep, dataSources[0]?.id)
+      if (ep && !isDirty) initForm(ep, "main")
     }
   }, [endpoints]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -72,7 +70,7 @@ export default function Apis() {
     if (!await guardDirty()) return
     setSelectedId(ep.id ?? null)
     setIsNew(false)
-    initForm(ep, dataSources[0]?.id)
+    initForm(ep, "main")
   }
 
   async function handleCreateNew() {
@@ -133,7 +131,7 @@ export default function Apis() {
           setCreateModalOpen(false)
           setSelectedId(null)
           setIsNew(true)
-          initForm(null, dataSources[0]?.id, values.method)
+          initForm(null, "main", values.method)
           setFormField("path", values.path)
           setFormField("summary", values.summary)
           setFormField("groupId", values.groupId)

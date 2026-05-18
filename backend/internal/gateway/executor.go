@@ -745,6 +745,86 @@ func (e *Executor) InitDemoData(dsn string) {
 	slog.Info("Ecommerce demo data initialized", "dsn", redactDSN(dsn))
 }
 
+// InitWarehouseDemoData creates pre-aggregated "数仓" tables in a separate
+// SQLite file, used to demonstrate the multi-alias scenario (业务库 + 数仓 in
+// one project, served via aliases "main" and "analytics").
+func (e *Executor) InitWarehouseDemoData(dsn string) {
+	db, err := e.getConn(dsn)
+	if err != nil {
+		slog.Error("Failed to init warehouse demo data", "dsn", redactDSN(dsn), "error", err)
+		return
+	}
+
+	ddl := []string{
+		`CREATE TABLE IF NOT EXISTS daily_revenue (
+			day TEXT PRIMARY KEY,
+			order_count INTEGER NOT NULL,
+			revenue REAL NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS category_sales (
+			category TEXT PRIMARY KEY,
+			order_count INTEGER NOT NULL,
+			revenue REAL NOT NULL,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS customer_rank (
+			user_id INTEGER PRIMARY KEY,
+			user_name TEXT NOT NULL,
+			email TEXT NOT NULL,
+			orders INTEGER NOT NULL,
+			total_spent REAL NOT NULL,
+			rank INTEGER NOT NULL
+		)`,
+	}
+
+	for _, q := range ddl {
+		if _, err := db.Exec(q); err != nil {
+			slog.Error("Failed to create warehouse table", "error", err)
+			return
+		}
+	}
+
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM category_sales").Scan(&count); err != nil {
+		slog.Error("Failed to check warehouse demo data", "error", err)
+		return
+	}
+	if count > 0 {
+		slog.Info("Warehouse demo data already exists, skipping")
+		return
+	}
+
+	seedSQL := []string{
+		`INSERT INTO daily_revenue (day, order_count, revenue) VALUES
+			('2026-05-12', 12, 28430.00),
+			('2026-05-13', 9, 14580.00),
+			('2026-05-14', 15, 36720.00),
+			('2026-05-15', 11, 19850.00),
+			('2026-05-16', 18, 42990.00),
+			('2026-05-17', 7, 8910.00),
+			('2026-05-18', 21, 51200.00)`,
+		`INSERT INTO category_sales (category, order_count, revenue) VALUES
+			('electronics', 6, 42795.00),
+			('peripherals', 4, 5996.00),
+			('books', 5, 775.00)`,
+		`INSERT INTO customer_rank (user_id, user_name, email, orders, total_spent, rank) VALUES
+			(1, '张三', 'zhangsan@example.com', 2, 18797.00, 1),
+			(2, '李四', 'lisi@example.com', 2, 9598.00, 2),
+			(5, '钱七', 'qianqi@example.com', 2, 15177.00, 3),
+			(3, '王五', 'wangwu@example.com', 2, 5595.00, 4),
+			(4, '赵六', 'zhaoliu@example.com', 1, 399.00, 5)`,
+	}
+
+	for _, q := range seedSQL {
+		if _, err := db.Exec(q); err != nil {
+			slog.Error("Failed to seed warehouse demo data", "error", err)
+			return
+		}
+	}
+
+	slog.Info("Warehouse demo data initialized", "dsn", redactDSN(dsn))
+}
+
 // InitCMSDemoData creates CMS demo tables and sample data in the given SQLite database.
 func (e *Executor) InitCMSDemoData(dsn string) {
 	db, err := e.getConn(dsn)

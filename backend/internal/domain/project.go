@@ -34,30 +34,41 @@ type APIGroup struct {
 }
 
 // APIEndpoint represents the working-copy / draft of an endpoint.
-// It is always mutable; what's "live" is determined by EndpointActiveVersion.
+// It is always mutable; what's "live" per-env is determined by EndpointActiveVersion.
+//
+// DataSourceAlias is a logical name; the physical datasource it resolves to is
+// determined at call time by looking up endpoint_datasource_bindings for the
+// requested env.
 type APIEndpoint struct {
-	ID           int64      `json:"id"`
-	TenantID     int64      `json:"tenant_id"`
-	ProjectID    int64      `json:"project_id"`
-	GroupID      int64      `json:"group_id"`
-	DataSourceID int64      `json:"datasource_id"`
-	Path         string     `json:"path"`
-	Methods      []string   `json:"methods"`
-	Summary      string     `json:"summary"`
-	Description  string     `json:"description,omitempty"`
-	SQL          string     `json:"sql"`
-	Params       []string   `json:"params"`
-	ParamDefs    []ParamDef `json:"param_defs,omitempty"`
-	PreScriptID  int64      `json:"pre_script_id,omitempty"`
-	PostScriptID int64      `json:"post_script_id,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID              int64      `json:"id"`
+	TenantID        int64      `json:"tenant_id"`
+	ProjectID       int64      `json:"project_id"`
+	GroupID         int64      `json:"group_id"`
+	DataSourceAlias string     `json:"datasource_alias"`
+	Path            string     `json:"path"`
+	Methods         []string   `json:"methods"`
+	Summary         string     `json:"summary"`
+	Description     string     `json:"description,omitempty"`
+	SQL             string     `json:"sql"`
+	Params          []string   `json:"params"`
+	ParamDefs       []ParamDef `json:"param_defs,omitempty"`
+	PreScriptID     int64      `json:"pre_script_id,omitempty"`
+	PostScriptID    int64      `json:"post_script_id,omitempty"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 
 	// Derived/computed fields (not stored on the row itself):
-	IsPublished   bool `json:"is_published"`             // true iff endpoint_active_version row exists
-	HasDraft      bool `json:"has_draft"`                // true iff updated_at > activated_at (or not published yet but at least one version exists)
-	ActiveVersion int  `json:"active_version,omitempty"` // current live version number (0 if not published)
-	LatestVersion int  `json:"latest_version,omitempty"` // newest version number in endpoint_versions for this endpoint (0 if no versions)
+	HasDraft       bool                  `json:"has_draft"`                 // updated_at > MAX(activated_at) across envs, or no version yet
+	LatestVersion  int                   `json:"latest_version,omitempty"`  // newest version number in endpoint_versions for this endpoint
+	EnvActivations []EndpointEnvActivity `json:"env_activations,omitempty"` // per-env active version snapshot (one row per env where this endpoint is live)
+}
+
+// EndpointEnvActivity is a compact "what's live in env X" record returned alongside endpoints.
+type EndpointEnvActivity struct {
+	EnvID     int64  `json:"env_id"`
+	EnvName   string `json:"env_name"`
+	Version   int    `json:"version"`
+	VersionID int64  `json:"version_id"`
 }
 
 // ScriptSnapshot is a frozen copy of a script captured into a version.
@@ -68,13 +79,11 @@ type ScriptSnapshot struct {
 	Code string `json:"code"`
 }
 
-// DataSourceRef is a frozen reference (NOT a snapshot of credentials) to a datasource.
-// DSN intentionally lives outside the version — DSN changes are infra concerns and must
-// flow through to old versions automatically.
+// DataSourceRef is a frozen reference (NOT a snapshot of credentials) to a datasource alias.
+// The alias is resolved at call time against (env, alias) bindings, so DSN/gateway changes
+// flow through automatically without requiring new versions.
 type DataSourceRef struct {
-	ID   int64  `json:"id"`
-	Name string `json:"name"`
-	Type string `json:"type"`
+	Alias string `json:"alias"`
 }
 
 // EndpointVersion is an immutable published snapshot of an endpoint.
@@ -94,10 +103,13 @@ type EndpointVersion struct {
 	IsActive           bool            `json:"is_active"`
 }
 
-// EndpointActiveVersion is the single authoritative pointer to "what's live now".
+// EndpointActiveVersion is the authoritative pointer to "what's live in (endpoint, env) now".
+// PK is (tenant_id, endpoint_id, env_id) — different envs can pin different versions
+// simultaneously, which is the basis for the promote / canary / rollback story.
 type EndpointActiveVersion struct {
 	TenantID    int64     `json:"tenant_id"`
 	EndpointID  int64     `json:"endpoint_id"`
+	EnvID       int64     `json:"env_id"`
 	VersionID   int64     `json:"version_id"`
 	Version     int       `json:"version"`
 	ActivatedBy int64     `json:"activated_by"`
@@ -114,17 +126,21 @@ const (
 	ActivationActionUnpublish     ActivationAction = "unpublish"
 	ActivationActionVersionDelete ActivationAction = "version_deleted"
 	ActivationActionRevert        ActivationAction = "revert"
+	ActivationActionPromote       ActivationAction = "promote"
 )
 
 // CallLogParams holds the de-serialized request params for an endpoint call.
 // Stored as JSONB; nil means no params recorded.
 type CallLogParams map[string]any
 
-// EndpointCallLog represents one invocation of an endpoint via the gateway path /:tenantSlug/:projectSlug/*path.
+// EndpointCallLog represents one invocation of an endpoint via the gateway path
+// /-/:env/:tenantSlug/:projectSlug/*path.
 type EndpointCallLog struct {
 	ID         int64         `json:"id"`
 	TenantID   int64         `json:"tenant_id"`
 	EndpointID int64         `json:"endpoint_id"`
+	EnvID      int64         `json:"env_id,omitempty"`
+	EnvName    string        `json:"env_name,omitempty"`
 	VersionID  int64         `json:"version_id,omitempty"`
 	Version    int           `json:"version,omitempty"`
 	Method     string        `json:"method"`
@@ -146,6 +162,8 @@ type CallLogFilter struct {
 	Keyword string
 	// only include rows where at >= Since (zero value = no lower bound)
 	Since time.Time
+	// only include rows whose env_id == EnvID (0 = all envs)
+	EnvID int64
 }
 
 // EndpointActivationLog is a single audit row.
@@ -153,6 +171,8 @@ type EndpointActivationLog struct {
 	ID         int64            `json:"id"`
 	TenantID   int64            `json:"tenant_id"`
 	EndpointID int64            `json:"endpoint_id"`
+	EnvID      int64            `json:"env_id,omitempty"`
+	EnvName    string           `json:"env_name,omitempty"`
 	VersionID  int64            `json:"version_id,omitempty"`
 	Version    int              `json:"version,omitempty"` // 对应版本号 (v3)，便于直接展示
 	Action     ActivationAction `json:"action"`

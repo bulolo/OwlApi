@@ -45,6 +45,11 @@ func (h *EndpointCallLogHandler) HandleList(c *gin.Context) {
 			filter.Since = t
 		}
 	}
+	if raw := c.Query("env_id"); raw != "" {
+		if id, err := parseInt64(raw); err == nil && id > 0 {
+			filter.EnvID = id
+		}
+	}
 	list, total, err := h.callLogs.List(c.Request.Context(), tenant.ID, epID, filter, lp)
 	if err != nil {
 		FailErr(c, err)
@@ -59,6 +64,8 @@ type EndpointCallLogResp struct {
 	ID         int64                  `json:"id"          validate:"required"`
 	TenantID   int64                  `json:"tenant_id"   validate:"required"`
 	EndpointID int64                  `json:"endpoint_id" validate:"required"`
+	EnvID      int64                  `json:"env_id,omitempty"`
+	EnvName    string                 `json:"env_name,omitempty"`
 	VersionID  int64                  `json:"version_id,omitempty"`
 	Version    int                    `json:"version,omitempty"`
 	Method     string                 `json:"method"      validate:"required"`

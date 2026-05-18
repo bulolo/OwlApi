@@ -13,8 +13,10 @@ import { SqlResultPreview } from "./SqlResultPreview"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface DataSource { id?: number; name: string }
-interface Script     { id?: number; name: string; type: string }
+/** An alias option shown in the dropdown — name + (optional) the physical
+ * datasource it resolves to in the *currently selected* env. */
+interface AliasOption { name: string; resolvedName?: string }
+interface Script { id?: number; name: string; type: string }
 
 interface ContextMenuState {
   x: number
@@ -141,26 +143,27 @@ function TableContextMenu({
 
 interface SqlEditorPanelProps {
   sql: string
-  datasourceId: number
+  datasourceAlias: string
   preScriptId: number | null | undefined
   postScriptId: number | null | undefined
-  dataSources: DataSource[]
+  aliases: AliasOption[]
+  currentEnvName: string
   scripts: Script[]
   tables: SchemaTable[]
   schemaLoading: boolean
   designExecResult: unknown
   onSqlChange: (sql: string) => void
-  onDatasourceChange: (id: number) => void
+  onDatasourceAliasChange: (alias: string) => void
   onPreScriptChange: (id: number) => void
   onPostScriptChange: (id: number) => void
   onClearResult: () => void
 }
 
 export function SqlEditorPanel({
-  sql, datasourceId, preScriptId, postScriptId,
-  dataSources, scripts, tables, schemaLoading,
+  sql, datasourceAlias, preScriptId, postScriptId,
+  aliases, currentEnvName, scripts, tables, schemaLoading,
   designExecResult,
-  onSqlChange, onDatasourceChange, onPreScriptChange, onPostScriptChange, onClearResult,
+  onSqlChange, onDatasourceAliasChange, onPreScriptChange, onPostScriptChange, onClearResult,
 }: SqlEditorPanelProps) {
   const [tableSearch, setTableSearch] = useState("")
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
@@ -199,25 +202,34 @@ export function SqlEditorPanel({
     <>
       {/* ── Col 1: Table Browser ── */}
       <div className="w-52 shrink-0 border-r border-border-subtle flex flex-col bg-zinc-50/60">
-        {/* Datasource selector */}
+        {/* Datasource alias selector. Alias is project-scoped; what physical
+            DB it resolves to depends on the env you're viewing. */}
         <div className="px-3 pt-3 pb-2.5 border-b border-border-subtle">
           <div className="flex items-center gap-1.5 mb-2">
             <Database className="w-3 h-3 text-muted-foreground" />
-            <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">数据源</span>
+            <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">数据源别名</span>
           </div>
-          <Select
-            value={String(datasourceId)}
-            onValueChange={v => onDatasourceChange(Number(v))}
-          >
+          <Select value={datasourceAlias} onValueChange={onDatasourceAliasChange}>
             <SelectTrigger className="h-7 w-full text-xs border-border bg-white rounded-lg shadow-none">
-              <SelectValue placeholder="选择数据源" />
+              <SelectValue placeholder="选择别名" />
             </SelectTrigger>
             <SelectContent>
-              {dataSources.map(ds => (
-                <SelectItem key={ds.id} value={String(ds.id)}>{ds.name}</SelectItem>
+              {aliases.length === 0 && (
+                <SelectItem value="main" disabled>main (未配置)</SelectItem>
+              )}
+              {aliases.map(a => (
+                <SelectItem key={a.name} value={a.name}>
+                  <span className="font-bold">{a.name}</span>
+                  {a.resolvedName && (
+                    <span className="ml-2 text-2xs text-muted-foreground">→ {a.resolvedName}</span>
+                  )}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          <p className="text-2xs text-muted-foreground mt-1.5">
+            在 <span className="font-bold uppercase">{currentEnvName || '当前 env'}</span> 解析自 Environments 绑定
+          </p>
         </div>
 
         {/* Table search */}
@@ -244,7 +256,7 @@ export function SqlEditorPanel({
             <div className="flex flex-col items-center justify-center h-full gap-2 px-4">
               <Table2 className="w-8 h-8 text-zinc-200" />
               <p className="text-xs text-muted-foreground text-center leading-relaxed">
-                {datasourceId ? "暂无表信息" : "请先选择数据源"}
+                {datasourceAlias ? "暂无表信息（别名可能未绑定数据源）" : "请先选择数据源别名"}
               </p>
             </div>
           ) : (

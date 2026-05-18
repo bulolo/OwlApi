@@ -8,31 +8,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type DataSourceHandler struct{ dataSources service.DataSourceService }
+type DataSourceAliasr struct{ dataSources service.DataSourceService }
 
-// ── request types ────────────────────────────────────────────────────────────
-
-type dsEnvReq struct {
-	Env       string `json:"env"       binding:"required,oneof=dev prod"`
-	DSN       string `json:"dsn"`
+type createDataSourceReq struct {
+	Name      string `json:"name"       binding:"required"`
+	Type      string `json:"type"       binding:"required,oneof=mysql postgres sqlserver starrocks doris sqlite"`
+	DSN       string `json:"dsn"        binding:"required"`
 	GatewayID int64  `json:"gateway_id" binding:"required"`
 }
 
-type createDataSourceReq struct {
-	Name   string     `json:"name"   binding:"required"`
-	Type   string     `json:"type"   binding:"required,oneof=mysql postgres sqlserver starrocks doris sqlite"`
-	IsDual bool       `json:"is_dual"`
-	Envs   []dsEnvReq `json:"envs"   binding:"required,min=1"`
-}
-
 type updateDataSourceReq struct {
-	Name   string     `json:"name"`
-	Type   string     `json:"type"   binding:"omitempty,oneof=mysql postgres sqlserver starrocks doris sqlite"`
-	IsDual *bool      `json:"is_dual"`
-	Envs   []dsEnvReq `json:"envs"`
+	Name      string `json:"name"`
+	Type      string `json:"type"       binding:"omitempty,oneof=mysql postgres sqlserver starrocks doris sqlite"`
+	DSN       string `json:"dsn"`
+	GatewayID int64  `json:"gateway_id"`
 }
-
-// ── handlers ─────────────────────────────────────────────────────────────────
 
 // HandleList godoc
 // @Summary 获取数据源列表
@@ -47,7 +37,7 @@ type updateDataSourceReq struct {
 // @Param keyword query string false "关键词搜索"
 // @Success 200 {object} RDataSourceList
 // @Router /v1/tenants/{slug}/datasources [get]
-func (h *DataSourceHandler) HandleList(c *gin.Context) {
+func (h *DataSourceAliasr) HandleList(c *gin.Context) {
 	tenant := GetTenant(c)
 	lp := parseListParams(c)
 	list, total, err := h.dataSources.List(c.Request.Context(), tenant.ID, lp)
@@ -55,10 +45,9 @@ func (h *DataSourceHandler) HandleList(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
-	// Mask DSN passwords before returning to the client.
 	masked := make([]*domain.DataSource, len(list))
 	for i, ds := range list {
-		masked[i] = ds.MaskEnvs()
+		masked[i] = ds.Masked()
 	}
 	OKPaged(c, masked, lp, total)
 }
@@ -74,22 +63,25 @@ func (h *DataSourceHandler) HandleList(c *gin.Context) {
 // @Param body body createDataSourceReq true "数据源信息"
 // @Success 200 {object} RDataSource
 // @Router /v1/tenants/{slug}/datasources [post]
-func (h *DataSourceHandler) HandleCreate(c *gin.Context) {
+func (h *DataSourceAliasr) HandleCreate(c *gin.Context) {
 	tenant := GetTenant(c)
 	var req createDataSourceReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	ds := &domain.DataSource{TenantID: tenant.ID, Name: req.Name, IsDual: req.IsDual, Type: req.Type}
-	for _, e := range req.Envs {
-		ds.Envs = append(ds.Envs, &domain.DataSourceEnv{Env: e.Env, DSN: e.DSN, GatewayID: e.GatewayID})
+	ds := &domain.DataSource{
+		TenantID:  tenant.ID,
+		Name:      req.Name,
+		Type:      req.Type,
+		DSN:       req.DSN,
+		GatewayID: req.GatewayID,
 	}
 	if err := h.dataSources.Create(c.Request.Context(), ds); err != nil {
 		FailErr(c, err)
 		return
 	}
-	OK(c, ds.MaskEnvs())
+	OK(c, ds.Masked())
 }
 
 // HandleGet godoc
@@ -102,7 +94,7 @@ func (h *DataSourceHandler) HandleCreate(c *gin.Context) {
 // @Param datasourceId path int true "数据源ID"
 // @Success 200 {object} RDataSource
 // @Router /v1/tenants/{slug}/datasources/{datasourceId} [get]
-func (h *DataSourceHandler) HandleGet(c *gin.Context) {
+func (h *DataSourceAliasr) HandleGet(c *gin.Context) {
 	tenant := GetTenant(c)
 	dsID, ok := pathInt64(c, "datasourceId")
 	if !ok {
@@ -113,7 +105,7 @@ func (h *DataSourceHandler) HandleGet(c *gin.Context) {
 		FailErr(c, err)
 		return
 	}
-	OK(c, ds.MaskEnvs())
+	OK(c, ds.Masked())
 }
 
 // HandleUpdate godoc
@@ -128,7 +120,7 @@ func (h *DataSourceHandler) HandleGet(c *gin.Context) {
 // @Param body body updateDataSourceReq false "更新信息"
 // @Success 200 {object} RDataSource
 // @Router /v1/tenants/{slug}/datasources/{datasourceId} [put]
-func (h *DataSourceHandler) HandleUpdate(c *gin.Context) {
+func (h *DataSourceAliasr) HandleUpdate(c *gin.Context) {
 	tenant := GetTenant(c)
 	dsID, ok := pathInt64(c, "datasourceId")
 	if !ok {
@@ -150,26 +142,21 @@ func (h *DataSourceHandler) HandleUpdate(c *gin.Context) {
 	if req.Type != "" {
 		ds.Type = req.Type
 	}
-	if req.IsDual != nil {
-		ds.IsDual = *req.IsDual
+	if req.GatewayID > 0 {
+		ds.GatewayID = req.GatewayID
 	}
-	if len(req.Envs) > 0 {
-		ds.Envs = nil
-		for _, e := range req.Envs {
-			ds.Envs = append(ds.Envs, &domain.DataSourceEnv{Env: e.Env, DSN: e.DSN, GatewayID: e.GatewayID})
-		}
-	}
+	// Empty DSN means "keep existing credentials"; the repo treats it accordingly.
+	ds.DSN = req.DSN
 	if err := h.dataSources.Update(c.Request.Context(), ds); err != nil {
 		FailErr(c, err)
 		return
 	}
-	// Re-fetch to return the authoritative persisted state.
 	updated, err := h.dataSources.GetByID(c.Request.Context(), tenant.ID, dsID)
 	if err != nil {
 		FailErr(c, err)
 		return
 	}
-	OK(c, updated.MaskEnvs())
+	OK(c, updated.Masked())
 }
 
 // HandleDelete godoc
@@ -182,7 +169,7 @@ func (h *DataSourceHandler) HandleUpdate(c *gin.Context) {
 // @Param datasourceId path int true "数据源ID"
 // @Success 200 {object} R
 // @Router /v1/tenants/{slug}/datasources/{datasourceId} [delete]
-func (h *DataSourceHandler) HandleDelete(c *gin.Context) {
+func (h *DataSourceAliasr) HandleDelete(c *gin.Context) {
 	tenant := GetTenant(c)
 	dsID, ok := pathInt64(c, "datasourceId")
 	if !ok {

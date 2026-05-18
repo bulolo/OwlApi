@@ -16,6 +16,11 @@ type ServerConfig struct {
 	JWTSecret           string
 	CORSOrigin          string
 	QueryTimeoutSeconds int // client-side wait timeout (should be slightly > gateway QueryTimeout)
+
+	// Edition / License — 区分开源版（community）和企业版（enterprise）。
+	// CE 永远开放全部主功能；EE 用于解锁多租户运营、平台管理等高阶模块。
+	Edition    string // "community" | "enterprise"
+	LicenseKey string // EE 模式下必填（CE 模式忽略）
 }
 
 // GatewayConfig holds configuration for the Gateway agent binary.
@@ -34,6 +39,11 @@ func LoadServerConfig() *ServerConfig {
 	if queryTimeout <= 0 {
 		queryTimeout = 30
 	}
+	edition := getEnv("OWLAPI_EDITION", "community")
+	if edition != "community" && edition != "enterprise" {
+		slog.Warn("invalid OWLAPI_EDITION value, falling back to community", "got", edition)
+		edition = "community"
+	}
 	cfg := &ServerConfig{
 		LogLevel:            getEnv("OWLAPI_LOG_LEVEL", "info"),
 		HTTPPort:            getEnv("OWLAPI_HTTP_PORT", ":3000"),
@@ -42,6 +52,8 @@ func LoadServerConfig() *ServerConfig {
 		JWTSecret:           getEnv("OWLAPI_JWT_SECRET", ""),
 		CORSOrigin:          getEnv("OWLAPI_CORS_ORIGIN", "*"),
 		QueryTimeoutSeconds: queryTimeout,
+		Edition:             edition,
+		LicenseKey:          getEnv("OWLAPI_LICENSE_KEY", ""),
 	}
 	if cfg.JWTSecret == "" {
 		slog.Warn("OWLAPI_JWT_SECRET not set, using insecure default (DO NOT use in production)")

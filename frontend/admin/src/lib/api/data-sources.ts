@@ -26,7 +26,7 @@ export const apiUpdateDataSource = (slug: string, datasourceId: number, req: Upd
 export const apiDeleteDataSource = (slug: string, datasourceId: number) =>
   wrapResponse<void>(deleteDataSource({ path: { slug, datasourceId } }))
 
-// ── Schema and preview types ─────────────────────────────────────────────────
+// ── Schema and preview ──
 
 export type SchemaColumn = { name: string; type: string; nullable: boolean }
 export type SchemaTable  = { name: string; columns: SchemaColumn[] }

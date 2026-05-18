@@ -18,6 +18,7 @@ type QueryHandler struct {
 	versions     service.EndpointVersionService
 	tenants      service.TenantService
 	projects     service.ProjectService
+	envs         service.EnvironmentService
 	callLogs     service.EndpointCallLogService
 }
 
@@ -27,19 +28,25 @@ func NewQueryHandler(
 	versions service.EndpointVersionService,
 	tenants service.TenantService,
 	projects service.ProjectService,
+	envs service.EnvironmentService,
 	callLogs service.EndpointCallLogService,
 ) *QueryHandler {
 	return &QueryHandler{
 		queryService: queryService, endpoints: endpoints, versions: versions,
-		tenants: tenants, projects: projects, callLogs: callLogs,
+		tenants: tenants, projects: projects, envs: envs, callLogs: callLogs,
 	}
 }
 
+// RegisterRoutes wires the public gateway URL:
+//
+//	/-/:env/:tenantSlug/:projectSlug/*path
+//
+// The `/-/` reserved prefix keeps the gateway namespace disjoint from the
+// control-plane API (`/v1/...`) and any future root routes (`/metrics`,
+// `/health`, `/_next/...`). env is mandatory, always second after the prefix.
+// All HTTP methods accepted; per-endpoint method validation happens inside.
 func (h *QueryHandler) RegisterRoutes(r *gin.Engine) {
-	// Published API gateway: /{tenantSlug}/{projectSlug}/{user-defined-path}
-	// 直接挂在根路径，没有前缀；控制面接口走 /v1/...，二者不冲突。
-	// All HTTP methods are accepted; per-endpoint method validation happens inside.
-	r.Any("/:tenantSlug/:projectSlug/*path", h.HandleQuery)
+	r.Any("/-/:env/:tenantSlug/:projectSlug/*path", h.HandleQuery)
 }
 
 // HandleQuery godoc
@@ -48,24 +55,24 @@ func (h *QueryHandler) RegisterRoutes(r *gin.Engine) {
 // @Tags gateway
 // @Accept json
 // @Produce json
+// @Param env path string true "环境名（项目级，例如 prod / dev / staging）"
 // @Param tenantSlug path string true "租户 slug"
 // @Param projectSlug path string true "项目 slug"
 // @Param path path string true "接口路径（用户在项目中定义的路径）"
 // @Param body body object{} false "请求参数 (POST/PUT 从 body 读，GET/DELETE 从 query string 读)"
 // @Success 200 {object} object
-// @Router /{tenantSlug}/{projectSlug}/{path} [get]
-// @Router /{tenantSlug}/{projectSlug}/{path} [post]
-// @Router /{tenantSlug}/{projectSlug}/{path} [put]
-// @Router /{tenantSlug}/{projectSlug}/{path} [delete]
+// @Router /-/{env}/{tenantSlug}/{projectSlug}/{path} [get]
+// @Router /-/{env}/{tenantSlug}/{projectSlug}/{path} [post]
+// @Router /-/{env}/{tenantSlug}/{projectSlug}/{path} [put]
+// @Router /-/{env}/{tenantSlug}/{projectSlug}/{path} [delete]
 func (h *QueryHandler) HandleQuery(c *gin.Context) {
 	start := time.Now()
 	method := c.Request.Method
 	path := c.Param("path")
 
-	// 整个处理流程结束后异步写一条调用日志（无论成功失败），但仅在能识别到接口归属时才写。
-	// 这些变量在请求处理过程中逐步被填充，闭包捕获后 defer 里读取。
 	var (
 		tenantID   int64
+		envID      int64
 		endpointID int64
 		versionID  int64
 		versionNum int
@@ -74,13 +81,10 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 	)
 
 	defer func() {
-		// 在 endpoint 还没解析出来之前（tenant/project/endpoint 404）写日志没有归属，跳过。
 		if endpointID == 0 || tenantID == 0 {
 			return
 		}
-		// gin 的 c.Writer.Status() 在响应方法 (c.JSON / c.Data / Fail / OK) 调用后会反映真实状态码
 		status := c.Writer.Status()
-		// 收尾时把 params (map[string]string) 转为 map[string]any 以匹配 JSONB 列
 		var p domain.CallLogParams
 		if len(params) > 0 {
 			p = make(domain.CallLogParams, len(params))
@@ -91,6 +95,7 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 		h.callLogs.Append(c.Request.Context(), &domain.EndpointCallLog{
 			TenantID:   tenantID,
 			EndpointID: endpointID,
+			EnvID:      envID,
 			VersionID:  versionID,
 			Version:    versionNum,
 			Method:     method,
@@ -117,18 +122,24 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 		return
 	}
 
-	ep, pathParams, err := h.endpoints.MatchByPath(c.Request.Context(), tenant.ID, project.ID, path, method)
+	env, err := h.envs.GetByName(c.Request.Context(), tenant.ID, project.ID, c.Param("env"))
 	if err != nil {
-		// 接口路径找不到 → 不归属任何 endpoint，按设计不入流水。
+		Fail(c, http.StatusNotFound, "env not found")
+		return
+	}
+	envID = env.ID
+
+	ep, pathParams, err := h.endpoints.MatchByPath(c.Request.Context(), tenant.ID, project.ID, env.ID, path, method)
+	if err != nil {
 		Fail(c, http.StatusNotFound, "API endpoint not found")
 		return
 	}
 	endpointID = ep.ID
 
-	v, err := h.versions.GetActiveSnapshot(c.Request.Context(), tenant.ID, ep.ID)
+	v, err := h.versions.GetActiveSnapshot(c.Request.Context(), tenant.ID, ep.ID, env.ID)
 	if err != nil || v == nil || v.Snapshot == nil {
-		respErr = "endpoint not published"
-		Fail(c, http.StatusNotFound, "API endpoint not available")
+		respErr = "endpoint not published in env " + env.Name
+		Fail(c, http.StatusNotFound, "API endpoint not available in env "+env.Name)
 		return
 	}
 	versionID = v.ID
@@ -142,9 +153,6 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 		return
 	}
 
-	// Extract raw params based on convention:
-	//   GET / DELETE → query string
-	//   POST / PUT   → JSON request body
 	raw := make(map[string]interface{})
 	switch method {
 	case http.MethodGet, http.MethodDelete:
@@ -153,7 +161,7 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 				raw[k] = vs[0]
 			}
 		}
-	default: // POST, PUT
+	default:
 		if err := c.ShouldBindJSON(&raw); err != nil && err.Error() != "EOF" {
 			respErr = "invalid request body: " + err.Error()
 			Fail(c, http.StatusBadRequest, "invalid request body: "+err.Error())
@@ -161,7 +169,6 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 		}
 	}
 
-	// Resolve params through ParamDefs: apply defaults, enforce required.
 	params = make(map[string]string)
 	for _, def := range endpoint.ParamDefs {
 		if v, ok := raw[def.Name]; ok {
@@ -179,14 +186,13 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 		}
 	}
 
-	// Path params are always authoritative — inject last so they override query/body values.
 	for k, v := range pathParams {
 		params[k] = v
 	}
 
-	result, err := h.queryService.Execute(c.Request.Context(), strconv.FormatInt(tenant.ID, 10), endpoint, params)
+	result, err := h.queryService.Execute(c.Request.Context(), strconv.FormatInt(tenant.ID, 10), env.ID, endpoint, params)
 	if err != nil {
-		slog.Error("Query execution failed", "slug", c.Param("slug"), "path", path, "error", err)
+		slog.Error("Query execution failed", "tenant", tenant.Slug, "env", env.Name, "path", path, "error", err)
 		respErr = err.Error()
 		FailErr(c, err)
 		return

@@ -9,6 +9,7 @@ import { BasicInfoModal } from "../BasicInfoModal"
 import { ScriptPreviewModal } from "../ScriptPreviewModal"
 import { FeedbackBanner } from "./FeedbackBanner"
 import { RestoredBanner } from "./RestoredBanner"
+import { DraftStatusBanner } from "./DraftStatusBanner"
 import { useEndpointFormStore } from "../../_store/useEndpointFormStore"
 import { useApiEditorStore } from "../../_store/useApiEditorStore"
 import { useReferenceData } from "../../_hooks/useReferenceData"
@@ -47,6 +48,7 @@ export function DesignTab() {
     <div className="p-6 space-y-4 animate-in fade-in duration-300">
       <RestoredBanner />
       <FeedbackBanner />
+      <DraftStatusBanner />
 
       {/* Basic info card — read-only display */}
       <div className="border border-border/60 rounded-xl bg-white shadow-card overflow-hidden">

@@ -1,6 +1,7 @@
+import { useQuery } from "@tanstack/react-query"
 import {
   apiListEndpointVersions,
-  apiPublishEndpoint,
+  apiListEndpointActives,
   apiActivateEndpointVersion,
   apiCreateEndpointVersion,
   apiUnpublishEndpoint,
@@ -8,14 +9,15 @@ import {
   apiDeleteEndpointVersion,
   apiRevertEndpointToActive,
   type ListQuery,
+  type EndpointActiveVersion,
 } from "@/lib/api-client"
 import { useAdminMutation } from "./useAdminMutation"
 import { usePaginatedQuery } from "./usePaginatedQuery"
 
-// 注意：useEndpointsQuery 用 string projectId 注册查询（"1"），所以这里
-// 失效时也要用 string，否则 1 !== "1"，React Query 不会匹配上、UI 不刷新。
 const versionsKey = (slug: string, projectId: number, endpointId: number) =>
   ["endpoint-versions", slug, projectId, endpointId] as const
+const activesKey = (slug: string, projectId: number, endpointId: number) =>
+  ["endpoint-actives", slug, projectId, endpointId] as const
 const logKey = (slug: string, projectId: number, endpointId: number) =>
   ["endpoint-activation-log", slug, projectId, endpointId] as const
 const endpointsKey = (slug: string, projectId: number) =>
@@ -30,15 +32,12 @@ export function useEndpointVersions(slug: string, projectId: number, endpointId:
   return { ...result, versions: result.list }
 }
 
-export function usePublishEndpoint(slug: string, projectId: number, endpointId: number) {
-  return useAdminMutation({
-    mutationFn: (note: string) => apiPublishEndpoint(slug, projectId, endpointId, note),
-    successMsg: "已发布上线",
-    invalidateKeys: [
-      versionsKey(slug, projectId, endpointId),
-      logKey(slug, projectId, endpointId),
-      endpointsKey(slug, projectId),
-    ],
+export function useEndpointActives(slug: string, projectId: number, endpointId: number) {
+  return useQuery<EndpointActiveVersion[]>({
+    queryKey: activesKey(slug, projectId, endpointId),
+    // 后端 nil slice 会序列化成 JSON `null`，这里兜底成 []，调用方就不用每次 `?? []` 了。
+    queryFn: async () => (await apiListEndpointActives(slug, projectId, endpointId)) ?? [],
+    enabled: !!slug && !!projectId && !!endpointId,
   })
 }
 
@@ -51,11 +50,12 @@ export function useCreateEndpointVersion(slug: string, projectId: number, endpoi
 }
 
 export function useUnpublishEndpoint(slug: string, projectId: number, endpointId: number) {
-  return useAdminMutation<void, Error, void>({
-    mutationFn: () => apiUnpublishEndpoint(slug, projectId, endpointId),
-    successMsg: "接口已下线",
+  return useAdminMutation({
+    mutationFn: (envId: number) => apiUnpublishEndpoint(slug, projectId, endpointId, envId),
+    successMsg: "接口已在该环境下线",
     invalidateKeys: [
       versionsKey(slug, projectId, endpointId),
+      activesKey(slug, projectId, endpointId),
       logKey(slug, projectId, endpointId),
       endpointsKey(slug, projectId),
     ],
@@ -72,8 +72,8 @@ export function useEndpointActivationLog(slug: string, projectId: number, endpoi
 }
 
 export function useRevertEndpointToActive(slug: string, projectId: number, endpointId: number) {
-  return useAdminMutation<void, Error, void>({
-    mutationFn: () => apiRevertEndpointToActive(slug, projectId, endpointId),
+  return useAdminMutation({
+    mutationFn: (envId: number) => apiRevertEndpointToActive(slug, projectId, endpointId, envId),
     successMsg: "已还原到线上版本",
     invalidateKeys: [
       versionsKey(slug, projectId, endpointId),
@@ -97,10 +97,12 @@ export function useDeleteEndpointVersion(slug: string, projectId: number, endpoi
 
 export function useActivateEndpointVersion(slug: string, projectId: number, endpointId: number) {
   return useAdminMutation({
-    mutationFn: (versionId: number) => apiActivateEndpointVersion(slug, projectId, endpointId, versionId),
+    mutationFn: ({ versionId, envId }: { versionId: number; envId: number }) =>
+      apiActivateEndpointVersion(slug, projectId, endpointId, versionId, envId),
     successMsg: "已切换到此版本",
     invalidateKeys: [
       versionsKey(slug, projectId, endpointId),
+      activesKey(slug, projectId, endpointId),
       logKey(slug, projectId, endpointId),
       endpointsKey(slug, projectId),
     ],

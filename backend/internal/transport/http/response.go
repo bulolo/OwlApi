@@ -68,6 +68,11 @@ func pathInt64(c *gin.Context, name string) (int64, bool) {
 	return v, true
 }
 
+// parseInt64 is a plain string→int64 helper used to read query parameters.
+func parseInt64(s string) (int64, error) {
+	return strconv.ParseInt(s, 10, 64)
+}
+
 // parseListParams extracts page/size/keyword/is_pager from query string into domain.ListParams.
 // When is_pager=0, Size is set to 0 (meaning no limit).
 func parseListParams(c *gin.Context) domain.ListParams {

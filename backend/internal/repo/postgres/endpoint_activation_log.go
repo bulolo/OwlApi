@@ -11,8 +11,11 @@ type EndpointActivationLogRepo struct{ DB *DB }
 
 var _ domain.EndpointActivationLogRepository = (*EndpointActivationLogRepo)(nil)
 
-func (r *EndpointActivationLogRepo) Append(ctx context.Context, tenantID, endpointID, versionID int64, versionNumber int, actorID int64, action domain.ActivationAction) error {
-	var vid, vnum interface{}
+func (r *EndpointActivationLogRepo) Append(ctx context.Context, tenantID, endpointID, envID, versionID int64, versionNumber int, actorID int64, action domain.ActivationAction) error {
+	var eid, vid, vnum interface{}
+	if envID > 0 {
+		eid = envID
+	}
 	if versionID > 0 {
 		vid = versionID
 	}
@@ -20,9 +23,9 @@ func (r *EndpointActivationLogRepo) Append(ctx context.Context, tenantID, endpoi
 		vnum = versionNumber
 	}
 	_, err := r.DB.Pool.Exec(ctx, `
-		INSERT INTO endpoint_activation_log (tenant_id, endpoint_id, version_id, version, action, actor_id)
-		VALUES ($1,$2,$3,$4,$5,$6)`,
-		tenantID, endpointID, vid, vnum, string(action), actorID)
+		INSERT INTO endpoint_activation_log (tenant_id, endpoint_id, env_id, version_id, version, action, actor_id)
+		VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+		tenantID, endpointID, eid, vid, vnum, string(action), actorID)
 	return err
 }
 
@@ -35,14 +38,16 @@ func (r *EndpointActivationLogRepo) ListByEndpoint(ctx context.Context, tenantID
 		return nil, 0, err
 	}
 	pgSuffix, pgArgs := appendPagination(p, 3, args)
-	// LEFT JOIN endpoint_versions → 取最新版本号；LEFT JOIN users → 取操作人名字（含超管）。
-	// 版本号优先取冗余的 l.version；若为旧数据（NULL）则回退到 JOIN 出来的 ev.version。
-	// 版本被删后 ev 这条 JOIN 失败，l.version 仍然保留写入时的 vN。
+	// LEFT JOIN endpoint_versions / users / project_environments to enrich the row
+	// without losing entries whose target was later deleted.
 	rows, err := r.DB.Pool.Query(ctx,
-		fmt.Sprintf(`SELECT l.id, l.tenant_id, l.endpoint_id, l.version_id, COALESCE(l.version, ev.version), l.action, l.actor_id, u.name, l.at
+		fmt.Sprintf(`SELECT l.id, l.tenant_id, l.endpoint_id, l.env_id, pe.name,
+		                    l.version_id, COALESCE(l.version, ev.version), l.action,
+		                    l.actor_id, u.name, l.at
 		 FROM endpoint_activation_log l
-		 LEFT JOIN endpoint_versions ev ON ev.tenant_id = l.tenant_id AND ev.id = l.version_id
-		 LEFT JOIN users u              ON u.id = l.actor_id
+		 LEFT JOIN endpoint_versions ev    ON ev.tenant_id = l.tenant_id AND ev.id = l.version_id
+		 LEFT JOIN users u                 ON u.id = l.actor_id
+		 LEFT JOIN project_environments pe ON pe.tenant_id = l.tenant_id AND pe.id = l.env_id
 		 %s ORDER BY l.at DESC%s`, where, pgSuffix),
 		pgArgs...)
 	if err != nil {
@@ -52,12 +57,20 @@ func (r *EndpointActivationLogRepo) ListByEndpoint(ctx context.Context, tenantID
 	var list []*domain.EndpointActivationLog
 	for rows.Next() {
 		var l domain.EndpointActivationLog
+		var envID *int64
+		var envName *string
 		var vid *int64
 		var version *int
 		var action string
 		var actorName *string
-		if err := rows.Scan(&l.ID, &l.TenantID, &l.EndpointID, &vid, &version, &action, &l.ActorID, &actorName, &l.At); err != nil {
+		if err := rows.Scan(&l.ID, &l.TenantID, &l.EndpointID, &envID, &envName, &vid, &version, &action, &l.ActorID, &actorName, &l.At); err != nil {
 			return nil, 0, err
+		}
+		if envID != nil {
+			l.EnvID = *envID
+		}
+		if envName != nil {
+			l.EnvName = *envName
 		}
 		if vid != nil {
 			l.VersionID = *vid

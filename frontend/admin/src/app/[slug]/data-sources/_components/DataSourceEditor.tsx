@@ -22,9 +22,7 @@ type DbType = keyof typeof DB_TYPES
 type FormData = {
   name: string
   type: DbType
-  isDual: boolean
-  dev: EnvData
-  prod: EnvData
+  conn: EnvData
 }
 
 function buildEnvDSN(type: string, env: EnvData): string {
@@ -39,19 +37,18 @@ function makeEnvData(type: string): EnvData {
 
 function deriveFormData(existingDs: DataSource | undefined): FormData {
   if (!existingDs) {
-    return { name: '', type: 'mysql', isDual: false, dev: makeEnvData('mysql'), prod: makeEnvData('mysql') }
+    return { name: '', type: 'mysql', conn: makeEnvData('mysql') }
   }
-  const prodEnv = existingDs.envs?.find(e => e.env === 'prod')
-  const devEnv  = existingDs.envs?.find(e => e.env === 'dev')
-  const type    = (existingDs.type ?? 'mysql') as DbType
-  const parsedProd = parseDSN(type, prodEnv?.dsn || '')
-  const parsedDev  = parseDSN(type, devEnv?.dsn  || '')
+  const type = (existingDs.type ?? 'mysql') as DbType
+  const parsed = parseDSN(type, existingDs.dsn || '')
   return {
-    name:   existingDs.name ?? '',
+    name: existingDs.name ?? '',
     type,
-    isDual: existingDs.is_dual ?? false,
-    prod: { ...parsedProd, sqlitePath: type === 'sqlite' ? (prodEnv?.dsn || '') : '', gatewayId: prodEnv?.gateway_id || 0 },
-    dev:  { ...parsedDev,  sqlitePath: type === 'sqlite' ? (devEnv?.dsn  || '') : '', gatewayId: devEnv?.gateway_id  || 0 },
+    conn: {
+      ...parsed,
+      sqlitePath: type === 'sqlite' ? (existingDs.dsn || '') : '',
+      gatewayId: existingDs.gateway_id || 0,
+    },
   }
 }
 
@@ -71,67 +68,48 @@ function DataSourceEditorForm({
   const saving = createMutation.isPending || updateMutation.isPending
 
   const [formData, setFormData] = useState<FormData>(() => deriveFormData(existingDs))
-  const [testState, setTestState] = useState<{ prod: EnvTestState; dev: EnvTestState }>({
-    prod: { status: 'untested' },
-    dev:  { status: 'untested' },
-  })
-  const [connChanged, setConnChanged] = useState(() => ({ prod: !isEdit, dev: !isEdit }))
-  const [showProdPass, setShowProdPass] = useState(false)
-  const [showDevPass,  setShowDevPass]  = useState(false)
+  const [testState, setTestState] = useState<EnvTestState>({ status: 'untested' })
+  const [connChanged, setConnChanged] = useState(!isEdit)
+  const [showPass, setShowPass] = useState(false)
 
-  const resetTest = (env: 'prod' | 'dev') =>
-    setTestState(prev => ({ ...prev, [env]: { status: 'untested' } }))
+  const resetTest = () => setTestState({ status: 'untested' })
 
-  const updateEnv = (env: 'prod' | 'dev', upd: Partial<EnvData>) => {
+  const updateEnv = (upd: Partial<EnvData>) => {
     const isConnField = Object.keys(upd).some(k => k !== 'gatewayId')
     if (isConnField) {
-      resetTest(env)
-      setConnChanged(prev => ({ ...prev, [env]: true }))
+      resetTest()
+      setConnChanged(true)
     }
-    setFormData(prev => ({ ...prev, [env]: { ...prev[env], ...upd } }))
+    setFormData(prev => ({ ...prev, conn: { ...prev.conn, ...upd } }))
   }
 
   const firstGwId = gateways[0]?.id ?? 0
-  const effectiveProdGwId = formData.prod.gatewayId || (!isEdit ? firstGwId : 0)
-  const effectiveDevGwId  = formData.dev.gatewayId  || (!isEdit ? firstGwId : 0)
+  const effectiveGwId = formData.conn.gatewayId || (!isEdit ? firstGwId : 0)
 
-  const handleTest = async (env: 'prod' | 'dev') => {
-    const envData = env === 'prod' ? formData.prod : formData.dev
-    const effGwId = env === 'prod' ? effectiveProdGwId : effectiveDevGwId
-    const dsn = buildEnvDSN(formData.type, envData)
+  const handleTest = async () => {
+    const dsn = buildEnvDSN(formData.type, formData.conn)
     if (!dsn) return toast.error("请先完整填写连接信息")
-    if (!effGwId) return toast.error("请先选择网关节点")
-    setTestState(prev => ({ ...prev, [env]: { status: 'testing' } }))
+    if (!effectiveGwId) return toast.error("请先选择网关节点")
+    setTestState({ status: 'testing' })
     try {
-      const testResult = await apiTestDatasource(activeTenant!, dsn, effGwId)
-      setTestState(prev => ({ ...prev, [env]: { status: 'ok', latencyMs: testResult.latency_ms } }))
+      const testResult = await apiTestDatasource(activeTenant!, dsn, effectiveGwId)
+      setTestState({ status: 'ok', latencyMs: testResult.latency_ms })
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '连接失败'
-      setTestState(prev => ({ ...prev, [env]: { status: 'fail', error: msg } }))
+      setTestState({ status: 'fail', error: msg })
     }
   }
 
   const handleSave = async () => {
     if (!formData.name) return toast.error("请输入数据源名称")
+    const dsn = connChanged ? buildEnvDSN(formData.type, formData.conn) : ''
+    if (connChanged && !dsn) return toast.error("请完整填写连接信息（含密码）")
+    if (!effectiveGwId) return toast.error("请选择网关节点")
+    if (!isEdit && testState.status !== 'ok') return toast.error("请先完成连接测试")
 
-    const prodDSN = connChanged.prod ? buildEnvDSN(formData.type, formData.prod) : ''
-    if (connChanged.prod && !prodDSN) return toast.error("请完整填写生产环境连接信息（含密码）")
-
-    let devDSN = ''
-    if (formData.isDual) {
-      devDSN = connChanged.dev ? buildEnvDSN(formData.type, formData.dev) : ''
-      if (connChanged.dev && !devDSN) return toast.error("请完整填写测试环境连接信息（含密码）")
-    }
-
-    if (!isEdit && testState.prod.status !== 'ok') return toast.error("请先完成生产环境连接测试")
-
-    const envs: { env: 'dev' | 'prod'; dsn: string; gateway_id: number }[] = []
-    if (formData.isDual) {
-      envs.push({ env: 'dev', dsn: devDSN, gateway_id: effectiveDevGwId })
-    }
-    envs.push({ env: 'prod', dsn: prodDSN, gateway_id: effectiveProdGwId })
-
-    const body = { name: formData.name, type: formData.type, is_dual: formData.isDual, envs }
+    const body = isEdit
+      ? { name: formData.name, type: formData.type, dsn, gateway_id: effectiveGwId }
+      : { name: formData.name, type: formData.type, dsn, gateway_id: effectiveGwId }
     const onSuccess = () => router.push(`/${activeTenant}/data-sources`)
 
     if (isEdit) {
@@ -141,18 +119,10 @@ function DataSourceEditorForm({
     }
   }
 
-  const primaryEnvKey: 'prod' | 'dev' = formData.isDual ? 'dev' : 'prod'
-
   const handleTypeChange = (newType: DbType) => {
     const newPort = defaultPort(newType)
-    resetTest('dev')
-    resetTest('prod')
-    setFormData(prev => ({
-      ...prev,
-      type: newType,
-      dev:  { ...prev.dev,  port: newPort },
-      prod: { ...prev.prod, port: newPort },
-    }))
+    resetTest()
+    setFormData(prev => ({ ...prev, type: newType, conn: { ...prev.conn, port: newPort } }))
   }
 
   return (
@@ -169,7 +139,7 @@ function DataSourceEditorForm({
               {isEdit ? '编辑数据源' : '接入新数据源'}
             </h1>
             <p className="text-sm text-muted-foreground mt-1 font-medium">
-              {isEdit ? '修改数据源配置，连接信息留空则不修改' : '配置多环境数据库连接及对应的网关节点'}
+              {isEdit ? '修改数据源配置，连接信息留空则不修改' : '配置数据库连接及网关节点'}
             </p>
           </div>
         </div>
@@ -177,10 +147,10 @@ function DataSourceEditorForm({
           <Button variant="outline" onClick={() => router.back()} className="h-9 px-4 text-xs font-bold text-zinc-600">取消</Button>
           <Button
             onClick={handleSave}
-            disabled={saving || (!isEdit && testState.prod.status !== 'ok')}
+            disabled={saving || (!isEdit && testState.status !== 'ok')}
             className={cn(
               "h-9 px-4 text-white text-xs font-bold shadow-sm",
-              !isEdit && testState.prod.status !== 'ok'
+              !isEdit && testState.status !== 'ok'
                 ? "bg-zinc-300 hover:bg-zinc-300 cursor-not-allowed"
                 : "bg-primary hover:bg-primary/90",
             )}
@@ -196,61 +166,25 @@ function DataSourceEditorForm({
           <DataSourceForm
             name={formData.name}
             type={formData.type}
-            isDual={formData.isDual}
             onNameChange={v => setFormData(prev => ({ ...prev, name: v }))}
             onTypeChange={handleTypeChange}
-            onIsDualChange={v => setFormData(prev => ({ ...prev, isDual: v }))}
           />
         </div>
 
         <div className="col-span-12 lg:col-span-8 space-y-6">
           <EnvCard
-            envKey={primaryEnvKey}
             type={formData.type}
-            env={formData.isDual ? formData.dev : formData.prod}
-            testState={formData.isDual ? testState.dev : testState.prod}
+            env={formData.conn}
+            testState={testState}
             gateways={gateways}
-            effectiveGwId={formData.isDual ? effectiveDevGwId : effectiveProdGwId}
-            showPass={formData.isDual ? showDevPass : showProdPass}
-            onTogglePass={() => formData.isDual ? setShowDevPass(v => !v) : setShowProdPass(v => !v)}
-            onChange={upd => updateEnv(primaryEnvKey, upd)}
+            effectiveGwId={effectiveGwId}
+            showPass={showPass}
+            onTogglePass={() => setShowPass(v => !v)}
+            onChange={updateEnv}
             onTest={handleTest}
-            accent="emerald"
-            title={formData.isDual ? '测试环境 (DEV)' : '配置连接'}
-            subtitle={formData.isDual ? '用于日常开发、调试与推演测试' : '配置数据库连接信息'}
+            title="配置连接"
+            subtitle="数据库连接信息（环境概念已上移到项目层）"
           />
-
-          {formData.isDual && (
-            <EnvCard
-              envKey="prod"
-              type={formData.type}
-              env={formData.prod}
-              testState={testState.prod}
-              gateways={gateways}
-              effectiveGwId={effectiveProdGwId}
-              showPass={showProdPass}
-              onTogglePass={() => setShowProdPass(v => !v)}
-              onChange={upd => updateEnv('prod', upd)}
-              onTest={handleTest}
-              accent="blue"
-              title="生产环境 (PROD)"
-              subtitle="面向线上正式服务的数据库配置"
-            />
-          )}
-
-          {!formData.isDual && (
-            <div className="p-10 border-2 border-dashed border-border-subtle rounded-lg flex flex-col items-center justify-center text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-zinc-50 flex items-center justify-center">
-                <ArrowLeft className="w-6 h-6 text-zinc-300 rotate-180" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-muted-foreground">单环境模式</p>
-                <p className="text-2xs text-zinc-300 max-w-[240px] mt-1 leading-relaxed">
-                  如需分别配置测试和生产环境，请在左侧开启&ldquo;多环境支持&rdquo;。
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

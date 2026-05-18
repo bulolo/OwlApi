@@ -7,7 +7,11 @@ import { useEndpointFormStore } from "../_store/useEndpointFormStore"
 import { useParamSync } from "../_hooks/useParamSync"
 import { useTenantProject } from "../_hooks/useTenantProject"
 import { useReferenceData } from "../_hooks/useReferenceData"
-import { useProject } from "@/hooks"
+import { useProject, useEnvironments } from "@/hooks"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useMemo, useState } from "react"
+import { envColor } from "../../_utils/envColor"
+import { cn as cnUtil } from "@/lib/utils"
 import type { ParamDef } from "../_types"
 
 // ── Pagination ────────────────────────────────────────────────────────────────
@@ -36,6 +40,7 @@ function extractPathParamNames(path: string): Set<string> {
 function buildCurl(
   method: string,
   path: string,
+  envName: string,
   tenantSlug: string,
   projectSlug: string,
   baseUrl: string,
@@ -54,7 +59,8 @@ function buildCurl(
     }
   }
 
-  const url = `${baseUrl}/${tenantSlug}/${projectSlug}${resolvedPath}`
+  // Gateway URL: /-/:env/:tenant/:project/*path
+  const url = `${baseUrl}/-/${envName}/${tenantSlug}/${projectSlug}${resolvedPath}`
   const isQueryMethod = method === "GET" || method === "DELETE"
 
   const businessEntries = paramDefs
@@ -85,6 +91,11 @@ function buildCurl(
 export function DocTab() {
   const { projectId, activeTenant } = useTenantProject()
   const { data: project } = useProject(activeTenant, Number(projectId))
+  const { data: envs = [] } = useEnvironments(activeTenant, Number(projectId))
+  const defaultEnvName = useMemo(() => envs.find(e => e.is_default)?.name ?? envs[0]?.name ?? 'prod', [envs])
+  const [selectedEnvName, setSelectedEnvName] = useState<string>('')
+  const exampleEnvName = selectedEnvName || defaultEnvName
+
   const formMethod   = useEndpointFormStore(s => s.form.method)
   const paramDefs    = useEndpointFormStore(s => s.form.paramDefs)
   const preScriptId  = useEndpointFormStore(s => s.form.preScriptId)
@@ -101,7 +112,7 @@ export function DocTab() {
   const formSummary = useEndpointFormStore(s => s.form.summary)
   const pathParamNames = extractPathParamNames(formPath)
   const projectSlug = project?.slug ?? projectId
-  const curl = buildCurl(formMethod, formPath, activeTenant, projectSlug, baseUrl, paramDefs, paginationEnabled)
+  const curl = buildCurl(formMethod, formPath, exampleEnvName, activeTenant, projectSlug, baseUrl, paramDefs, paginationEnabled)
 
   // Split params into three groups
   const businessParams = paramDefs.filter(d => !paginationEnabled || !PAGINATION_PARAM_NAMES.has(d.name))
@@ -229,7 +240,29 @@ export function DocTab() {
 
           {/* cURL example */}
           <div className="space-y-4">
-            <SectionTitle color="blue">调用示例</SectionTitle>
+            <div className="flex items-center justify-between">
+              <SectionTitle color="blue">调用示例</SectionTitle>
+              {envs.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-2xs text-muted-foreground">环境</span>
+                  <Select value={exampleEnvName} onValueChange={setSelectedEnvName}>
+                    <SelectTrigger className="h-8 w-[140px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {envs.map(e => (
+                        <SelectItem key={e.id} value={e.name}>
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className={cnUtil("w-1.5 h-1.5 rounded-full", envColor(e.name).bg)} />
+                            <span className="font-bold">{e.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
             <div className="bg-zinc-900 rounded-xl p-5 font-mono text-sm leading-relaxed text-emerald-400 shadow-card border border-zinc-800 overflow-x-auto">
               <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
                 <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">cURL</span>

@@ -183,7 +183,7 @@ func (r *ProjectRepo) Delete(ctx context.Context, tenantID, id int64) error {
 		}
 	}
 
-	// 4) EE 模块注册的清理（如 SDK 发布配置/记录）——同样无 FK，在同一事务内删。
+	// 4) 扩展模块注册的项目级清理钩子——无 FK，在同一事务内删（核心无注册时为空）。
 	for _, fn := range projectDeleteCleanups {
 		if err := fn(ctx, tx, tenantID, id); err != nil {
 			return err

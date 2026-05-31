@@ -13,12 +13,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// demoChecker（仅 EE 注册）判定某租户是否演示模式（基于 tenant_ee_configs.plan）。
-// CE 下保持 nil → DemoGuard 永不拦截。这是 Go 版的「核心委托 EE」——
-// 等价于 CatWiki 核心里 try/import EE 的 get_ee_tenant_is_demo。
+// demoChecker 判定某租户是否演示（只读）模式；由可选扩展模块在启动时注入。
+// 未注册（默认）→ nil → DemoGuard 永不拦截。
 var demoChecker func(ctx context.Context, tenantID int64) bool
 
-// RegisterDemoChecker 由 EE 平台模块在注入时调用，插入 demo 判定逻辑。
+// RegisterDemoChecker 由扩展模块在启动时注入演示模式判定逻辑。
 func RegisterDemoChecker(fn func(ctx context.Context, tenantID int64) bool) {
 	demoChecker = fn
 }

@@ -160,7 +160,7 @@ func (r *TenantRepo) Delete(ctx context.Context, id int64) error {
 		}
 	}
 
-	// EE 模块注册的租户级清理（如 SDK 发布配置/记录）。
+	// 扩展模块注册的租户级清理钩子（核心无注册时为空）。
 	for _, fn := range tenantDeleteCleanups {
 		if err := fn(ctx, tx, id); err != nil {
 			return err

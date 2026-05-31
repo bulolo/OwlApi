@@ -30,8 +30,11 @@ type RHealth struct {
 func HandleHealth(c *gin.Context) {
 	ed := edition.Current()
 	OK(c, HealthResp{
-		Status:     "ok",
-		Edition:    string(ed.Edition),
-		IsLicensed: ed.IsLicensed,
+		Status:  "ok",
+		Edition: string(ed.Edition),
+		// is_licensed 不仅要 license 有效，还要求 EE 模块确实编译进来了（注册了路由）。
+		// CE 构建里 eeRouteRegistrars 恒为空 → 即便误配 OWLAPI_EDITION=enterprise + 有效 license，
+		// 也报 false，前端据此永不显示无法工作的 EE UI（避免「假 EE」误配）。
+		IsLicensed: ed.IsLicensed && len(eeRouteRegistrars) > 0,
 	})
 }

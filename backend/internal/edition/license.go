@@ -14,9 +14,10 @@ import (
 // 用 jwt.RegisteredClaims 提供 standard claims (exp / iat / iss / sub)，
 // 业务自己加 customer / features。
 type LicensePayload struct {
-	Customer string   `json:"customer"` // 客户名（用于审计 / 展示）
-	Edition  string   `json:"edition"`  // 通常恒为 "enterprise"
-	Features []string `json:"features"` // 解锁的功能 flag 列表（保留扩展位）
+	Customer       string   `json:"customer"`        // 客户名（用于审计 / 展示）
+	Edition        string   `json:"edition"`         // 通常恒为 "enterprise"
+	Features       []string `json:"features"`        // 解锁的功能 flag 列表（保留扩展位）
+	InstallationID string   `json:"installation_id"` // 绑定的部署 ID；空=不绑定（浮动授权）
 	jwt.RegisteredClaims
 }
 
@@ -62,7 +63,7 @@ func init() {
 //  1. 签名正确（用 parsedPublicKey 验证）
 //  2. exp 未过期（jwt.WithExpirationRequired 强制 token 必须带过期时间）
 //  3. edition 字段必须是 "enterprise"
-func verifyLicenseJWS(token string) (*LicensePayload, error) {
+func verifyLicenseJWS(token, installationID string) (*LicensePayload, error) {
 	if token == "" {
 		return nil, errors.New("empty license token")
 	}
@@ -83,6 +84,10 @@ func verifyLicenseJWS(token string) (*LicensePayload, error) {
 	}
 	if claims.Edition != "enterprise" {
 		return nil, fmt.Errorf("license edition must be enterprise, got %q", claims.Edition)
+	}
+	// 安装绑定：license 若绑了 installation_id，必须与本部署一致；空则视为浮动授权（不绑定）。
+	if claims.InstallationID != "" && claims.InstallationID != installationID {
+		return nil, fmt.Errorf("license bound to installation %q, but this deployment is %q", claims.InstallationID, installationID)
 	}
 	return claims, nil
 }

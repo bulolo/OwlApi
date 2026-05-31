@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
--- 注：plan(订阅档位)属 EE 概念，已下移到 EE 模块的 tenant_ee_configs（仅授权时迁移）；status 作为基础生命周期保留在核心。
+-- 注：订阅档位由企业版模块管理（核心不存储）；status 作为基础生命周期保留在核心。
 -- +goose StatementEnd
 COMMENT ON TABLE tenants IS '租户';
 
@@ -267,8 +267,18 @@ CREATE TABLE IF NOT EXISTS scripts (
 -- +goose StatementEnd
 COMMENT ON TABLE scripts IS '脚本库（tenant_id NULL 表示平台内置脚本）';
 
--- 注：平台设置（品牌 + 自助注册）整体属订阅(EE)能力，已移至 EE 模块的 platform_ee_config（仅授权时迁移）；
---     核心不再存储，GET /platform/settings 在 CE 返回内置默认值。
+-- 注：平台设置（品牌 + 自助注册）由企业版模块管理（核心不存储）；GET /platform/settings 在社区版返回内置默认值。
+
+-- +goose StatementBegin
+-- system_meta = 部署级元数据（单行）。installation_id 首次启动生成、持久化，作为本部署的唯一标识。
+-- 存 DB（而非主机名/硬件）→ 多副本共享同一库即共享同一标识。
+CREATE TABLE IF NOT EXISTS system_meta (
+    id              INT PRIMARY KEY DEFAULT 1,
+    installation_id TEXT NOT NULL DEFAULT '',
+    CHECK (id = 1)
+);
+-- +goose StatementEnd
+COMMENT ON TABLE system_meta IS '部署级元数据（单行）；installation_id 为本部署唯一标识';
 
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS openapi_share_tokens (

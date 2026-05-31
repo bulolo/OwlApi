@@ -23,7 +23,7 @@ func TestVerifyLicenseJWS_KnownGood(t *testing.T) {
 		t.Skipf("%s not set; skipping positive-path license test (set the env var with a real EE license to enable)", testLicenseEnvKey)
 	}
 
-	p, err := verifyLicenseJWS(token)
+	p, err := verifyLicenseJWS(token, "")
 	if err != nil {
 		t.Fatalf("license failed to verify: %v", err)
 	}
@@ -36,13 +36,13 @@ func TestVerifyLicenseJWS_KnownGood(t *testing.T) {
 }
 
 func TestVerifyLicenseJWS_Empty(t *testing.T) {
-	if _, err := verifyLicenseJWS(""); err == nil {
+	if _, err := verifyLicenseJWS("", ""); err == nil {
 		t.Error("empty token should fail")
 	}
 }
 
 func TestVerifyLicenseJWS_Garbage(t *testing.T) {
-	if _, err := verifyLicenseJWS("not.a.real.token"); err == nil {
+	if _, err := verifyLicenseJWS("not.a.real.token", ""); err == nil {
 		t.Error("garbage token should fail")
 	}
 }
@@ -54,7 +54,7 @@ func TestVerifyLicenseJWS_TamperedSignature(t *testing.T) {
 		t.Skipf("%s not set; skipping tampered-signature test", testLicenseEnvKey)
 	}
 	tampered := token[:len(token)-10] + "XXXXXXXXXX"
-	if _, err := verifyLicenseJWS(tampered); err == nil {
+	if _, err := verifyLicenseJWS(tampered, ""); err == nil {
 		t.Error("tampered signature should fail")
 	}
 }

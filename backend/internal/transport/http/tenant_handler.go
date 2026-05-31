@@ -55,7 +55,7 @@ func (h *TenantHandler) HandleMyTenants(c *gin.Context) {
 // @Router /v1/tenants/{slug} [get]
 func (h *TenantHandler) HandleGetTenant(c *gin.Context) {
 	t := GetTenant(c)
-	// is_demo 委托 EE demoChecker（基于 tenant_ee_configs.plan）；CE 下 checker 为 nil → false。
+	// is_demo 委托已注册的 demoChecker 判定；未注册（默认）→ false。
 	if t != nil && demoChecker != nil {
 		t.IsDemo = demoChecker(c.Request.Context(), t.ID)
 	}

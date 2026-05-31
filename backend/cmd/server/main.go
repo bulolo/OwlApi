@@ -47,9 +47,6 @@ func main() {
 	logger.Init(cfg.LogLevel)
 	slog.Info("Starting OwlApi Control Plane...")
 
-	// Edition / License 在所有业务初始化之前确定，后续模块通过 edition.IsLicensed() 决策。
-	edition.Init(cfg.Edition, cfg.LicenseKey)
-
 	auth.Init(cfg.JWTSecret)
 	// 用 JWT_SECRET 派生数据列加密 KEK（同一 master 保证集群内一致），
 	// 必须放在任何会读/写加密字段的模块初始化前。
@@ -58,9 +55,23 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// NewDB 只跑核心 schema（含 system_meta）。
 	db, err := postgres.NewDB(ctx, cfg.DatabaseURL)
 	if err != nil {
 		slog.Error("Failed to connect database", "error", err)
+		os.Exit(1)
+	}
+
+	// Edition / License：先取部署级 installation_id（license 安装绑定用），再定 edition，
+	// 然后才能跑 EE 迁移（依赖 edition.IsLicensed()）。
+	installationID, err := db.EnsureInstallationID(ctx)
+	if err != nil {
+		slog.Warn("failed to resolve installation_id; license install-binding will be skipped", "err", err)
+	}
+	slog.Info("deployment installation_id", "installation_id", installationID)
+	edition.Init(cfg.Edition, cfg.LicenseKey, installationID)
+	if err := db.MigrateEE(); err != nil {
+		slog.Error("Failed to run EE migrations", "error", err)
 		os.Exit(1)
 	}
 

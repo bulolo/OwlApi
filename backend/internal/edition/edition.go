@@ -32,8 +32,11 @@ var current Info = Info{Edition: Community, IsLicensed: false}
 
 // Init reads the edition + license from config, validates the license if
 // applicable, and stores the result in the package-level singleton.
+// installationID 是本部署的唯一标识（首次启动生成、持久化于 DB）；若 license 绑定了
+// installation_id，则必须与之相等才算有效——防止 license 被复制到其它部署使用。
+// 调用方需在连接 DB、取出 installationID 之后再调用本函数。
 // Safe to call once at startup. Subsequent calls overwrite.
-func Init(editionStr, licenseKey string) {
+func Init(editionStr, licenseKey, installationID string) {
 	ed := Edition(editionStr)
 	if ed != Community && ed != Enterprise {
 		slog.Warn("edition: invalid value, treating as community", "got", editionStr)
@@ -42,7 +45,7 @@ func Init(editionStr, licenseKey string) {
 
 	current = Info{Edition: ed, IsLicensed: false}
 	if ed == Enterprise {
-		payload, err := verifyLicenseJWS(licenseKey)
+		payload, err := verifyLicenseJWS(licenseKey, installationID)
 		if err != nil {
 			slog.Warn("edition: enterprise mode requested but license invalid; EE features will degrade to CE behavior",
 				"err", err)
@@ -52,17 +55,15 @@ func Init(editionStr, licenseKey string) {
 			slog.Info("edition: enterprise license verified",
 				"customer", payload.Customer,
 				"expires_at", payload.ExpiresAt,
-				"features", payload.Features)
+				"features", payload.Features,
+				"bound_installation", payload.InstallationID)
 		}
 	}
-	slog.Info("edition: initialized", "edition", current.Edition, "is_licensed", current.IsLicensed)
+	slog.Info("edition: initialized", "edition", current.Edition, "is_licensed", current.IsLicensed, "installation_id", installationID)
 }
 
 // Current returns the current edition info snapshot.
 func Current() Info { return current }
-
-// IsEnterprise reports whether the build is in enterprise mode (license irrelevant).
-func IsEnterprise() bool { return current.Edition == Enterprise }
 
 // IsLicensed reports whether enterprise features are unlocked.
 // Equivalent to: edition=enterprise AND license valid.

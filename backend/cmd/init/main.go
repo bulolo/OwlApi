@@ -19,7 +19,6 @@ import (
 func main() {
 	cfg := config.LoadServerConfig()
 	logger.Init(cfg.LogLevel)
-	edition.Init(cfg.Edition, cfg.LicenseKey)
 	slog.Info("Running backend init...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -39,6 +38,17 @@ func main() {
 	}
 	if err != nil {
 		slog.Error("Failed to connect database", "error", err)
+		os.Exit(1)
+	}
+
+	// 取 installation_id → 定 edition → 跑 EE 迁移（顺序同 server，见 cmd/server/main.go 说明）。
+	installationID, err := db.EnsureInstallationID(ctx)
+	if err != nil {
+		slog.Warn("failed to resolve installation_id", "err", err)
+	}
+	edition.Init(cfg.Edition, cfg.LicenseKey, installationID)
+	if err := db.MigrateEE(); err != nil {
+		slog.Error("Failed to run EE migrations", "error", err)
 		os.Exit(1)
 	}
 
@@ -608,8 +618,7 @@ func seed(ctx context.Context,
 	gw := ensureGateway(ctx, r, 0, "内置网关", gwToken, true)
 
 	seedEcommerce(ctx, r, ps, gw)
-	// CMS 是用于演示「多租户」的第二个租户，仅 EE 授权时 seed；
-	// CE 单租户只保留 default（研发中心）。
+	// 第二个示例租户：仅已授权时 seed；未授权（社区版）只保留 default（默认组织）单租户。
 	if edition.IsLicensed() {
 		seedCMS(ctx, r, ps, gw)
 	}

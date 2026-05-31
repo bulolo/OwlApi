@@ -491,21 +491,6 @@ export interface UpsertBindingReq {
   datasource_id: number;
 }
 
-export type TenantEEConfigRespAdvancedConfig = {[key: string]: unknown};
-
-export interface TenantEEConfigResp {
-  advanced_config: TenantEEConfigRespAdvancedConfig;
-  contact_email?: string;
-  contact_phone?: string;
-  max_datasources: number;
-  max_endpoints: number;
-  max_gateways: number;
-  max_projects: number;
-  plan: string;
-  plan_expires_at?: string;
-  tenant_id: number;
-}
-
 export type ExecuteQueryBody = { [key: string]: unknown };
 
 export type ExecuteQuery200 = { [key: string]: unknown };
@@ -556,80 +541,6 @@ is_pager?: number;
 keyword?: string;
 };
 
-export type ListPlatformScriptsParams = {
-/**
- * 页码
- */
-page?: number;
-/**
- * 每页数量
- */
-size?: number;
-/**
- * 是否分页，0=返回全部（默认1）
- */
-is_pager?: number;
-/**
- * 关键词
- */
-keyword?: string;
-};
-
-export type CreatePlatformScriptBody = {
-  code?: string;
-  description?: string;
-  name?: string;
-  type?: string;
-};
-
-export type UpdatePlatformScriptBody = {
-  code?: string;
-  description?: string;
-  name?: string;
-  type?: string;
-};
-
-export type DeletePlatformScript200 = { [key: string]: unknown };
-
-export type UpdatePlatformSettingsBody = {
-  allow_self_register?: boolean;
-  logo_url?: string;
-  platform_name?: string;
-  platform_tagline?: string;
-};
-
-export type ListAllTenantsParams = {
-/**
- * 页码（默认1）
- */
-page?: number;
-/**
- * 每页数量（默认10）
- */
-size?: number;
-/**
- * 是否分页，0=返回全部（默认1）
- */
-is_pager?: number;
-/**
- * 关键词搜索
- */
-keyword?: string;
-};
-
-export type CreateTenantBody = {
-  name?: string;
-  plan?: string;
-  slug?: string;
-};
-
-export type UpdateTenantBody = {
-  name?: string;
-  status?: string;
-};
-
-export type DeleteTenant200 = { [key: string]: unknown };
-
 export type ListDataSourcesParams = {
 /**
  * 页码（默认1）
@@ -678,20 +589,6 @@ export type PreviewTableParams = {
  * 行数上限（默认100，最多500）
  */
 limit?: number;
-};
-
-export type UpsertTenantEEConfigBodyAdvancedConfig = { [key: string]: unknown };
-
-export type UpsertTenantEEConfigBody = {
-  advanced_config?: UpsertTenantEEConfigBodyAdvancedConfig;
-  contact_email?: string;
-  contact_phone?: string;
-  max_datasources?: number;
-  max_endpoints?: number;
-  max_gateways?: number;
-  max_projects?: number;
-  plan?: string;
-  plan_expires_at?: string;
 };
 
 export type ListGatewaysParams = {

@@ -16,7 +16,7 @@ export {
 } from './useEnvironments'
 export { useUsers, useAddUser, useRemoveUser, useUpdateUserRole } from './useUsers'
 export { useScripts, useCreateScript, useUpdateScript, useDeleteScript, useScriptBuiltins, useCopyScriptFromBuiltin } from './useScripts'
-export { useTenants, useCreateTenant } from './useTenants'
+export { useTenants } from './useTenants'
 export { useAdminMutation } from './useAdminMutation'
 export { useIsClient } from './useIsClient'
 export {

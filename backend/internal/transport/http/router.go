@@ -91,9 +91,8 @@ func (a *App) RegisterRoutes(r *gin.Engine) {
 	v1.GET("/tenants/:slug/datasources/:datasourceId/schema", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleViewer), queryTestH.HandleGetSchema)
 	v1.GET("/tenants/:slug/datasources/:datasourceId/tables/:table/preview", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleViewer), queryTestH.HandlePreviewTable)
 
-	// 平台管理（平台脚本 / 跨租户管理 / 平台设置写入）属受 license 约束的 EE 功能，
-	// 已迁至 internal/ee/platform，经 EE 注入点注册到本 sa 组（仅 IsLicensed 时）。
-	// 此处仅保留分组定义供 EERouter 复用；公开的 GET /platform/settings 仍在上方核心注册。
+	// 超级管理员分组：核心不在此注册业务路由，仅保留分组定义供扩展模块复用
+	// （扩展模块会按需在此注册超管级路由）。公开的 GET /platform/settings 在上方核心注册。
 	sa := v1.Group("", JWTAuth(), RequireSuperAdmin())
 
 	viewer := v1.Group("", JWTAuth(), RequireTenantRole(a.Authz, domain.RoleViewer))

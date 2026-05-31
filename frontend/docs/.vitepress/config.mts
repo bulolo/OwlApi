@@ -50,6 +50,7 @@ export default defineConfig({
             { text: '后端开发', link: '/guide/backend' },
             { text: '前端开发', link: '/guide/frontend' },
             { text: '设计语言规范', link: '/guide/style-guide' },
+            { text: '导出 OpenAPI 与下载 SDK', link: '/guide/openapi-sdk' },
           ],
         },
       ],
@@ -59,6 +60,7 @@ export default defineConfig({
           text: '部署指南',
           items: [
             { text: 'Docker 生产部署', link: '/deployment/docker' },
+            { text: 'Helm（Kubernetes）', link: '/deployment/helm' },
             { text: 'Nginx 反向代理', link: '/deployment/nginx' },
             { text: '独立 Gateway 部署', link: '/deployment/gateway' },
           ],

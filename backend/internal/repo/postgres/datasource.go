@@ -16,7 +16,7 @@ const dsCols = `id, tenant_id, name, is_platform, type, dsn, gateway_id, created
 func scanDS(scan func(dest ...any) error) (*domain.DataSource, error) {
 	var ds domain.DataSource
 	if err := scan(&ds.ID, &ds.TenantID, &ds.Name, &ds.IsPlatform, &ds.Type, &ds.DSN, &ds.GatewayID, &ds.CreatedAt); err != nil {
-		return nil, err
+		return nil, nfErr(err, "datasource")
 	}
 	return &ds, nil
 }

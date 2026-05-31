@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Play, BookOpen, Code2, ScrollText, History } from "lucide-react"
 
@@ -32,6 +33,8 @@ const TABS = [
 
 export default function Apis() {
   const { activeTenant, projectId } = useTenantProject()
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
   // UI store
   const selectedId = useApiEditorStore(s => s.selectedId)
@@ -45,20 +48,62 @@ export default function Apis() {
   const isDirty = useEndpointFormStore(s => s.isDirty)
   const initForm = useEndpointFormStore(s => s.initForm)
   const setFormField = useEndpointFormStore(s => s.setFormField)
+  const save = useEndpointFormStore(s => s.save)
 
   // Server data
   const { list: endpoints } = useEndpointsQuery(activeTenant, projectId)
 
   const [createModalOpen, setCreateModalOpen] = useState(false)
 
-  // Sync form when endpoint data refreshes (e.g. after publish updates has_draft)
+  // Read URL params once on mount (before any URL sync overwrites them)
+  const [urlEndpointId] = useState<number | null>(() => {
+    const v = searchParams.get("endpoint")
+    return v ? Number(v) : null
+  })
+  const [urlTab] = useState<ActiveTab | null>(() => {
+    const v = searchParams.get("tab")
+    return TABS.some(t => t.value === v) ? v as ActiveTab : null
+  })
+
+  // Tracks whether we've done the initial URL→state hydration
+  const urlApplied = useRef(false)
+
+  // URL → state: apply once when endpoints first become available
   useEffect(() => {
-    if (selectedId && endpoints.length > 0) {
-      const ep = endpoints.find(e => e.id === selectedId)
-      // Only re-init if form is clean (don't overwrite user's edits)
-      if (ep && !isDirty) initForm(ep, "main")
+    if (urlApplied.current || endpoints.length === 0) return
+    urlApplied.current = true
+    if (urlEndpointId) {
+      const ep = endpoints.find(e => e.id === urlEndpointId)
+      if (ep) {
+        setSelectedId(ep.id)
+        setIsNew(false)
+        initForm(ep, "main")
+      }
     }
+    if (urlTab) setActiveTab(urlTab)
   }, [endpoints]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // state → URL: keep URL in sync after hydration is done
+  useEffect(() => {
+    if (!urlApplied.current) return
+    const p = new URLSearchParams()
+    if (selectedId) p.set("endpoint", String(selectedId))
+    p.set("tab", activeTab)
+    router.replace(`?${p.toString()}`, { scroll: false })
+  }, [selectedId, activeTab]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync form when endpoint data refreshes (e.g. after publish updates has_draft).
+  // Trigger is purely the endpoints refresh; selection/dirty are read fresh from the
+  // stores via getState() so there's no stale-closure risk and deps stay honest.
+  useEffect(() => {
+    if (endpoints.length === 0) return
+    const { selectedId } = useApiEditorStore.getState()
+    const { isDirty, initForm } = useEndpointFormStore.getState()
+    if (!selectedId) return
+    const ep = endpoints.find(e => e.id === selectedId)
+    // Only re-init if form is clean (don't overwrite user's edits).
+    if (ep && !isDirty) initForm(ep, "main")
+  }, [endpoints])
 
   async function guardDirty(): Promise<boolean> {
     if (!isDirty) return true
@@ -127,7 +172,7 @@ export default function Apis() {
         open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
         mode="create"
-        onConfirm={values => {
+        onConfirm={async values => {
           setCreateModalOpen(false)
           setSelectedId(null)
           setIsNew(true)
@@ -136,6 +181,13 @@ export default function Apis() {
           setFormField("summary", values.summary)
           setFormField("groupId", values.groupId)
           setActiveTab("design")
+          // 立即创建接口（带模板 SQL + 所选分组），落库后再进设计器细化 SQL——
+          // 这样"添加接口选了分组"会立刻生效，而不是等到 SQL 设计器保存。
+          const created = await save(activeTenant, projectId, true, null)
+          if (created?.id != null) {
+            setSelectedId(created.id)
+            setIsNew(false)
+          }
         }}
       />
     </div>

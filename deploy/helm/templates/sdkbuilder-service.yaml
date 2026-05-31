@@ -1,0 +1,18 @@
+{{- if .Values.ee.sdkbuilder.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "owlapi.fullname" . }}-sdkbuilder
+  labels:
+    {{- include "owlapi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sdkbuilder
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "owlapi.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: sdkbuilder
+  ports:
+    - name: http
+      port: {{ .Values.ee.sdkbuilder.port }}
+      targetPort: http
+{{- end }}

@@ -7,7 +7,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { apiRegister } from "@/lib/api-client"
+import { register, getMyTenantsQueryKey } from "@/lib/sdk"
+import { setToken } from "@/lib/custom-fetch"
 import { useQueryClient } from "@tanstack/react-query"
 
 export default function RegisterPage() {
@@ -42,8 +43,9 @@ function RegisterForm() {
     setIsLoading(true)
     setError("")
     try {
-      const res = await apiRegister(form)
-      await qc.invalidateQueries({ queryKey: ["tenants"] })
+      const res = await register(form)
+      if (res.token) setToken(res.token)
+      await qc.invalidateQueries({ queryKey: getMyTenantsQueryKey() })
       const slug = res.tenant?.slug || form.tenant_slug || "default"
       router.push(`/${slug}/overview`)
     } catch (err: unknown) {

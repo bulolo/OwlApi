@@ -10,6 +10,7 @@ type ListParams struct {
 	Page    int
 	Size    int // 0 means no limit (is_pager=0)
 	Keyword string
+	GroupID int64 // 0 = no filter; used by endpoint list
 }
 
 // Offset returns the SQL offset value.
@@ -97,9 +98,20 @@ type ProjectRepository interface {
 	GetByName(ctx context.Context, tenantID int64, name string) (*Project, error)
 	GetBySlug(ctx context.Context, tenantID int64, slug string) (*Project, error)
 	Create(ctx context.Context, p *Project) error
+	// CreateWithInitialEnv atomically creates the project, its default environment
+	// (envName), and—if datasourceID>0—binds the env's "main" alias to it.
+	CreateWithInitialEnv(ctx context.Context, p *Project, envName string, datasourceID int64) error
 	List(ctx context.Context, tenantID int64, p ListParams) ([]*Project, int, error)
 	Update(ctx context.Context, p *Project) error
+	UpdateAuthType(ctx context.Context, tenantID, id int64, authType AuthType) error
 	Delete(ctx context.Context, tenantID, id int64) error
+}
+
+type ProjectAuthKeyRepository interface {
+	Create(ctx context.Context, key *ProjectAuthKey) error
+	Delete(ctx context.Context, tenantID, projectID int64, id string) error
+	ListByProject(ctx context.Context, tenantID, projectID int64) ([]*ProjectAuthKey, error)
+	GetByValue(ctx context.Context, tenantID, projectID int64, value string) (*ProjectAuthKey, error)
 }
 
 type APIGroupRepository interface {
@@ -168,6 +180,18 @@ type EndpointCallLogRepository interface {
 	Append(ctx context.Context, log *EndpointCallLog) error
 	// ListByEndpoint paginates call logs filtered by status class / keyword / since.
 	ListByEndpoint(ctx context.Context, tenantID, endpointID int64, f CallLogFilter, p ListParams) ([]*EndpointCallLog, int, error)
+	// TrafficSeries 按时间桶聚合某租户在 [since, now] 内的全部调用流水。
+	// bucket 取 "hour" 或 "day"（对应 SQL date_trunc）。只返回有数据的桶，零值桶补齐由 service 负责。
+	TrafficSeries(ctx context.Context, tenantID int64, since time.Time, bucket string) ([]TrafficBucket, error)
+	// ListRecentAnomalies 倒序返回某租户最近的异常调用：status >= 500 或 latency_ms > slowMs。
+	ListRecentAnomalies(ctx context.Context, tenantID int64, slowMs, limit int) ([]*EndpointCallLog, error)
+}
+
+// TrafficBucket 是流量趋势里一个时间桶的聚合结果。
+type TrafficBucket struct {
+	Ts     time.Time // 桶起始时刻（UTC，已按 bucket 截断）
+	Total  int       // 该桶内总请求数
+	Errors int       // 其中 status >= 400 的请求数
 }
 
 type EndpointActivationLogRepository interface {
@@ -176,11 +200,8 @@ type EndpointActivationLogRepository interface {
 	// still displays correctly after the version row is deleted.
 	Append(ctx context.Context, tenantID, endpointID, envID, versionID int64, versionNumber int, actorID int64, action ActivationAction) error
 	ListByEndpoint(ctx context.Context, tenantID, endpointID int64, p ListParams) ([]*EndpointActivationLog, int, error)
-}
-
-type PlatformSettingsRepository interface {
-	Get(ctx context.Context) (*PlatformSettings, error)
-	Update(ctx context.Context, s *PlatformSettings) error
+	// ListRecentByTenant 倒序返回某租户最近的资产变更事件（跨所有端点），已 join 出端点摘要/路径/环境/操作人。
+	ListRecentByTenant(ctx context.Context, tenantID int64, limit int) ([]RecentActivation, error)
 }
 
 type ScriptRepository interface {
@@ -190,4 +211,12 @@ type ScriptRepository interface {
 	GetByName(ctx context.Context, tenantID int64, name string) (*Script, error)
 	List(ctx context.Context, tenantID int64, p ListParams) ([]*Script, int, error)
 	Delete(ctx context.Context, tenantID, id int64) error
+	// CountReferences returns how many of the tenant's endpoints reference the
+	// script as a library step in their pre/post chains.
+	CountReferences(ctx context.Context, tenantID, scriptID int64) (int, error)
+
+	// Platform-level operations (SuperAdmin only, no tenant scoping)
+	ListPlatform(ctx context.Context, p ListParams) ([]*Script, int, error)
+	UpdatePlatform(ctx context.Context, s *Script) error
+	DeletePlatform(ctx context.Context, id int64) error
 }

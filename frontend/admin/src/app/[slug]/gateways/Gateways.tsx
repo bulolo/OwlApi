@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Server, Plus, Search, RefreshCw } from "lucide-react"
+import { Server, Plus, Search } from "lucide-react"
+import { RefreshButton } from "@/components/ui/refresh-button"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useTenant } from "@/providers/TenantProvider"
 import { useGateways, useDeleteGateway, usePaginationState } from "@/hooks"
-import { apiGetGateway, type Gateway } from "@/lib/api-client"
+import { getGateway } from "@/lib/sdk"
+import type { GatewayResp as Gateway } from "@/lib/sdk"
 import { Input } from "@/components/ui/input"
 import { ListSkeleton } from "@/components/ui/skeletons"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -31,7 +33,7 @@ export default function Gateways() {
 
   const handleViewDeploy = async (gw: Gateway) => {
     try {
-      const full = await apiGetGateway(activeTenant, gw.id)
+      const full = await getGateway(activeTenant, gw.id)
       setDetail(full)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "获取详情失败")
@@ -46,9 +48,7 @@ export default function Gateways() {
           <p className="text-sm text-muted-foreground mt-1 font-medium">网关节点部署于数据库所在机器，提供安全的内网数据索引能力。</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-100" onClick={() => refetch()}>
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> 刷新
-          </Button>
+          <RefreshButton onClick={() => refetch()} />
           <Link href={`/${activeTenant}/gateways/new`}>
             <Button className="h-9 px-4 text-xs font-bold shadow-sm">
               <Plus className="w-4 h-4 mr-2" />

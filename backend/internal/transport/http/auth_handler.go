@@ -8,8 +8,7 @@ import (
 )
 
 type AuthHandler struct {
-	auth             service.AuthService
-	platformSettings service.PlatformSettingsService
+	auth service.AuthService
 }
 
 // HandleRegister godoc
@@ -33,7 +32,8 @@ func (h *AuthHandler) HandleRegister(c *gin.Context) {
 		Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if ps, err := h.platformSettings.Get(c.Request.Context()); err == nil && !ps.AllowSelfRegister {
+	// 自助注册开关属 EE 平台设置：CE / 未授权下 provider 未注册 → 默认关闭 → 拒绝。
+	if !currentPlatformSettings(c.Request.Context()).AllowSelfRegister {
 		Fail(c, http.StatusForbidden, "self-registration is disabled")
 		return
 	}

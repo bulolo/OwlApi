@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Table2, Search, ChevronRight } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
-import type { SchemaTable } from "@/lib/api-client"
+import type { SchemaTable } from "@/hooks"
 import { cn } from "@/lib/utils"
 
 // ── Schema grouping (SQL Server "schema.table" format) ────────────────────────

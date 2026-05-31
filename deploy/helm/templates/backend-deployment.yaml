@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "owlapi.fullname" . }}-backend
+  labels:
+    {{- include "owlapi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "owlapi.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "owlapi.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+        - name: backend
+          image: {{ include "owlapi.image" (dict "root" . "name" .Values.backend.image) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.httpPort }}
+            - name: grpc
+              containerPort: {{ .Values.backend.grpcPort }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "owlapi.fullname" . }}
+                  key: DATABASE_URL
+            - name: OWLAPI_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "owlapi.fullname" . }}
+                  key: OWLAPI_JWT_SECRET
+            - name: OWLAPI_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "owlapi.fullname" . }}
+                  key: OWLAPI_LICENSE_KEY
+            - name: OWLAPI_HTTP_PORT
+              value: {{ .Values.backend.httpPort | quote }}
+            - name: OWLAPI_GRPC_PORT
+              value: {{ .Values.backend.grpcPort | quote }}
+            - name: OWLAPI_LOG_LEVEL
+              value: {{ .Values.backend.env.logLevel | quote }}
+            - name: OWLAPI_CORS_ORIGIN
+              value: {{ .Values.backend.env.corsOrigin | quote }}
+            - name: OWLAPI_EDITION
+              value: {{ .Values.backend.env.edition | quote }}
+            - name: TZ
+              value: {{ .Values.backend.env.tz | quote }}
+            {{- if .Values.ee.sdkbuilder.enabled }}
+            - name: OWLAPI_SDK_BUILDER_URL
+              value: {{ include "owlapi.sdkbuilderUrl" . | quote }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}

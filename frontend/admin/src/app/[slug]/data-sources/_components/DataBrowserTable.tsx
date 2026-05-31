@@ -2,7 +2,7 @@
 
 import { Loader2, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { SchemaColumn } from "@/lib/api-client"
+import type { SchemaColumn } from "@/hooks"
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
 

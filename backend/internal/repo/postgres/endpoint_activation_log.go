@@ -29,6 +29,39 @@ func (r *EndpointActivationLogRepo) Append(ctx context.Context, tenantID, endpoi
 	return err
 }
 
+// ListRecentByTenant 倒序拉取某租户最近 limit 条资产变更事件（跨端点），
+// 用 LEFT JOIN 补出端点摘要/路径/方法、环境名、操作人名（目标被删后仍能展示历史）。
+func (r *EndpointActivationLogRepo) ListRecentByTenant(ctx context.Context, tenantID int64, limit int) ([]domain.RecentActivation, error) {
+	rows, err := r.DB.Pool.Query(ctx, `
+		SELECT l.action,
+		       COALESCE(ep.summary, ''), COALESCE(ep.path, ''), COALESCE(ep.method, ''),
+		       COALESCE(pe.name, ''), COALESCE(l.version, ev.version, 0),
+		       COALESCE(u.name, ''), l.at
+		FROM endpoint_activation_log l
+		LEFT JOIN api_endpoints ep        ON ep.tenant_id = l.tenant_id AND ep.id = l.endpoint_id
+		LEFT JOIN endpoint_versions ev    ON ev.tenant_id = l.tenant_id AND ev.id = l.version_id
+		LEFT JOIN users u                 ON u.id = l.actor_id
+		LEFT JOIN project_environments pe ON pe.tenant_id = l.tenant_id AND pe.id = l.env_id
+		WHERE l.tenant_id = $1
+		ORDER BY l.at DESC
+		LIMIT $2`, tenantID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []domain.RecentActivation
+	for rows.Next() {
+		var a domain.RecentActivation
+		var action string
+		if err := rows.Scan(&action, &a.EndpointSummary, &a.Path, &a.Method, &a.EnvName, &a.Version, &a.ActorName, &a.At); err != nil {
+			return nil, err
+		}
+		a.Action = domain.ActivationAction(action)
+		out = append(out, a)
+	}
+	return out, rows.Err()
+}
+
 func (r *EndpointActivationLogRepo) ListByEndpoint(ctx context.Context, tenantID, endpointID int64, p domain.ListParams) ([]*domain.EndpointActivationLog, int, error) {
 	where := "WHERE l.tenant_id=$1 AND l.endpoint_id=$2"
 	args := []interface{}{tenantID, endpointID}

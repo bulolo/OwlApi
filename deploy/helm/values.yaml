@@ -1,0 +1,128 @@
+# OwlApi Helm Chart 默认值
+# 生产部署前必须覆盖所有标注 "# required" 的字段
+
+image:
+  registry: registry.cn-hangzhou.aliyuncs.com/owlapi
+  tag: v0.2.1
+  pullPolicy: IfNotPresent
+
+# ------------------------------------------------------------
+# Backend（控制面 API 服务）
+# ------------------------------------------------------------
+backend:
+  replicas: 1
+  image: backend
+  httpPort: 3000
+  grpcPort: 9090
+  resources:
+    limits:
+      cpu: "1"
+      memory: 512Mi
+    requests:
+      cpu: "100m"
+      memory: 128Mi
+  env:
+    jwtSecret: "change-me-in-production"   # required
+    licenseKey: ""                          # EE license key
+    logLevel: info
+    corsOrigin: "*"
+    edition: ce                             # ce 或 ee
+    tz: Asia/Shanghai
+
+# ------------------------------------------------------------
+# Admin Frontend（管理后台 Next.js）
+# ------------------------------------------------------------
+admin:
+  replicas: 1
+  image: admin
+  port: 8001
+  publicApiUrl: ""    # required，浏览器可访问的 API 地址，如 https://api.example.com
+  resources:
+    limits:
+      cpu: "500m"
+      memory: 256Mi
+    requests:
+      cpu: "50m"
+      memory: 64Mi
+
+# ------------------------------------------------------------
+# Gateway（数据面网关节点）
+# ------------------------------------------------------------
+gateway:
+  enabled: true
+  replicas: 1
+  image: gateway
+  # 集群内默认指向 backend Service，留空则自动推导
+  serverUrl: ""
+  gatewayId: ""       # required if gateway.enabled
+  gatewayToken: ""    # required if gateway.enabled
+  tenantId: ""        # required if gateway.enabled
+  logLevel: info
+  tz: Asia/Shanghai
+  storage: 1Gi
+  storageClass: ""
+  resources:
+    limits:
+      cpu: "500m"
+      memory: 256Mi
+    requests:
+      cpu: "50m"
+      memory: 64Mi
+
+# ------------------------------------------------------------
+# PostgreSQL
+# enabled: true  → 部署内置 StatefulSet
+# enabled: false → 使用 external 配置的外部数据库
+# ------------------------------------------------------------
+postgres:
+  enabled: true
+  image: postgres:18-alpine
+  storage: 10Gi
+  storageClass: ""
+  user: postgres
+  password: "change-me-in-production"   # required
+  database: owlapi
+  tz: Asia/Shanghai
+  resources:
+    limits:
+      cpu: "500m"
+      memory: 512Mi
+    requests:
+      cpu: "100m"
+      memory: 128Mi
+  external:
+    host: ""
+    port: 5432
+
+# ------------------------------------------------------------
+# EE：SDK Builder Sidecar
+# ------------------------------------------------------------
+ee:
+  sdkbuilder:
+    enabled: false
+    image: sdkbuilder
+    port: 7100
+    resources:
+      limits:
+        cpu: "1"
+        memory: 1Gi
+      requests:
+        cpu: "100m"
+        memory: 256Mi
+
+# ------------------------------------------------------------
+# Ingress
+# ------------------------------------------------------------
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  admin:
+    host: admin.example.com
+  api:
+    host: api.example.com
+  tls:
+    enabled: false
+    secretName: owlapi-tls

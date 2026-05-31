@@ -3,10 +3,11 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Code2, LayoutTemplate, PenLine, Columns3, Info, Pencil, Folder } from "lucide-react"
+import { Code2, LayoutTemplate, PenLine, Columns3, Info, Pencil, Folder, Library } from "lucide-react"
 import { SqlDesignerModal } from "../SqlDesignerModal"
 import { BasicInfoModal } from "../BasicInfoModal"
-import { ScriptPreviewModal } from "../ScriptPreviewModal"
+import { ScriptPreviewModal, type PreviewScript } from "../ScriptPreviewModal"
+import { PHASE_TONE } from "../scriptPhaseTone"
 import { FeedbackBanner } from "./FeedbackBanner"
 import { RestoredBanner } from "./RestoredBanner"
 import { DraftStatusBanner } from "./DraftStatusBanner"
@@ -16,7 +17,7 @@ import { useReferenceData } from "../../_hooks/useReferenceData"
 import { useTenantProject } from "../../_hooks/useTenantProject"
 import { useParamSync } from "../../_hooks/useParamSync"
 import { useGroupsQuery } from "../../_hooks/useGroupsQuery"
-import type { DerivedParamDef } from "../../_types"
+import type { DerivedParamDef, ScriptStep } from "../../_types"
 
 export function DesignTab() {
   const { activeTenant, projectId } = useTenantProject()
@@ -25,8 +26,8 @@ export function DesignTab() {
   const path = useEndpointFormStore(s => s.form.path)
   const summary = useEndpointFormStore(s => s.form.summary)
   const groupId = useEndpointFormStore(s => s.form.groupId)
-  const preScriptId = useEndpointFormStore(s => s.form.preScriptId)
-  const postScriptId = useEndpointFormStore(s => s.form.postScriptId)
+  const preScripts = useEndpointFormStore(s => s.form.preScripts)
+  const postScripts = useEndpointFormStore(s => s.form.postScripts)
   const setFormField = useEndpointFormStore(s => s.setFormField)
   const save = useEndpointFormStore(s => s.save)
   const isNew = useApiEditorStore(s => s.isNew)
@@ -38,8 +39,7 @@ export function DesignTab() {
   const [designerOpen, setDesignerOpen] = useState(false)
   const [basicInfoOpen, setBasicInfoOpen] = useState(false)
   const [savingInfo, setSavingInfo] = useState(false)
-  const [previewScriptId, setPreviewScriptId] = useState<number | null>(null)
-  const previewScript = previewScriptId ? scripts.find(s => s.id === previewScriptId) ?? null : null
+  const [previewScript, setPreviewScript] = useState<PreviewScript | null>(null)
 
   const sqlPreview = sql?.trim() ? sql.trim() : null
   const groupName = groups.find(g => g.id === groupId)?.name
@@ -108,24 +108,26 @@ export function DesignTab() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* SQL preview card */}
         <div className="lg:col-span-2 border border-border/60 rounded-xl bg-white shadow-card overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-border-subtle gap-3">
-            <div className="flex items-center gap-2 shrink-0">
-              <Code2 className="w-4 h-4 text-primary/80" />
-              <span className="text-sm font-bold text-foreground">SQL 查询</span>
+          <div className="border-b border-border-subtle">
+            <div className="flex items-center justify-between px-5 py-3 gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Code2 className="w-4 h-4 text-primary/80 shrink-0" />
+                <span className="text-sm font-bold text-foreground">SQL 查询</span>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setDesignerOpen(true)}
+                className="h-7 text-xs px-3 gap-1.5 shrink-0"
+              >
+                <PenLine className="w-3 h-3" />
+                打开 SQL 设计器
+              </Button>
             </div>
-            {/* 脚本只读展示——点击查看内容，挂载/切换/编辑统一到 SQL 设计器内 */}
-            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-              <ScriptPill label="前置" scriptId={preScriptId} scripts={scripts} onClick={setPreviewScriptId} />
-              <ScriptPill label="后置" scriptId={postScriptId} scripts={scripts} onClick={setPreviewScriptId} />
+            {/* 脚本链只读展示——点击查看内容，挂载/切换/编辑统一到 SQL 设计器内 */}
+            <div className="flex flex-wrap items-center gap-1.5 px-5 pb-3">
+              <ChainPills label="前置" phase="pre" steps={preScripts} scripts={scripts} onPreview={setPreviewScript} />
+              <ChainPills label="后置" phase="post" steps={postScripts} scripts={scripts} onPreview={setPreviewScript} />
             </div>
-            <Button
-              size="sm"
-              onClick={() => setDesignerOpen(true)}
-              className="h-7 text-xs px-3 gap-1.5 shrink-0"
-            >
-              <PenLine className="w-3 h-3" />
-              打开 SQL 设计器
-            </Button>
           </div>
           <div className="relative min-h-[160px] max-h-[320px] overflow-auto bg-zinc-950 rounded-b-xl">
             {sqlPreview ? (
@@ -184,9 +186,9 @@ export function DesignTab() {
       <ScriptPreviewModal
         open={!!previewScript}
         script={previewScript}
-        onClose={() => setPreviewScriptId(null)}
+        onClose={() => setPreviewScript(null)}
         onEditInDesigner={() => {
-          setPreviewScriptId(null)
+          setPreviewScript(null)
           setDesignerOpen(true)
         }}
       />
@@ -293,36 +295,64 @@ function ParamGroup({ label, color, params }: {
   )
 }
 
-function ScriptPill({ label, scriptId, scripts, onClick }: {
+// ChainPills renders a read-only summary of a pre/post chain as a row of pills.
+// Pill color follows the phase (前置=橙 / 后置=蓝), matching the script library;
+// the inline-vs-library distinction is carried by the leading icon, not color.
+// Both library and inline steps are clickable — they open the preview modal
+// showing the script code. A deleted library step (name missing) is shown in
+// red and is not clickable. An empty chain renders a single muted placeholder.
+function ChainPills({ label, phase, steps, scripts, onPreview }: {
   label: string
-  scriptId: number
-  scripts: { id?: number; name?: string }[]
-  onClick?: (id: number) => void
+  phase: "pre" | "post"
+  steps: ScriptStep[]
+  scripts: { id?: number; name?: string; description?: string; code?: string }[]
+  onPreview?: (s: PreviewScript) => void
 }) {
-  const name = scriptId ? scripts.find(s => s.id === scriptId)?.name : null
-  const mounted = !!name
-
-  if (!mounted) {
+  const tone = PHASE_TONE[phase]
+  if (steps.length === 0) {
     return (
-      <span
-        className="inline-flex items-center gap-1 text-2xs px-1.5 py-0.5 rounded border max-w-[180px] truncate bg-zinc-50 text-zinc-300 italic border-border-subtle"
-        title={`${label}脚本未挂载`}
-      >
+      <span className="inline-flex items-center gap-1 text-2xs px-1.5 py-0.5 rounded border bg-zinc-50 text-zinc-300 italic border-border-subtle">
         <span className="font-bold text-muted-foreground">{label}</span>
-        <span className="truncate">—</span>
+        <span>—</span>
       </span>
     )
   }
-
   return (
-    <button
-      type="button"
-      onClick={() => scriptId && onClick?.(scriptId)}
-      className="inline-flex items-center gap-1 text-2xs px-1.5 py-0.5 rounded border max-w-[180px] truncate bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 hover:border-violet-300 transition-colors cursor-pointer"
-      title={`${label}脚本：${name} — 点击查看内容`}
-    >
-      <span className="font-bold text-muted-foreground">{label}</span>
-      <span className="truncate">{name}</span>
-    </button>
+    <>
+      {steps.map((s, i) => {
+        const prefix = steps.length > 1 ? `${label} ${i + 1}` : label
+        if (s.source === "inline") {
+          const name = s.name || "内联"
+          return (
+            <button key={i} type="button"
+              onClick={() => onPreview?.({ name, type: phase, source: "inline", code: s.code })}
+              title={`${label}内联：${name} — 点击查看`}
+              className={cn(
+                "inline-flex items-center gap-1 text-2xs px-1.5 py-0.5 rounded border max-w-[180px] truncate transition-colors cursor-pointer",
+                tone.pill, tone.pillHover,
+              )}>
+              <PenLine className="w-2.5 h-2.5 shrink-0 opacity-70" />
+              <span className="font-bold opacity-80">{prefix}</span>
+              <span className="truncate">{name}</span>
+            </button>
+          )
+        }
+        const sc = scripts.find(x => x.id === s.scriptId)
+        return (
+          <button key={i} type="button"
+            disabled={!sc}
+            onClick={() => sc && onPreview?.({ name: sc.name ?? "", type: phase, source: "library", description: sc.description, code: sc.code })}
+            title={sc ? `${label}库脚本：${sc.name} — 点击查看` : `${label}库脚本 #${s.scriptId} 已删除`}
+            className={cn(
+              "inline-flex items-center gap-1 text-2xs px-1.5 py-0.5 rounded border max-w-[180px] truncate transition-colors",
+              sc ? cn(tone.pill, tone.pillHover, "cursor-pointer") : "bg-rose-50 text-rose-600 border-rose-200 cursor-not-allowed",
+            )}>
+            <Library className="w-2.5 h-2.5 shrink-0 opacity-70" />
+            <span className="font-bold opacity-80">{prefix}</span>
+            <span className="truncate">{sc?.name ?? `#${s.scriptId}（已删除）`}</span>
+          </button>
+        )
+      })}
+    </>
   )
 }

@@ -1,0 +1,42 @@
+{{- if .Values.ee.sdkbuilder.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "owlapi.fullname" . }}-sdkbuilder
+  labels:
+    {{- include "owlapi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: sdkbuilder
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "owlapi.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: sdkbuilder
+  template:
+    metadata:
+      labels:
+        {{- include "owlapi.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: sdkbuilder
+    spec:
+      containers:
+        - name: sdkbuilder
+          image: {{ include "owlapi.image" (dict "root" . "name" .Values.ee.sdkbuilder.image) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.ee.sdkbuilder.port }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.ee.sdkbuilder.resources | nindent 12 }}
+{{- end }}

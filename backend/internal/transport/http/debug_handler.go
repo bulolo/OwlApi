@@ -54,8 +54,8 @@ func (h *QueryTestHandler) HandleTestQuery(c *gin.Context) {
 		return
 	}
 	if req.IgnoreScripts {
-		endpoint.PreScriptID = 0
-		endpoint.PostScriptID = 0
+		endpoint.PreScripts = nil
+		endpoint.PostScripts = nil
 	}
 
 	envID := req.EnvID

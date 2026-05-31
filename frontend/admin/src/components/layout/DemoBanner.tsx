@@ -1,19 +1,17 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
 import { ShieldAlert } from "lucide-react"
-import { apiGetTenant } from "@/lib/api-client"
+import { useGetTenant } from "@/lib/sdk"
 import { useTenant } from "@/providers/TenantProvider"
 
 export function DemoBanner() {
   const slug = useTenant()
-  const { data: tenant } = useQuery({
-    queryKey: ["tenant", slug],
-    queryFn: () => apiGetTenant(slug),
-    enabled: !!slug,
+  const { data: tenant } = useGetTenant(slug, {
+    query: { enabled: !!slug },
   })
 
-  if (tenant?.plan !== "Demo") return null
+  // is_demo 由后端计算（EE 查 tenant_ee_configs.plan==Demo；CE 恒 false）。
+  if (!tenant?.is_demo) return null
 
   return (
     <div className="bg-orange-50 border-b border-orange-200 px-8 py-2 flex items-center gap-2">

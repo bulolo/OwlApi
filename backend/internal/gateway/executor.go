@@ -348,13 +348,20 @@ func (e *Executor) Execute(req *pb.ExecuteQueryRequest) *pb.QueryResult {
 
 	jsTimeout := time.Duration(e.jsTimeoutSeconds) * time.Second
 
-	// Pre-script: can modify params and optionally rewrite SQL
+	// Pre-script chain: each stage runs in order, its output params/sql feed the
+	// next, and any stage returning `{ error }` short-circuits the whole request.
 	params := req.Params
 	sqlText := req.Sql
-	if req.PreScript != "" {
-		psr, err := runPreScript(req.PreScript, params, sqlText, jsTimeout)
+	for i, code := range req.PreScripts {
+		if code == "" {
+			continue
+		}
+		psr, err := runPreScript(code, params, sqlText, jsTimeout)
 		if err != nil {
-			return fail(req.RequestId, fmt.Sprintf("pre_script failed: %v", err))
+			return fail(req.RequestId, fmt.Sprintf("pre_script[%d] failed: %v", i, err))
+		}
+		if psr.Err != "" {
+			return &pb.QueryResult{RequestId: req.RequestId, Success: false, Error: psr.Err, ErrorCode: psr.ErrCode}
 		}
 		params = psr.Params
 		if psr.SQL != "" {
@@ -382,7 +389,8 @@ func (e *Executor) Execute(req *pb.ExecuteQueryRequest) *pb.QueryResult {
 
 	// Auto COUNT query: triggered by limit param being present, not by SQL containing LIMIT.
 	isSelect := strings.HasPrefix(strings.TrimSpace(strings.ToUpper(sqlText)), "SELECT")
-	if req.PostScript != "" && isSelect && hasLimit {
+	hasPost := len(req.PostScripts) > 0
+	if hasPost && isSelect && hasLimit {
 		countSQL := stripOrderBy(stripLimitOffset(sqlText))
 		countSQL = "SELECT COUNT(*) FROM (" + countSQL + ") AS _t"
 		resolvedCountSQL := stripUnresolvedConditions(countSQL, params)
@@ -468,13 +476,21 @@ func (e *Executor) Execute(req *pb.ExecuteQueryRequest) *pb.QueryResult {
 		return fail(req.RequestId, fmt.Sprintf("commit failed: %v", err))
 	}
 
-	// Post-script
-	if req.PostScript != "" {
-		transformed, err := runPostScript(req.PostScript, results, params, jsTimeout)
-		if err != nil {
-			return fail(req.RequestId, fmt.Sprintf("post_script failed: %v", err))
+	// Post-script chain: data flows through — each stage's output becomes the next
+	// stage's `data`, and the last stage's output is the response body.
+	if hasPost {
+		var data interface{} = results
+		for i, code := range req.PostScripts {
+			if code == "" {
+				continue
+			}
+			out, err := runPostScript(code, data, params, jsTimeout)
+			if err != nil {
+				return fail(req.RequestId, fmt.Sprintf("post_script[%d] failed: %v", i, err))
+			}
+			data = out
 		}
-		jsonData, err := json.Marshal(transformed)
+		jsonData, err := json.Marshal(data)
 		if err != nil {
 			return fail(req.RequestId, fmt.Sprintf("marshal post_script result failed: %v", err))
 		}
@@ -550,6 +566,10 @@ func splitStatements(sql string) []string {
 type preScriptResult struct {
 	Params map[string]string
 	SQL    string
+	// Err / ErrCode are set when the script rejects the request via
+	// `return { error: ... }`. ErrCode defaults to 400 (校验失败).
+	Err     string
+	ErrCode int32
 }
 
 // runPreScript executes JS: function main(params, sql) { ... return { params, sql? }; }
@@ -577,6 +597,30 @@ func runPreScript(code string, params map[string]string, sql string, jsTimeout t
 	out := &preScriptResult{Params: make(map[string]string)}
 	obj := result.ToObject(vm)
 	keys := obj.Keys()
+
+	// Validation rejection: `return { error: "msg" }` or
+	// `return { error: { status: 400, message: "msg" } }`. `error` is a reserved
+	// key; only a truthy value rejects, so a falsy ""/null/undefined passes through.
+	if errVal := obj.Get("error"); errVal != nil && errVal.ToBoolean() {
+		out.ErrCode = 400
+		if e, ok := errVal.Export().(map[string]interface{}); ok {
+			if m, ok := e["message"].(string); ok {
+				out.Err = m
+			}
+			switch s := e["status"].(type) {
+			case int64:
+				out.ErrCode = int32(s)
+			case float64:
+				out.ErrCode = int32(s)
+			}
+		} else {
+			out.Err = errVal.String()
+		}
+		if out.Err == "" {
+			out.Err = "参数校验失败"
+		}
+		return out, nil
+	}
 
 	if hasKey(keys, "params") {
 		pObj := obj.Get("params").ToObject(vm)
@@ -633,8 +677,9 @@ func stripOrderBy(sql string) string {
 }
 
 // runPostScript executes JS: function main(data, params) { ... return any; }
-// Enforces a timeout to prevent infinite loops.
-func runPostScript(code string, data []map[string]interface{}, params map[string]string, jsTimeout time.Duration) (interface{}, error) {
+// data is the previous stage's output (the SQL row set for the first stage),
+// enabling post-script chaining. Enforces a timeout to prevent infinite loops.
+func runPostScript(code string, data interface{}, params map[string]string, jsTimeout time.Duration) (interface{}, error) {
 	vm := goja.New()
 	vm.SetFieldNameMapper(goja.UncapFieldNameMapper())
 

@@ -10,7 +10,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.2.0}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/backend:${DOCKER_IMAGE_TAG:-v0.2.1}
     container_name: owlapi_backend
     restart: unless-stopped
     ports:
@@ -48,7 +48,7 @@ services:
       dockerfile: Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${PUBLIC_API_URL:-http://localhost:3000}
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:${DOCKER_IMAGE_TAG:-v0.2.0}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/admin:${DOCKER_IMAGE_TAG:-v0.2.1}
     container_name: owlapi_admin
     restart: unless-stopped
     ports:
@@ -74,6 +74,7 @@ services:
     image: postgres:18-alpine
     container_name: owlapi_postgres
     restart: unless-stopped
+    command: postgres -c log_min_messages=WARNING -c log_min_error_statement=WARNING
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -102,7 +103,7 @@ services:
     build:
       context: ../backend
       dockerfile: Dockerfile.gateway
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.2.0}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/gateway:${DOCKER_IMAGE_TAG:-v0.2.1}
     container_name: owlapi_gateway
     restart: unless-stopped
     env_file:
@@ -123,12 +124,41 @@ services:
         max-size: "50m"
         max-file: "3"
 
+  # SDK Builder Sidecar (EE-only — wraps openapi-generator-cli)
+  # 默认不启动；用 `docker compose --profile ee up sdkbuilder` 显式拉起。
+  sdkbuilder:
+    profiles: ["ee"]
+    build:
+      context: ../backend
+      dockerfile: cmd/sdkbuilder/Dockerfile
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/sdkbuilder:${DOCKER_IMAGE_TAG:-v0.2.1}
+    container_name: owlapi_sdkbuilder
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:7100:7100"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7100/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
   # Backend Init: schema + seed demo data (runs every startup)
   backend-init:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    image: registry.cn-hangzhou.aliyuncs.com/owlapi/server:${DOCKER_IMAGE_TAG:-v0.2.0}
+    image: registry.cn-hangzhou.aliyuncs.com/owlapi/backend:${DOCKER_IMAGE_TAG:-v0.2.1}
     container_name: owlapi_init
     command: ["./init"]
     env_file:

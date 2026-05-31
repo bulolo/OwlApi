@@ -3,14 +3,13 @@
 import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { useQuery } from "@tanstack/react-query"
 import { useAdminMutation } from "@/hooks"
 import { useTenant } from "@/providers/TenantProvider"
 import { Globe, GitBranch, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { apiGetTenant, apiUpdateTenantSettings } from "@/lib/api-client"
+import { useGetTenant, updateTenantSettings, getGetTenantQueryKey } from "@/lib/sdk"
 import UsersComponent from "@/app/[slug]/users/Users"
 
 const tabs = [
@@ -23,10 +22,8 @@ export default function Settings() {
   const pathname = usePathname()
   const isGeneral = !pathname.endsWith("/users")
 
-  const { data: tenant } = useQuery({
-    queryKey: ["tenant", activeTenant],
-    queryFn: () => apiGetTenant(activeTenant),
-    enabled: !!activeTenant,
+  const { data: tenant } = useGetTenant(activeTenant, {
+    query: { enabled: !!activeTenant },
   })
 
   const [localMaxVersions, setLocalMaxVersions] = useState<number | null>(null)
@@ -34,9 +31,9 @@ export default function Settings() {
 
   const saveSettings = useAdminMutation({
     mutationFn: () =>
-      apiUpdateTenantSettings(activeTenant, localMaxVersions ?? tenant?.max_release_versions ?? 5),
+      updateTenantSettings(activeTenant, { max_release_versions: localMaxVersions ?? tenant?.max_release_versions ?? 5 }),
     successMsg: "配置已保存",
-    invalidateKeys: [["tenant", activeTenant]],
+    invalidateKeys: [getGetTenantQueryKey(activeTenant)],
   })
 
   return (

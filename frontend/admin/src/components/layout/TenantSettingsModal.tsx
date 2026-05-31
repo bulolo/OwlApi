@@ -2,13 +2,12 @@
 
 import { useState } from "react"
 import { useParams } from "next/navigation"
-import { useQuery } from "@tanstack/react-query"
 import { useAdminMutation } from "@/hooks"
 import { Globe, GitBranch, Users, Settings, X, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { apiGetTenant, apiUpdateTenantSettings } from "@/lib/api-client"
+import { useGetTenant, updateTenantSettings, getGetTenantQueryKey } from "@/lib/sdk"
 import UsersComponent from "@/app/[slug]/users/Users"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 
@@ -29,10 +28,8 @@ export default function TenantSettingsModal({ open, onOpenChange }: TenantSettin
   const params = useParams()
   const slug = (params?.slug as string) ?? ""
 
-  const { data: tenant } = useQuery({
-    queryKey: ["tenant", slug],
-    queryFn: () => apiGetTenant(slug),
-    enabled: !!slug && open,
+  const { data: tenant } = useGetTenant(slug, {
+    query: { enabled: !!slug && open },
   })
 
   const [localMaxVersions, setLocalMaxVersions] = useState<number | null>(null)
@@ -40,9 +37,9 @@ export default function TenantSettingsModal({ open, onOpenChange }: TenantSettin
 
   const saveSettings = useAdminMutation({
     mutationFn: () =>
-      apiUpdateTenantSettings(slug, localMaxVersions ?? tenant?.max_release_versions ?? 5),
+      updateTenantSettings(slug, { max_release_versions: localMaxVersions ?? tenant?.max_release_versions ?? 5 }),
     successMsg: "配置已保存",
-    invalidateKeys: [["tenant", slug]],
+    invalidateKeys: [getGetTenantQueryKey(slug)],
   })
 
   return (

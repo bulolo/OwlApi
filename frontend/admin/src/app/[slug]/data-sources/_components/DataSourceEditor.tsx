@@ -9,8 +9,8 @@ import { useGateways, useDataSource, useCreateDataSource, useUpdateDataSource } 
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { apiTestDatasource } from "@/lib/api-client"
-import type { DataSource } from "@/lib/api-client"
+import { testDatasource } from "@/lib/sdk"
+import type { DataSourceResp as DataSource } from "@/lib/sdk"
 import { DB_TYPES } from "@/lib/constants"
 import { buildDSN, parseDSN, defaultPort, defaultConn } from "@/lib/database-helpers"
 import { DataSourceForm } from "../new/_components/DataSourceForm"
@@ -92,7 +92,7 @@ function DataSourceEditorForm({
     if (!effectiveGwId) return toast.error("请先选择网关节点")
     setTestState({ status: 'testing' })
     try {
-      const testResult = await apiTestDatasource(activeTenant!, dsn, effectiveGwId)
+      const testResult = await testDatasource(activeTenant!, { dsn, gateway_id: effectiveGwId }) as { latency_ms: number }
       setTestState({ status: 'ok', latencyMs: testResult.latency_ms })
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '连接失败'

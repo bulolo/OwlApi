@@ -1,0 +1,17 @@
+{{- if .Values.gateway.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "owlapi.fullname" . }}-gateway-data
+  labels:
+    {{- include "owlapi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  accessModes: ["ReadWriteOnce"]
+  {{- if .Values.gateway.storageClass }}
+  storageClassName: {{ .Values.gateway.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.gateway.storage }}
+{{- end }}

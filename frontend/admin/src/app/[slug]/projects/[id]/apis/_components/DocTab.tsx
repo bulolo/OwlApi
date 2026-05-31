@@ -2,7 +2,8 @@
 
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
-import { LayoutList } from "lucide-react"
+import { LayoutList, Lock, Globe, KeyRound } from "lucide-react"
+type AuthType = "public" | "api_key" | "jwt"
 import { useEndpointFormStore } from "../_store/useEndpointFormStore"
 import { useParamSync } from "../_hooks/useParamSync"
 import { useTenantProject } from "../_hooks/useTenantProject"
@@ -12,7 +13,67 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMemo, useState } from "react"
 import { envColor } from "../../_utils/envColor"
 import { cn as cnUtil } from "@/lib/utils"
-import type { ParamDef } from "../_types"
+import type { ParamDef, ResponseDef } from "../_types"
+
+// ── Response schema helpers ───────────────────────────────────────────────────
+
+function tryRunSchemaFn(code: string): Record<string, unknown> | null {
+  try {
+    // eslint-disable-next-line no-new-func
+    const fn = new Function(`${code}\nreturn typeof schema === 'function' ? schema() : null;`)
+    const result = fn()
+    return result && typeof result === 'object' ? result as Record<string, unknown> : null
+  } catch {
+    return null
+  }
+}
+
+// Convert type strings ("integer", "string", …) to sample values recursively.
+function typeToSampleValue(v: unknown): unknown {
+  if (v === 'integer') return 0
+  if (v === 'number') return 0.0
+  if (v === 'boolean') return false
+  if (v === 'string') return ''
+  if (Array.isArray(v)) return v
+  if (v && typeof v === 'object') {
+    const result: Record<string, unknown> = {}
+    for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+      result[k] = typeToSampleValue(val)
+    }
+    return result
+  }
+  return v
+}
+
+function buildResponseExample(
+  schema: Record<string, unknown>,
+  fields: ResponseDef[],
+): Record<string, unknown> {
+  // First convert all type strings to sample values so the preview looks like a real response.
+  const example = typeToSampleValue(schema) as Record<string, unknown>
+  if (fields.length === 0) return example
+
+  const exampleRow: Record<string, unknown> = {}
+  for (const f of fields) {
+    exampleRow[f.name] = f.type === 'integer' ? 0
+      : f.type === 'number' ? 0.0
+      : f.type === 'boolean' ? false
+      : ''
+  }
+
+  const data = example.data
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const d = data as Record<string, unknown>
+    if (Array.isArray(d.list)) {
+      // list response: substitute actual SQL columns into data.list
+      d.list = [exampleRow]
+    } else if (Object.keys(d).length === 0) {
+      // detail response: data is {} — substitute SQL columns in
+      example.data = exampleRow
+    }
+  }
+  return example
+}
 
 // ── Pagination ────────────────────────────────────────────────────────────────
 
@@ -46,6 +107,7 @@ function buildCurl(
   baseUrl: string,
   paramDefs: ParamDef[],
   paginationEnabled: boolean,
+  authType: AuthType,
 ): string {
   const pathParamNames = extractPathParamNames(path)
 
@@ -71,16 +133,29 @@ function buildCurl(
     : []
   const allEntries = [...businessEntries, ...paginationEntries]
 
+  const authHeader = authType === "api_key"
+    ? `  -H "Authorization: Bearer <your-api-key>" \\\n`
+    : authType === "jwt"
+    ? `  -H "Authorization: Bearer <your-jwt-token>" \\\n`
+    : ""
+
   if (isQueryMethod) {
     const qs = allEntries.length
       ? "?" + allEntries.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join("&")
       : ""
+    if (authHeader) {
+      return (
+        `curl -X ${method} "${url}${qs}" \\\n` +
+        authHeader.replace(/ \\\n$/, "")
+      )
+    }
     return `curl -X ${method} "${url}${qs}"`
   }
 
   const body = JSON.stringify(Object.fromEntries(allEntries), null, 2)
   return (
     `curl -X ${method} "${url}" \\\n` +
+    authHeader +
     `  -H "Content-Type: application/json" \\\n` +
     `  -d '${body}'`
   )
@@ -96,23 +171,45 @@ export function DocTab() {
   const [selectedEnvName, setSelectedEnvName] = useState<string>('')
   const exampleEnvName = selectedEnvName || defaultEnvName
 
-  const formMethod   = useEndpointFormStore(s => s.form.method)
-  const paramDefs    = useEndpointFormStore(s => s.form.paramDefs)
-  const preScriptId  = useEndpointFormStore(s => s.form.preScriptId)
+  const formMethod    = useEndpointFormStore(s => s.form.method)
+  const paramDefs     = useEndpointFormStore(s => s.form.paramDefs)
+  const responseDefs  = useEndpointFormStore(s => s.form.responseDefs)
+  const preScripts    = useEndpointFormStore(s => s.form.preScripts)
+  const postScripts   = useEndpointFormStore(s => s.form.postScripts)
   useParamSync()
   const { scripts } = useReferenceData(activeTenant)
+
+  // 解析一步脚本的代码：内联用自身 code，库引用按 id 取 code。
+  const stepCode = (s: { source: string; scriptId?: number; code?: string }) =>
+    s.source === "inline" ? (s.code ?? "") : (scripts.find(x => x.id === s.scriptId)?.code ?? "")
+
+  // 响应 schema 取自后置链最后一段（产生最终响应结构的那一步）。
+  const lastPost = postScripts.length > 0 ? postScripts[postScripts.length - 1] : null
+  const lastPostName = lastPost
+    ? (lastPost.source === "inline" ? (lastPost.name || "内联脚本") : (scripts.find(x => x.id === lastPost.scriptId)?.name ?? ""))
+    : ""
+  const lastPostCode = lastPost ? stepCode(lastPost) : ""
+  const schemaObj = useMemo(
+    () => (lastPostCode ? tryRunSchemaFn(lastPostCode) : null),
+    [lastPostCode],
+  )
+  const responseExample = useMemo(
+    () => (schemaObj ? buildResponseExample(schemaObj, responseDefs) : null),
+    [schemaObj, responseDefs],
+  )
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "")
   const isQueryMethod = formMethod === "GET" || formMethod === "DELETE"
 
-  const preScript = scripts.find(s => s.id === preScriptId)
-  const paginationEnabled = !!preScript && hasPaginationLogic(preScript.code)
+  // 分页若由前置链中任意一段提供即视为启用
+  const paginationEnabled = preScripts.some(s => hasPaginationLogic(stepCode(s)))
 
   const formPath    = useEndpointFormStore(s => s.form.path)
   const formSummary = useEndpointFormStore(s => s.form.summary)
   const pathParamNames = extractPathParamNames(formPath)
   const projectSlug = project?.slug ?? projectId
-  const curl = buildCurl(formMethod, formPath, exampleEnvName, activeTenant, projectSlug, baseUrl, paramDefs, paginationEnabled)
+  const authType: AuthType = (project?.auth_type as AuthType) ?? "public"
+  const curl = buildCurl(formMethod, formPath, exampleEnvName, activeTenant, projectSlug, baseUrl, paramDefs, paginationEnabled, authType)
 
   // Split params into three groups
   const businessParams = paramDefs.filter(d => !paginationEnabled || !PAGINATION_PARAM_NAMES.has(d.name))
@@ -143,6 +240,12 @@ export function DocTab() {
               </span>
               <span className="text-sm font-mono text-muted-foreground">{formPath || "-"}</span>
             </div>
+          </div>
+
+          {/* 鉴权 */}
+          <div className="space-y-3">
+            <SectionTitle color="blue">鉴权</SectionTitle>
+            <AuthSection authType={authType} />
           </div>
 
           {/* 请求参数 */}
@@ -238,6 +341,39 @@ export function DocTab() {
             )}
           </div>
 
+          {/* 响应结构 */}
+          <div className="space-y-5">
+            <SectionTitle color="blue">响应结构</SectionTitle>
+
+            {/* Full response JSON preview — built from post script schema() */}
+            {responseExample && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-3.5 rounded-full bg-emerald-500" />
+                  <span className="text-xs font-bold text-zinc-700">完整响应示例</span>
+                  <span className="text-2xs font-bold px-1.5 py-0.5 rounded-md border bg-emerald-50 text-emerald-600 border-emerald-200">JSON</span>
+                  {lastPostName && (
+                    <span className="text-xs text-muted-foreground">
+                      由后置脚本「{lastPostName}」定义
+                    </span>
+                  )}
+                </div>
+                <div className="bg-zinc-900 rounded-xl p-4 font-mono text-xs leading-relaxed overflow-auto max-h-80 border border-zinc-800">
+                  <pre className="text-emerald-400 whitespace-pre">{JSON.stringify(responseExample, null, 2)}</pre>
+                </div>
+              </div>
+            )}
+
+            {/* Data field table */}
+            {responseDefs.length === 0 ? (
+              <div className="p-5 bg-zinc-50/50 rounded-xl border border-dashed border-border text-sm text-muted-foreground text-center italic">
+                暂未定义响应字段 — 在 SQL 设计器执行后点击「提取响应字段」
+              </div>
+            ) : (
+              <ResponseGroup defs={responseDefs} />
+            )}
+          </div>
+
           {/* cURL example */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -279,6 +415,46 @@ export function DocTab() {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+function ResponseGroup({ defs }: { defs: ResponseDef[] }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <div className="w-1 h-3.5 rounded-full bg-violet-500" />
+        <span className="text-xs font-bold text-zinc-700">响应字段</span>
+        <span className="text-2xs font-bold px-1.5 py-0.5 rounded-md border bg-violet-50 text-violet-600 border-violet-200">
+          Response
+        </span>
+        <span className="text-xs text-muted-foreground">接口 data 对象包含的字段</span>
+      </div>
+      <div className="bg-white rounded-xl overflow-hidden border border-border/80 shadow-card">
+        <table className="w-full text-left table-fixed">
+          <colgroup>
+            <col className="w-[30%]" />
+            <col className="w-[12%]" />
+            <col />
+          </colgroup>
+          <thead className="bg-zinc-50/80 border-b border-border/50">
+            <tr>
+              {["字段名", "类型", "说明"].map(h => (
+                <th key={h} className="px-5 py-3 text-2xs font-bold text-muted-foreground uppercase tracking-wider">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-zinc-100">
+            {defs.map(def => (
+              <tr key={def.name} className="hover:bg-zinc-50/50 transition-colors">
+                <td className="px-5 py-3 font-mono font-bold text-violet-600 text-sm truncate">{def.name}</td>
+                <td className="px-5 py-3"><TypeBadge>{def.type || "string"}</TypeBadge></td>
+                <td className="px-5 py-3 text-sm text-muted-foreground truncate">{def.desc || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
 
 type TagColor = "green" | "blue" | "amber" | "violet"
 
@@ -376,6 +552,49 @@ function PaginationDivider({ show }: { show: boolean }) {
         </span>
       </td>
     </tr>
+  )
+}
+
+function AuthSection({ authType }: { authType: AuthType }) {
+  if (authType === "public") {
+    return (
+      <div className="flex items-start gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+        <Globe className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+        <div className="space-y-0.5">
+          <p className="text-sm font-bold text-emerald-700">公开访问</p>
+          <p className="text-xs text-emerald-600">此接口无需鉴权，可直接调用。</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (authType === "api_key") {
+    return (
+      <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+        <KeyRound className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+        <div className="space-y-2">
+          <p className="text-sm font-bold text-amber-700">API Key 鉴权</p>
+          <p className="text-xs text-amber-600">在请求头中携带项目颁发的 API Key：</p>
+          <code className="block text-xs font-mono bg-amber-100/70 text-amber-800 px-3 py-1.5 rounded-lg">
+            Authorization: Bearer &lt;your-api-key&gt;
+          </code>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-start gap-3 p-4 bg-violet-50 border border-violet-100 rounded-xl">
+      <Lock className="w-4 h-4 text-violet-500 mt-0.5 shrink-0" />
+      <div className="space-y-2">
+        <p className="text-sm font-bold text-violet-700">JWT 鉴权</p>
+        <p className="text-xs text-violet-600">在请求头中携带使用项目 JWT 密钥签发的 Token：</p>
+        <code className="block text-xs font-mono bg-violet-100/70 text-violet-800 px-3 py-1.5 rounded-lg">
+          Authorization: Bearer &lt;your-jwt-token&gt;
+        </code>
+        <p className="text-xs text-violet-500">签发算法：HMAC-SHA256（HS256），有效期由 exp 字段控制。</p>
+      </div>
+    </div>
   )
 }
 

@@ -50,6 +50,7 @@ message QueryResult {
   bytes data = 4;  // JSON 格式的查询结果
   int64 rows_affected = 5;
   int64 execution_time_ms = 6;
+  int32 error_code = 7;  // 业务/HTTP 状态码，0 表示沿用默认（成功 200 / 失败 500）
 }
 
 // ==================== Server → Gateway ====================
@@ -81,7 +82,7 @@ message ExecuteQueryRequest {
   string sql = 3;
   map<string, string> params = 4;
   int32 timeout_seconds = 5;
-  string pre_script = 6;
-  string post_script = 7;
+  repeated string pre_scripts = 6;   // 前置脚本链，按顺序串行执行
+  repeated string post_scripts = 7;  // 后置脚本链，data 顺序流过
   string db_type = 8;
 }

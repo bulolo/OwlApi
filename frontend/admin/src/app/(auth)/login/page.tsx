@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input"
 import { useAuthStore } from "@/store/useAuthStore"
 import { STORAGE_KEYS } from "@/lib/constants"
 import { useQueryClient } from "@tanstack/react-query"
-import { useQuery } from "@tanstack/react-query"
-import { apiGetPlatformSettings, getToken } from "@/lib/api-client"
+import { useGetPlatformSettings, getMyTenantsQueryKey } from "@/lib/sdk"
+import { getToken } from "@/lib/custom-fetch"
 
 export default function LoginPage() {
   return (
@@ -26,10 +26,8 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const { login } = useAuthStore()
   const qc = useQueryClient()
-  const { data: platformSettings } = useQuery({
-    queryKey: ["platform-settings"],
-    queryFn: apiGetPlatformSettings,
-    staleTime: 5 * 60 * 1000,
+  const { data: platformSettings } = useGetPlatformSettings({
+    query: { staleTime: 5 * 60 * 1000 },
   })
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -70,7 +68,7 @@ function LoginForm() {
         localStorage.removeItem(STORAGE_KEYS.REMEMBER_EMAIL)
       }
       const res = await login(email, password)
-      qc.invalidateQueries({ queryKey: ["tenants"] })
+      qc.invalidateQueries({ queryKey: getMyTenantsQueryKey() })
       const redirect = searchParams.get('redirect')
       if (redirect) {
         router.push(redirect)

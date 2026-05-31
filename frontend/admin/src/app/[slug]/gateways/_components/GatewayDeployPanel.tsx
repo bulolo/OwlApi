@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Copy, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { Gateway } from "@/lib/api-client"
+import type { GatewayResp as Gateway } from "@/lib/sdk"
 
 interface GatewayDeployPanelProps {
   gateway: Gateway

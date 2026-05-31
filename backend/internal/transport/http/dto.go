@@ -16,12 +16,12 @@ type TenantResp struct {
 	ID                 int64  `json:"id"                   validate:"required"`
 	Name               string `json:"name"                 validate:"required"`
 	Slug               string `json:"slug"                 validate:"required"`
-	Plan               string `json:"plan"                 validate:"required"`
 	Status             string `json:"status"               validate:"required"`
 	MaxReleaseVersions int    `json:"max_release_versions" validate:"required"`
 	Avatar             string `json:"avatar,omitempty"`
 	CreatedAt          string `json:"created_at"           validate:"required"`
 	UpdatedAt          string `json:"updated_at"           validate:"required"`
+	IsDemo             bool   `json:"is_demo"`
 }
 
 type TenantUserResp struct {
@@ -86,6 +86,7 @@ type ProjectResp struct {
 	Name        string `json:"name"        validate:"required"`
 	Description string `json:"description" validate:"required"`
 	Avatar      string `json:"avatar,omitempty"`
+	AuthType    string `json:"auth_type"   validate:"required"`
 	CreatedAt   string `json:"created_at"  validate:"required"`
 }
 
@@ -97,6 +98,12 @@ type ParamDefResp struct {
 	Desc     string `json:"desc,omitempty"`
 }
 
+type ResponseDefResp struct {
+	Name string `json:"name" validate:"required"`
+	Type string `json:"type" validate:"required"`
+	Desc string `json:"desc,omitempty"`
+}
+
 type APIEndpointResp struct {
 	ID              int64                     `json:"id"                    validate:"required"`
 	TenantID        int64                     `json:"tenant_id"             validate:"required"`
@@ -104,14 +111,14 @@ type APIEndpointResp struct {
 	GroupID         int64                     `json:"group_id"              validate:"required"`
 	DataSourceAlias string                    `json:"datasource_alias"     validate:"required"`
 	Path            string                    `json:"path"                  validate:"required"`
-	Methods         []string                  `json:"methods"               validate:"required"`
+	Method          string                    `json:"method"                validate:"required"`
 	Summary         string                    `json:"summary"               validate:"required"`
 	Description     string                    `json:"description,omitempty"`
 	SQL             string                    `json:"sql"                   validate:"required"`
-	Params          []string                  `json:"params"                validate:"required"`
 	ParamDefs       []ParamDefResp            `json:"param_defs,omitempty"`
-	PreScriptID     int64                     `json:"pre_script_id,omitempty"`
-	PostScriptID    int64                     `json:"post_script_id,omitempty"`
+	ResponseDefs    []ResponseDefResp         `json:"response_defs,omitempty"`
+	PreScripts      []ScriptStepResp          `json:"pre_scripts,omitempty"`
+	PostScripts     []ScriptStepResp          `json:"post_scripts,omitempty"`
 	LatestVersion   int                       `json:"latest_version,omitempty"`
 	HasDraft        bool                      `json:"has_draft"             validate:"required"`
 	EnvActivations  []EndpointEnvActivityResp `json:"env_activations,omitempty"`
@@ -137,10 +144,14 @@ type ScriptResp struct {
 	Code        string `json:"code"        validate:"required"`
 	Description string `json:"description,omitempty"`
 	CreatedAt   string `json:"created_at"  validate:"required"`
+	RefCount    int    `json:"ref_count"   validate:"required"`
 }
 
 type PlatformSettingsResp struct {
-	AllowSelfRegister bool `json:"allow_self_register" validate:"required"`
+	AllowSelfRegister bool   `json:"allow_self_register" validate:"required"`
+	PlatformName      string `json:"platform_name"`
+	PlatformTagline   string `json:"platform_tagline"`
+	LogoURL           string `json:"logo_url"`
 }
 
 type AuthResp struct {
@@ -269,4 +280,58 @@ type RPlatformSettings struct {
 	Code int                  `json:"code" validate:"required"`
 	Msg  string               `json:"msg"  validate:"required"`
 	Data PlatformSettingsResp `json:"data" validate:"required"`
+}
+
+type EnvironmentResp struct {
+	ID        int64  `json:"id"         validate:"required"`
+	TenantID  int64  `json:"tenant_id"  validate:"required"`
+	ProjectID int64  `json:"project_id" validate:"required"`
+	Name      string `json:"name"       validate:"required"`
+	IsDefault bool   `json:"is_default" validate:"required"`
+	CreatedAt string `json:"created_at" validate:"required"`
+}
+type REnvironment struct {
+	Code int             `json:"code" validate:"required"`
+	Msg  string          `json:"msg"  validate:"required"`
+	Data EnvironmentResp `json:"data" validate:"required"`
+}
+type REnvironmentList struct {
+	Code int               `json:"code" validate:"required"`
+	Msg  string            `json:"msg"  validate:"required"`
+	Data []EnvironmentResp `json:"data" validate:"required"`
+}
+
+type BindingResp struct {
+	TenantID     int64  `json:"tenant_id"     validate:"required"`
+	EnvID        int64  `json:"env_id"        validate:"required"`
+	Alias        string `json:"alias"         validate:"required"`
+	DataSourceID int64  `json:"datasource_id" validate:"required"`
+}
+type RBindingList struct {
+	Code int           `json:"code" validate:"required"`
+	Msg  string        `json:"msg"  validate:"required"`
+	Data []BindingResp `json:"data" validate:"required"`
+}
+
+type EndpointActiveVersionResp struct {
+	TenantID    int64  `json:"tenant_id"    validate:"required"`
+	EndpointID  int64  `json:"endpoint_id"  validate:"required"`
+	EnvID       int64  `json:"env_id"       validate:"required"`
+	VersionID   int64  `json:"version_id"   validate:"required"`
+	Version     int    `json:"version"      validate:"required"`
+	ActivatedBy int64  `json:"activated_by" validate:"required"`
+	ActivatedAt string `json:"activated_at" validate:"required"`
+}
+type REndpointActiveVersionList struct {
+	Code int                         `json:"code" validate:"required"`
+	Msg  string                      `json:"msg"  validate:"required"`
+	Data []EndpointActiveVersionResp `json:"data" validate:"required"`
+}
+
+// PreviewRow represents one row of dynamic preview data (column names vary per table)
+type PreviewRow map[string]interface{}
+type RPreviewTable struct {
+	Code int          `json:"code" validate:"required"`
+	Msg  string       `json:"msg"  validate:"required"`
+	Data []PreviewRow `json:"data" validate:"required"`
 }

@@ -68,7 +68,7 @@ func (r *APIGroupRepo) GetByID(ctx context.Context, tenantID, id int64) (*domain
 		`SELECT id, tenant_id, project_id, name, description, created_at FROM api_groups WHERE tenant_id=$1 AND id=$2`,
 		tenantID, id).Scan(&g.ID, &g.TenantID, &g.ProjectID, &g.Name, &g.Description, &g.CreatedAt)
 	if err != nil {
-		return nil, err
+		return nil, nfErr(err, "api group")
 	}
 	return &g, nil
 }
@@ -79,7 +79,7 @@ func (r *APIGroupRepo) GetByName(ctx context.Context, tenantID, projectID int64,
 		`SELECT id, tenant_id, project_id, name, description, created_at FROM api_groups WHERE tenant_id=$1 AND project_id=$2 AND name=$3`,
 		tenantID, projectID, name).Scan(&g.ID, &g.TenantID, &g.ProjectID, &g.Name, &g.Description, &g.CreatedAt)
 	if err != nil {
-		return nil, err
+		return nil, nfErr(err, "api group")
 	}
 	return &g, nil
 }

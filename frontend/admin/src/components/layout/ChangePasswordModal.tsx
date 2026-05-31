@@ -5,7 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Lock, Eye, EyeOff, Shield, X } from "lucide-react"
-import { apiChangePassword } from "@/lib/api-client"
+import { changePassword } from "@/lib/sdk"
 
 interface ChangePasswordModalProps {
   open: boolean
@@ -45,7 +45,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
     }
     setIsPending(true)
     try {
-      await apiChangePassword({ old_password: oldPassword, new_password: newPassword })
+      await changePassword({ old_password: oldPassword, new_password: newPassword })
       handleClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : "修改失败，请稍后重试")

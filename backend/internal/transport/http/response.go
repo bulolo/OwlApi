@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -50,9 +51,11 @@ func Fail(c *gin.Context, httpCode int, msg string) {
 }
 
 // FailErr maps a domain.Error to the correct HTTP status; plain errors become 500.
+// Uses errors.As so a domain.Error stays correctly mapped even when wrapped with %w.
 func FailErr(c *gin.Context, err error) {
-	if e, ok := err.(*domain.Error); ok {
-		Fail(c, e.Code, e.Message)
+	var de *domain.Error
+	if errors.As(err, &de) {
+		Fail(c, de.Code, de.Message)
 		return
 	}
 	Fail(c, http.StatusInternalServerError, err.Error())

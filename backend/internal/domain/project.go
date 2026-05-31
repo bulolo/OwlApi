@@ -5,6 +5,27 @@ import (
 	"time"
 )
 
+// AuthType enumerates project-level access control modes.
+type AuthType string
+
+const (
+	AuthTypePublic AuthType = "public"
+	AuthTypeAPIKey AuthType = "api_key"
+	AuthTypeJWT    AuthType = "jwt"
+)
+
+// ProjectAuthKey is a single auth key row stored in the project_auth_keys table.
+type ProjectAuthKey struct {
+	ID        string     `json:"id"`
+	TenantID  int64      `json:"tenant_id"`
+	ProjectID int64      `json:"project_id"`
+	Type      AuthType   `json:"type"` // "api_key" or "jwt"
+	Name      string     `json:"name"`
+	Value     string     `json:"value"` // sk-xxx for api_key, base64 secret for jwt
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+}
+
 type Project struct {
 	ID          int64     `json:"id"`
 	TenantID    int64     `json:"tenant_id"`
@@ -12,6 +33,7 @@ type Project struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Avatar      string    `json:"avatar"`
+	AuthType    AuthType  `json:"auth_type"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -22,6 +44,13 @@ type ParamDef struct {
 	Required bool   `json:"required"`
 	Default  string `json:"default,omitempty"`
 	Desc     string `json:"desc,omitempty"`
+}
+
+// ResponseDef describes a single field in the API response body.
+type ResponseDef struct {
+	Name string `json:"name"`
+	Type string `json:"type"` // string, integer, number, boolean
+	Desc string `json:"desc,omitempty"`
 }
 
 type APIGroup struct {
@@ -40,22 +69,28 @@ type APIGroup struct {
 // determined at call time by looking up endpoint_datasource_bindings for the
 // requested env.
 type APIEndpoint struct {
-	ID              int64      `json:"id"`
-	TenantID        int64      `json:"tenant_id"`
-	ProjectID       int64      `json:"project_id"`
-	GroupID         int64      `json:"group_id"`
-	DataSourceAlias string     `json:"datasource_alias"`
-	Path            string     `json:"path"`
-	Methods         []string   `json:"methods"`
-	Summary         string     `json:"summary"`
-	Description     string     `json:"description,omitempty"`
-	SQL             string     `json:"sql"`
-	Params          []string   `json:"params"`
-	ParamDefs       []ParamDef `json:"param_defs,omitempty"`
-	PreScriptID     int64      `json:"pre_script_id,omitempty"`
-	PostScriptID    int64      `json:"post_script_id,omitempty"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	ID              int64         `json:"id"`
+	TenantID        int64         `json:"tenant_id"`
+	ProjectID       int64         `json:"project_id"`
+	GroupID         int64         `json:"group_id"`
+	DataSourceAlias string        `json:"datasource_alias"`
+	Path            string        `json:"path"`
+	Method          string        `json:"method"`
+	Summary         string        `json:"summary"`
+	Description     string        `json:"description,omitempty"`
+	SQL             string        `json:"sql"`
+	ParamDefs       []ParamDef    `json:"param_defs,omitempty"`
+	ResponseDefs    []ResponseDef `json:"response_defs,omitempty"`
+	// PreScripts / PostScripts are ordered chains run sequentially around the SQL.
+	// Each step is either a reference to a reusable library script or inline code
+	// stored on the endpoint itself (see ScriptStep). In the pre-chain each stage's
+	// output params feed the next and any `{ error }` short-circuits; in the
+	// post-chain each stage's output becomes the next stage's `data`, and the last
+	// stage's output is the response body.
+	PreScripts  []ScriptStep `json:"pre_scripts,omitempty"`
+	PostScripts []ScriptStep `json:"post_scripts,omitempty"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
 
 	// Derived/computed fields (not stored on the row itself):
 	HasDraft       bool                  `json:"has_draft"`                 // updated_at > MAX(activated_at) across envs, or no version yet
@@ -69,6 +104,22 @@ type EndpointEnvActivity struct {
 	EnvName   string `json:"env_name"`
 	Version   int    `json:"version"`
 	VersionID int64  `json:"version_id"`
+}
+
+// ScriptStepSource enumerates where a chain step's code comes from.
+const (
+	ScriptStepLibrary = "library" // references a reusable script in the library by ScriptID
+	ScriptStepInline  = "inline"  // code authored on the endpoint itself
+)
+
+// ScriptStep is one step in an endpoint's pre/post chain. It is either a
+// reference to a library script (Source=library, ScriptID set) or inline code
+// stored on the endpoint (Source=inline, Name+Code set).
+type ScriptStep struct {
+	Source   string `json:"source"`
+	ScriptID int64  `json:"script_id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Code     string `json:"code,omitempty"`
 }
 
 // ScriptSnapshot is a frozen copy of a script captured into a version.
@@ -88,19 +139,19 @@ type DataSourceRef struct {
 
 // EndpointVersion is an immutable published snapshot of an endpoint.
 type EndpointVersion struct {
-	ID                 int64           `json:"id"`
-	TenantID           int64           `json:"tenant_id"`
-	EndpointID         int64           `json:"endpoint_id"`
-	Version            int             `json:"version"`
-	Snapshot           *APIEndpoint    `json:"snapshot"`
-	SnapshotV          int             `json:"snapshot_v"`
-	PreScriptSnapshot  *ScriptSnapshot `json:"pre_script_snapshot,omitempty"`
-	PostScriptSnapshot *ScriptSnapshot `json:"post_script_snapshot,omitempty"`
-	DataSourceRef      *DataSourceRef  `json:"datasource_ref,omitempty"`
-	Note               string          `json:"note"`
-	CreatedBy          int64           `json:"created_by"`
-	CreatedAt          time.Time       `json:"created_at"`
-	IsActive           bool            `json:"is_active"`
+	ID                  int64            `json:"id"`
+	TenantID            int64            `json:"tenant_id"`
+	EndpointID          int64            `json:"endpoint_id"`
+	Version             int              `json:"version"`
+	Snapshot            *APIEndpoint     `json:"snapshot"`
+	SnapshotV           int              `json:"snapshot_v"`
+	PreScriptSnapshots  []ScriptSnapshot `json:"pre_script_snapshots,omitempty"`
+	PostScriptSnapshots []ScriptSnapshot `json:"post_script_snapshots,omitempty"`
+	DataSourceRef       *DataSourceRef   `json:"datasource_ref,omitempty"`
+	Note                string           `json:"note"`
+	CreatedBy           int64            `json:"created_by"`
+	CreatedAt           time.Time        `json:"created_at"`
+	IsActive            bool             `json:"is_active"`
 }
 
 // EndpointActiveVersion is the authoritative pointer to "what's live in (endpoint, env) now".
@@ -120,6 +171,7 @@ type EndpointActiveVersion struct {
 type ActivationAction string
 
 const (
+	ActivationActionVersionCreate ActivationAction = "version_create"
 	ActivationActionPublish       ActivationAction = "publish"
 	ActivationActionActivate      ActivationAction = "activate"
 	ActivationActionRollback      ActivationAction = "rollback"
@@ -136,22 +188,26 @@ type CallLogParams map[string]any
 // EndpointCallLog represents one invocation of an endpoint via the gateway path
 // /-/:env/:tenantSlug/:projectSlug/*path.
 type EndpointCallLog struct {
-	ID         int64         `json:"id"`
-	TenantID   int64         `json:"tenant_id"`
-	EndpointID int64         `json:"endpoint_id"`
-	EnvID      int64         `json:"env_id,omitempty"`
-	EnvName    string        `json:"env_name,omitempty"`
-	VersionID  int64         `json:"version_id,omitempty"`
-	Version    int           `json:"version,omitempty"`
-	Method     string        `json:"method"`
-	Path       string        `json:"path"`
-	Params     CallLogParams `json:"params,omitempty"`
-	Status     int           `json:"status"`
-	LatencyMs  int           `json:"latency_ms"`
-	Error      string        `json:"error,omitempty"`
-	IP         string        `json:"ip,omitempty"`
-	UserAgent  string        `json:"user_agent,omitempty"`
-	At         time.Time     `json:"at"`
+	ID          int64             `json:"id"`
+	TenantID    int64             `json:"tenant_id"`
+	EndpointID  int64             `json:"endpoint_id"`
+	EnvID       int64             `json:"env_id,omitempty"`
+	EnvName     string            `json:"env_name,omitempty"`
+	VersionID   int64             `json:"version_id,omitempty"`
+	Version     int               `json:"version,omitempty"`
+	Method      string            `json:"method"`
+	Path        string            `json:"path"`
+	Params      CallLogParams     `json:"params,omitempty"`
+	PathParams  map[string]string `json:"path_params,omitempty"`
+	QueryParams map[string]string `json:"query_params,omitempty"`
+	BodyParams  map[string]string `json:"body_params,omitempty"`
+	Headers     map[string]string `json:"headers,omitempty"`
+	Status      int               `json:"status"`
+	LatencyMs   int               `json:"latency_ms"`
+	Error       string            `json:"error,omitempty"`
+	IP          string            `json:"ip,omitempty"`
+	UserAgent   string            `json:"user_agent,omitempty"`
+	At          time.Time         `json:"at"`
 }
 
 // CallLogFilter narrows what ListEndpointCallLogs returns.
@@ -181,6 +237,27 @@ type EndpointActivationLog struct {
 	At         time.Time        `json:"at"`
 }
 
+// RecentActivation 是概览「最近动态」里一条资产变更事件的扁平视图（已 join 出端点/环境/操作人）。
+type RecentActivation struct {
+	Action          ActivationAction
+	EndpointSummary string // 端点摘要，可能为空
+	Path            string
+	Method          string
+	EnvName         string
+	Version         int
+	ActorName       string
+	At              time.Time
+}
+
+// ActivityEvent 是概览「最近动态」对外的统一事件：合并资产变更 + 流量异常后按时间倒序。
+type ActivityEvent struct {
+	Type     string    // "api"（资产变更）/ "error"（5xx）/ "slow"（慢查询）
+	Title    string    // 端点摘要或 "METHOD path"
+	Desc     string    // 人类可读描述
+	Severity string    // "info" / "warning" / "error"
+	At       time.Time // 事件时间
+}
+
 // Script is a reusable JavaScript snippet that can be attached to endpoints.
 type Script struct {
 	ID          int64     `json:"id"`
@@ -191,6 +268,9 @@ type Script struct {
 	Code        string    `json:"code"`
 	Description string    `json:"description,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
+	// RefCount is how many endpoints reference this script (library steps in
+	// their pre/post chains). Computed on List; not a stored column.
+	RefCount int `json:"ref_count"`
 }
 
 // InferMeta auto-fills Summary, Description, and ParamDefs from SQL and Path
@@ -203,9 +283,6 @@ func (ep *APIEndpoint) InferMeta() {
 	}
 	if ep.Description == "" {
 		ep.Description = inferDescription(sql)
-	}
-	if len(ep.ParamDefs) == 0 && len(ep.Params) > 0 {
-		ep.ParamDefs = inferParamDefs(ep.Params, ep.SQL)
 	}
 }
 
@@ -238,31 +315,11 @@ func inferDescription(sql string) string {
 	}
 }
 
-// inferParamDefs guesses parameter types from SQL context.
-// Rules: column names containing "id","count","quantity","stock" → integer,
-// "price","total","amount" → number, everything else → string.
-// All params in WHERE/VALUES are required by default.
-func inferParamDefs(params []string, sql string) []ParamDef {
-	defs := make([]ParamDef, 0, len(params))
-	for _, p := range params {
-		def := ParamDef{Name: p, Type: inferType(p), Required: true}
-		defs = append(defs, def)
-	}
-	return defs
-}
-
-func inferType(name string) string {
-	n := strings.ToLower(name)
-	switch {
-	case strings.HasSuffix(n, "_id") || n == "id" || strings.Contains(n, "count") ||
-		n == "quantity" || n == "stock" || n == "page" || n == "size":
-		return "integer"
-	case strings.Contains(n, "price") || strings.Contains(n, "total") ||
-		strings.Contains(n, "amount") || strings.Contains(n, "rate"):
-		return "number"
-	case strings.Contains(n, "is_") || strings.Contains(n, "enabled") || strings.Contains(n, "active"):
-		return "boolean"
-	default:
-		return "string"
-	}
+// OpenAPIShareToken represents a persistent public share link for a project's OpenAPI spec.
+type OpenAPIShareToken struct {
+	Token     string    `json:"token"`
+	TenantID  int64     `json:"tenant_id"`
+	ProjectID int64     `json:"project_id"`
+	Env       string    `json:"env"`
+	CreatedAt time.Time `json:"created_at"`
 }

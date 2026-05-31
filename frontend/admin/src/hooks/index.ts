@@ -1,6 +1,7 @@
-export { useGateways, useGateway, useCreateGateway, useDeleteGateway } from './useGateways'
+export { useGateways, useCreateGateway, useDeleteGateway } from './useGateways'
 export { useProjects, useProject, useCreateProject, useUpdateProject, useDeleteProject } from './useProjects'
 export { useDataSources, useDataSource, useDataSourceSchema, useDataSourcePreview, useCreateDataSource, useUpdateDataSource, useDeleteDataSource } from './useDataSources'
+export type { SchemaColumn, SchemaTable } from './useDataSources'
 export {
   useEnvironments,
   useProjectBindings,
@@ -14,11 +15,10 @@ export {
   useRenameAlias,
 } from './useEnvironments'
 export { useUsers, useAddUser, useRemoveUser, useUpdateUserRole } from './useUsers'
-export { useScripts, useCreateScript, useUpdateScript, useDeleteScript } from './useScripts'
+export { useScripts, useCreateScript, useUpdateScript, useDeleteScript, useScriptBuiltins, useCopyScriptFromBuiltin } from './useScripts'
 export { useTenants, useCreateTenant } from './useTenants'
 export { useAdminMutation } from './useAdminMutation'
 export { useIsClient } from './useIsClient'
-export { usePaginatedQuery } from './usePaginatedQuery'
 export {
   useEndpointVersions,
   useEndpointActives,

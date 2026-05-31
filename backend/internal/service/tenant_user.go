@@ -2,11 +2,9 @@ package service
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/bulolo/owlapi/internal/domain"
-	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -41,7 +39,7 @@ func (s *tenantUserService) Create(ctx context.Context, tenantID int64, req AddT
 	}
 
 	user, err := s.users.GetByEmail(ctx, req.Email)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if err != nil && !domain.IsNotFound(err) {
 		return err
 	}
 	if user == nil {

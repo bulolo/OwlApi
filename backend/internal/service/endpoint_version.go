@@ -35,6 +35,11 @@ type EndpointVersionService interface {
 	// No new version row is created. Recorded as "promote" in the activation log.
 	Promote(ctx context.Context, tenantID, endpointID, sourceEnvID, targetEnvID, actorID int64) error
 
+	// PublishToEnv activates an already-existing version in a new env and records it as
+	// "publish" in the activation log. Used when the same version needs to go live in
+	// multiple envs simultaneously (e.g. seed data: create v1 once, publish to dev + prod).
+	PublishToEnv(ctx context.Context, tenantID, endpointID, envID, versionID int64, version int, actorID int64) error
+
 	// Unpublish clears the active pointer for one env. Versions remain in history.
 	Unpublish(ctx context.Context, tenantID, endpointID, envID, actorID int64) error
 
@@ -97,22 +102,25 @@ func (s *endpointVersionService) CreateVersion(ctx context.Context, tenantID, en
 		return nil, err
 	}
 	v := &domain.EndpointVersion{
-		TenantID:           tenantID,
-		EndpointID:         endpointID,
-		Version:            version,
-		Snapshot:           ep,
-		SnapshotV:          1,
-		PreScriptSnapshot:  s.snapshotScript(ctx, tenantID, ep.PreScriptID),
-		PostScriptSnapshot: s.snapshotScript(ctx, tenantID, ep.PostScriptID),
-		DataSourceRef:      &domain.DataSourceRef{Alias: ep.DataSourceAlias},
-		Note:               note,
-		CreatedBy:          actorID,
+		TenantID:            tenantID,
+		EndpointID:          endpointID,
+		Version:             version,
+		Snapshot:            ep,
+		SnapshotV:           1,
+		PreScriptSnapshots:  s.snapshotChain(ctx, tenantID, ep.PreScripts),
+		PostScriptSnapshots: s.snapshotChain(ctx, tenantID, ep.PostScripts),
+		DataSourceRef:       &domain.DataSourceRef{Alias: ep.DataSourceAlias},
+		Note:                note,
+		CreatedBy:           actorID,
 	}
 	if err := s.versions.Create(ctx, v); err != nil {
 		return nil, err
 	}
 	if err := s.versions.Trim(ctx, tenantID, endpointID, maxVersions); err != nil {
 		slog.Warn("trim old versions failed", "endpoint_id", endpointID, "err", err)
+	}
+	if err := s.log.Append(ctx, tenantID, endpointID, 0, v.ID, v.Version, actorID, domain.ActivationActionVersionCreate); err != nil {
+		slog.Warn("append version_create log failed", "endpoint_id", endpointID, "err", err)
 	}
 	return v, nil
 }
@@ -157,6 +165,16 @@ func (s *endpointVersionService) Publish(ctx context.Context, tenantID, endpoint
 	}
 	v.IsActive = true
 	return v, nil
+}
+
+func (s *endpointVersionService) PublishToEnv(ctx context.Context, tenantID, endpointID, envID, versionID int64, version int, actorID int64) error {
+	if err := s.active.Upsert(ctx, tenantID, endpointID, envID, versionID, actorID); err != nil {
+		return err
+	}
+	if err := s.log.Append(ctx, tenantID, endpointID, envID, versionID, version, actorID, domain.ActivationActionPublish); err != nil {
+		slog.Warn("append activation log failed", "endpoint_id", endpointID, "err", err)
+	}
+	return nil
 }
 
 func (s *endpointVersionService) Promote(ctx context.Context, tenantID, endpointID, sourceEnvID, targetEnvID, actorID int64) error {
@@ -260,13 +278,25 @@ func (s *endpointVersionService) RevertToActive(ctx context.Context, tenantID, e
 	return nil
 }
 
-func (s *endpointVersionService) snapshotScript(ctx context.Context, tenantID, scriptID int64) *domain.ScriptSnapshot {
-	if scriptID == 0 || s.scripts == nil {
-		return nil
+// snapshotChain freezes an ordered chain into resolved {name,code} snapshots,
+// preserving order. Inline steps snapshot their own code; library steps resolve
+// the current library code (skipped if they fail to resolve).
+func (s *endpointVersionService) snapshotChain(ctx context.Context, tenantID int64, steps []domain.ScriptStep) []domain.ScriptSnapshot {
+	var snaps []domain.ScriptSnapshot
+	for _, step := range steps {
+		switch step.Source {
+		case domain.ScriptStepInline:
+			snaps = append(snaps, domain.ScriptSnapshot{Name: step.Name, Code: step.Code})
+		case domain.ScriptStepLibrary:
+			if step.ScriptID == 0 || s.scripts == nil {
+				continue
+			}
+			sc, err := s.scripts.GetByID(ctx, tenantID, step.ScriptID)
+			if err != nil || sc == nil {
+				continue
+			}
+			snaps = append(snaps, domain.ScriptSnapshot{ID: sc.ID, Name: sc.Name, Type: sc.Type, Code: sc.Code})
+		}
 	}
-	sc, err := s.scripts.GetByID(ctx, tenantID, scriptID)
-	if err != nil || sc == nil {
-		return nil
-	}
-	return &domain.ScriptSnapshot{ID: sc.ID, Name: sc.Name, Type: sc.Type, Code: sc.Code}
+	return snaps
 }

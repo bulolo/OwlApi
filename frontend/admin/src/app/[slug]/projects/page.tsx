@@ -2,9 +2,10 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Plus, FolderGit2, Pencil, Trash2, Search, RefreshCw, CalendarDays } from "lucide-react"
+import { Plus, FolderGit2, Pencil, Trash2, Search, CalendarDays } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { RefreshButton } from "@/components/ui/refresh-button"
 import { Input } from "@/components/ui/input"
 import { CardSkeleton } from "@/components/ui/skeletons"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -12,7 +13,7 @@ import { Pager } from "@/components/ui/pager"
 import { cn } from "@/lib/utils"
 import { useTenant } from "@/providers/TenantProvider"
 import { useProjects, useDeleteProject, usePaginationState } from "@/hooks"
-import type { Project } from "@/lib/api-client"
+import type { ProjectResp as Project } from "@/lib/sdk"
 import { showConfirm } from "@/store/useConfirmStore"
 
 const PROJECT_COLORS = [
@@ -52,9 +53,7 @@ export default function ProjectsPage() {
           <p className="text-sm text-muted-foreground mt-1 font-medium">管理您的 API 项目，编写 SQL 即可生成 RESTful 接口</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-100" onClick={() => refetch()}>
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> 刷新
-          </Button>
+          <RefreshButton onClick={() => refetch()} />
           <Link href={`/${activeTenant}/projects/new`}>
             <Button className="h-9 px-4 text-xs font-bold shadow-sm">
               <Plus className="w-4 h-4 mr-2" /> 新建

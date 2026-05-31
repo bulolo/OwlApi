@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
-import type { PaginatedData } from "@/lib/api-client"
+import type { PaginationInfo } from "@/lib/sdk"
+
+type PaginatedData<T> = { list: T[]; pagination: PaginationInfo }
 
 /**
  * Wraps useQuery for paginated list endpoints.

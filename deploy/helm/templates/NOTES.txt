@@ -1,0 +1,22 @@
+OwlApi {{ .Chart.AppVersion }} 已部署。
+
+访问地址：
+{{- if .Values.ingress.enabled }}
+  Admin:   http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.admin.host }}
+  API:     http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.api.host }}
+{{- else }}
+  kubectl port-forward svc/{{ include "owlapi.fullname" . }}-admin {{ .Values.admin.port }}:{{ .Values.admin.port }}
+  kubectl port-forward svc/{{ include "owlapi.fullname" . }}-backend {{ .Values.backend.httpPort }}:{{ .Values.backend.httpPort }}
+{{- end }}
+
+{{- if .Values.ee.sdkbuilder.enabled }}
+
+EE SDK Builder 已启用，backend 将自动连接：
+  {{ include "owlapi.sdkbuilderUrl" . }}
+{{- end }}
+
+查看 Pod 状态：
+  kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+查看日志：
+  kubectl logs -l app.kubernetes.io/component=backend -f

@@ -111,7 +111,7 @@ export function EndpointHeader() {
 
         {/* Per-env activation chips */}
         {!isNew && envs.length > 0 && (
-          <div className="hidden md:flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {envs.map(env => {
               const v = versionByEnv.get(env.id)
               return (
@@ -128,14 +128,14 @@ export function EndpointHeader() {
                   <span className={cn("w-1.5 h-1.5 rounded-full", envColor(env.name).bg)} />
                   <span>{env.name}</span>
                   <span className={cn("font-mono", v ? "text-emerald-800" : "text-zinc-400")}>
-                    {v ? `v${v}` : '—'}
+                    {v ? `v${v}` : "—"}
                   </span>
                 </span>
               )
             })}
             {currentEp?.has_draft && (
               <span className="text-2xs font-bold px-2 py-0.5 rounded-md border bg-amber-50 text-amber-700 border-amber-200">
-                草稿有未发布修改
+                草稿未发布
               </span>
             )}
           </div>

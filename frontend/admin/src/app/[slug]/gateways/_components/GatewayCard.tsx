@@ -3,7 +3,7 @@
 import { Server, Globe, Trash2, Eye, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import type { Gateway } from "@/lib/api-client"
+import type { GatewayResp as Gateway } from "@/lib/sdk"
 
 interface GatewayCardProps {
   gateway: Gateway

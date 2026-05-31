@@ -16,3 +16,7 @@ node_modules/
 dist/
 build/
 .cache/
+
+# Python
+__pycache__/
+*.pyc

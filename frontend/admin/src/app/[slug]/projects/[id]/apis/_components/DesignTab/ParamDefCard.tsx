@@ -145,7 +145,7 @@ export function ParamDefCard({ compact }: { compact?: boolean } = {}) {
       <div className="flex flex-col h-full">
         <div className="px-4 py-2 border-b border-border-subtle bg-white shrink-0 flex items-center gap-2">
           <LayoutTemplate className="w-3.5 h-3.5 text-primary/80" />
-          <span className="text-xs font-bold text-zinc-600">参数定义</span>
+          <span className="text-xs font-bold text-zinc-600">请求参数</span>
           {derivedParamDefs.length > 0 && (
             <span className="ml-auto text-2xs text-muted-foreground">{derivedParamDefs.length} 个参数</span>
           )}
@@ -161,7 +161,7 @@ export function ParamDefCard({ compact }: { compact?: boolean } = {}) {
     <Card className="border-border/60 shadow-card overflow-hidden flex flex-col h-[500px] rounded-lg">
       <CardHeader className="pb-3 pt-4 px-5 border-b border-border-subtle bg-white shrink-0">
         <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-          <LayoutTemplate className="w-4 h-4 text-primary/80" /> 参数定义
+          <LayoutTemplate className="w-4 h-4 text-primary/80" /> 请求参数
         </CardTitle>
       </CardHeader>
       <CardContent className="p-4 space-y-3 flex-1 overflow-auto custom-scrollbar bg-white">

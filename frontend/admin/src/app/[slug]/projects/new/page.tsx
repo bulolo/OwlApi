@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Save } from "lucide-react"
 import Link from "next/link"
 import { useTenant } from "@/providers/TenantProvider"
-import { useProject, useCreateProject, useUpdateProject } from "@/hooks"
-import type { Project } from "@/lib/api-client"
+import { useProject, useCreateProject, useUpdateProject, useDataSources } from "@/hooks"
+import { ENV_PRESETS } from "../_utils/envPresets"
+import type { ProjectResp as Project } from "@/lib/sdk"
 import { toast } from "sonner"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "")
@@ -37,12 +39,15 @@ function ProjectForm({
   const isEdit = !!projectId
   const createMutation = useCreateProject(slug)
   const updateMutation = useUpdateProject(slug, projectId ?? 0)
+  const { dataSources } = useDataSources(slug, { size: 100 })
 
   const [formData, setFormData] = useState(() => ({
     slug: existing?.slug ?? "",
     name: existing?.name ?? "",
     description: existing?.description ?? "",
   }))
+  const [env, setEnv] = useState("prod") // 初始环境（仅创建时使用）
+  const [datasourceId, setDatasourceId] = useState(0) // 初始环境 main 别名绑定的数据源，0=暂不绑定
   const [slugEdited, setSlugEdited] = useState(!!existing)
 
   const saving = createMutation.isPending || updateMutation.isPending
@@ -65,9 +70,9 @@ function ProjectForm({
     if (!formData.slug) return toast.error("请输入项目 Slug")
     const onSuccess = () => router.push(`/${slug}/projects`)
     if (isEdit) {
-      updateMutation.mutate({ slug: formData.slug, name: formData.name, description: formData.description }, { onSuccess })
+      updateMutation.mutate({ name: formData.name, description: formData.description }, { onSuccess })
     } else {
-      createMutation.mutate(formData, { onSuccess })
+      createMutation.mutate({ ...formData, env, datasource_id: datasourceId || undefined }, { onSuccess })
     }
   }
 
@@ -114,6 +119,48 @@ function ProjectForm({
           <Label className="text-xs font-bold text-muted-foreground uppercase">项目描述</Label>
           <Textarea placeholder="简述该项目的主要功能" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="min-h-[80px] text-sm resize-none" />
         </div>
+        {!isEdit && (
+          <div className="space-y-3 pt-2 border-t border-border-subtle">
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase">初始环境 <span className="text-red-500">*</span></Label>
+              <Select value={env} onValueChange={setEnv}>
+                <SelectTrigger className="h-9 text-sm w-[220px]">
+                  <SelectValue placeholder="选择环境..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {ENV_PRESETS.map(p => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">项目的默认环境，创建时一并建好；其它环境可在「环境管理」添加。提示：<code className="bg-zinc-100 px-1 rounded text-zinc-600">prod</code> 对应 SDK 发布的 GitLab <code className="bg-zinc-100 px-1 rounded text-zinc-600">main</code> 分支（稳定版）；其它环境发的是预发布版。</p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold text-muted-foreground uppercase">数据源（别名 <code className="bg-zinc-100 px-1 rounded text-zinc-600 normal-case">main</code>）</Label>
+              {dataSources.length === 0 ? (
+                <p className="text-xs text-muted-foreground">当前还没有数据源，可创建项目后到「环境管理」为 <code className="bg-zinc-100 px-1 rounded text-zinc-600">main</code> 别名绑定数据源。</p>
+              ) : (
+                <>
+                  <Select value={datasourceId ? String(datasourceId) : "0"} onValueChange={(v) => setDatasourceId(Number(v))}>
+                    <SelectTrigger className="h-9 text-sm w-[280px]">
+                      <SelectValue placeholder="选择数据源..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">暂不绑定（稍后在环境管理配置）</SelectItem>
+                      {dataSources.map(ds => (
+                        <SelectItem key={ds.id} value={String(ds.id)}>
+                          <span className="font-bold">{ds.name}</span>
+                          <span className="text-muted-foreground ml-2 text-xs">{ds.type}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">为 prod 环境的 <code className="bg-zinc-100 px-1 rounded text-zinc-600">main</code> 别名绑定数据源，接口即刻可调用；接口默认通过 <code className="bg-zinc-100 px-1 rounded text-zinc-600">main</code> 引用数据源。</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   )

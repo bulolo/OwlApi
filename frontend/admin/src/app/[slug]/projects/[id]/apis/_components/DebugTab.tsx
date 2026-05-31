@@ -1,12 +1,12 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Play, Trash2, Terminal, ScrollText, Key, Send } from "lucide-react"
+import { Play, Trash2, Terminal, ScrollText, Key, Send, Globe, Copy, Check, Code } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import Editor from "@monaco-editor/react"
@@ -16,7 +16,7 @@ import { useTenantProject } from "../_hooks/useTenantProject"
 import { useEnvironments } from "@/hooks"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { envColor } from "../../_utils/envColor"
-import { apiRun } from "@/lib/api-client"
+import { runEndpoint, useGetProjectAuth, useGetProject } from "@/lib/sdk"
 import { getErrorMessage } from "@/lib/errors"
 import type { ParamDef, ExecutionResult } from "../_types"
 
@@ -25,6 +25,25 @@ import type { ParamDef, ExecutionResult } from "../_types"
 function extractPathParamNames(path: string): Set<string> {
   const matches = path.match(/:([a-zA-Z_][a-zA-Z0-9_]*)/g) ?? []
   return new Set(matches.map(m => m.slice(1)))
+}
+
+function b64url(buf: ArrayBuffer | Uint8Array): string {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf)
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
+}
+
+async function signJwt(secret: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  const header  = b64url(new TextEncoder().encode(JSON.stringify({ alg: "HS256", typ: "JWT" })))
+  const payload = b64url(new TextEncoder().encode(JSON.stringify({ iat: now, exp: now + 86400 })))
+  const input   = `${header}.${payload}`
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  )
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(input))
+  return `${input}.${b64url(sig)}`
 }
 
 type TagColor = "green" | "blue" | "amber"
@@ -47,6 +66,13 @@ export function DebugTab() {
     if (runEnvId === 0 && defaultEnv) setRunEnvId(defaultEnv.id)
   }, [defaultEnv, runEnvId])
   const currentEnvId = runEnvId || defaultEnv?.id || 0
+
+  const { data: projectAuth, isLoading: authLoading } = useGetProjectAuth(activeTenant, Number(projectId), {
+    query: { enabled: !!activeTenant && !!projectId, staleTime: 30_000 },
+  }) as { data: { auth_type: string; keys: Array<{ id: string; type: string; name: string; value: string }> } | undefined; isLoading: boolean }
+  const authType = projectAuth?.auth_type ?? "public"
+  const authKeys = (projectAuth?.keys ?? []).filter(k => k.type === authType)
+
   const authToken    = useEndpointFormStore(s => s.authToken)
   const setAuthToken = useEndpointFormStore(s => s.setAuthToken)
   const paramJSON    = useEndpointFormStore(s => s.paramJSON)
@@ -58,7 +84,7 @@ export function DebugTab() {
   const paramDefs  = useEndpointFormStore(s => s.form.paramDefs)
 
   const pathParamNames = extractPathParamNames(formPath)
-  const isQueryMethod  = formMethod === "GET" || formMethod === "DELETE"
+  const isGetLike      = formMethod === "GET" || formMethod === "DELETE"
 
   const pathParams    = paramDefs.filter(d => pathParamNames.has(d.name))
   const nonPathParams = paramDefs.filter(d => !pathParamNames.has(d.name))
@@ -82,9 +108,10 @@ export function DebugTab() {
     setEnabledOptional(new Set(paramDefs.filter(d => !d.required).map(d => d.name)))
   }, [paramDefs])
 
-  function isEnabled(def: ParamDef): boolean {
-    return def.required || pathParamNames.has(def.name) || enabledOptional.has(def.name)
-  }
+  const isEnabled = useCallback(
+    (def: ParamDef): boolean => def.required || pathParamNames.has(def.name) || enabledOptional.has(def.name),
+    [pathParamNames, enabledOptional],
+  )
 
   function toggleOptional(name: string) {
     setEnabledOptional(prev => {
@@ -94,12 +121,71 @@ export function DebugTab() {
     })
   }
 
-  // Execution state (local — bypasses store's runDebug so we control enabled params)
+  const { data: project } = useGetProject(activeTenant, Number(projectId), {
+    query: { enabled: !!activeTenant && !!projectId, staleTime: 60_000 },
+  })
+
+  // ── cURL command ──────────────────────────────────────────────────────────
+  const currentEnvName = useMemo(() => envs.find(e => e.id === currentEnvId)?.name ?? "", [envs, currentEnvId])
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ""
+
+  const curlCommand = useMemo(() => {
+    if (!project?.slug || !currentEnvName) return ""
+
+    // Resolve path params inline
+    let resolvedPath = formPath
+    for (const name of pathParamNames) {
+      resolvedPath = resolvedPath.replace(`:${name}`, encodeURIComponent(paramValues[name] ?? ""))
+    }
+    const cleanPath = resolvedPath.replace(/^\//, "")
+    const url = `${API_BASE}/-/${currentEnvName}/${activeTenant}/${project.slug}/${cleanPath}`
+
+    // Collect enabled non-path params
+    const bodyParams: Record<string, string> = {}
+    for (const def of paramDefs) {
+      if (pathParamNames.has(def.name)) continue
+      if (!isEnabled(def)) continue
+      bodyParams[def.name] = paramValues[def.name] ?? def.default ?? ""
+    }
+
+    const isGetLike = formMethod === "GET" || formMethod === "DELETE"
+    const lines: string[] = []
+
+    if (formMethod !== "GET") lines.push(`curl -X ${formMethod} \\`)
+    else lines.push(`curl \\`)
+
+    const qs = isGetLike && Object.keys(bodyParams).length > 0
+      ? "?" + Object.entries(bodyParams).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&")
+      : ""
+    lines.push(`  "${url}${qs}" \\`)
+
+    if (authToken) lines.push(`  -H "Authorization: ${authToken}" \\`)
+
+    if (!isGetLike && Object.keys(bodyParams).length > 0) {
+      lines.push(`  -H "Content-Type: application/json" \\`)
+      lines.push(`  -d '${JSON.stringify(bodyParams)}'`)
+    } else {
+      lines[lines.length - 1] = lines[lines.length - 1].replace(/ \\$/, "")
+    }
+
+    return lines.join("\n")
+  }, [project, currentEnvName, formPath, formMethod, pathParamNames, paramValues, paramDefs, isEnabled, authToken, activeTenant, API_BASE])
+
+  // ── result tab state ──────────────────────────────────────────────────────
+  const [resultTab, setResultTab] = useState<"result" | "curl">("result")
+  const [copied, setCopied] = useState(false)
   const [executing, setExecuting] = useState(false)
   const [execResult, setExecResult] = useState<ExecutionResult>(null)
 
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   async function handleRun() {
     if (!selectedId) return
+    setResultTab("result")
     setExecuting(true)
     setExecResult(null)
     try {
@@ -110,7 +196,12 @@ export function DebugTab() {
         const val = paramValues[def.name] ?? def.default ?? ""
         params[def.name] = val
       }
-      const data = await apiRun(activeTenant, selectedId, currentEnvId, params)
+      const data = await runEndpoint(activeTenant, Number(projectId), {
+        endpoint_id: selectedId,
+        env_id: currentEnvId,
+        params,
+        auth_credential: authToken || undefined,
+      })
       setExecResult(data as ExecutionResult)
     } catch (err) {
       setExecResult({ error: getErrorMessage(err) })
@@ -133,16 +224,47 @@ export function DebugTab() {
 
           <CardContent className="p-0 flex flex-col">
             {/* Auth token */}
-            <div className="p-4 space-y-2 border-b border-border-subtle">
-              <Label className="text-2xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <Key className="w-3 h-3" /> Auth Token
-              </Label>
-              <Input
-                className="h-8 text-xs font-mono border-border/80 bg-zinc-50/50 rounded-lg"
-                placeholder="Bearer eyJhbGciOiJI..."
-                value={authToken}
-                onChange={e => setAuthToken(e.target.value)}
-              />
+            <div key={authType} className="p-4 space-y-2 border-b border-border-subtle">
+              {authLoading ? (
+                <div className="h-8 animate-pulse bg-zinc-100 rounded-lg" />
+              ) : authType === "public" ? (
+                <div className="h-8 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Globe className="w-3.5 h-3.5" /> 公开访问，无需鉴权
+                </div>
+              ) : (
+                <>
+                  <Label className="text-2xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Key className="w-3 h-3" /> Authorization
+                  </Label>
+                  {authKeys.length > 0 && (
+                    <Select value="" onValueChange={async v => {
+                      if (authType === "jwt") {
+                        const token = await signJwt(v)
+                        setAuthToken(`Bearer ${token}`)
+                      } else {
+                        setAuthToken(`Bearer ${v}`)
+                      }
+                    }}>
+                      <SelectTrigger className="h-8 text-xs font-mono border-border/80 bg-zinc-50/50 rounded-lg">
+                        <SelectValue placeholder="从已有密钥快速填充…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {authKeys.map(k => (
+                          <SelectItem key={k.id} value={k.value} className="font-mono text-xs">
+                            {k.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Input
+                    className="h-8 text-xs font-mono border-border/80 bg-zinc-50/50 rounded-lg"
+                    placeholder={authType === "api_key" ? "Bearer <api-key>" : "Bearer eyJhbGciOiJI..."}
+                    value={authToken}
+                    onChange={e => setAuthToken(e.target.value)}
+                  />
+                </>
+              )}
             </div>
 
             {/* Param groups */}
@@ -171,9 +293,9 @@ export function DebugTab() {
               {/* Query or Body */}
               {nonPathParams.length > 0 && (
                 <ParamSection
-                  label={isQueryMethod ? "Query 参数" : "Body 参数"}
-                  tag={isQueryMethod ? "Query" : "Body"}
-                  color={isQueryMethod ? "blue" : "amber"}
+                  label={isGetLike ? "Query 参数" : "Body 参数"}
+                  tag={isGetLike ? "Query" : "Body"}
+                  color={isGetLike ? "blue" : "amber"}
                 >
                   {nonPathParams.map(def => (
                     <ParamRow
@@ -223,60 +345,121 @@ export function DebugTab() {
           </div>
         </Card>
 
-        {/* ── Right: response ── */}
+        {/* ── Right: result / curl ── */}
         <Card className="lg:col-span-2 border-border/60 shadow-card bg-white overflow-hidden flex flex-col h-[500px] rounded-lg">
-          <CardHeader className="pb-3 pt-4 px-5 border-b border-border-subtle">
+          <CardHeader className="pb-0 pt-3 px-5 border-b border-border-subtle">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                <ScrollText className="w-4 h-4 text-emerald-500" /> 响应结果
-              </CardTitle>
-              {execResult && !("error" in execResult) && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setResultTab("result")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-t border-b-2 transition-colors",
+                    resultTab === "result"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <ScrollText className="w-3.5 h-3.5" /> 执行结果
+                </button>
+                <button
+                  onClick={() => setResultTab("curl")}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-t border-b-2 transition-colors",
+                    resultTab === "curl"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Code className="w-3.5 h-3.5" /> cURL
+                </button>
+              </div>
+              {resultTab === "result" && execResult && !("error" in execResult) && (
                 <Badge className="bg-emerald-50 text-emerald-600 border-emerald-200 text-2xs font-bold">HTTP 200 OK</Badge>
+              )}
+              {resultTab === "curl" && curlCommand && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 text-muted-foreground hover:text-foreground px-2 text-2xs gap-1"
+                  onClick={() => copyToClipboard(curlCommand)}
+                >
+                  {copied
+                    ? <><Check className="w-3 h-3 text-emerald-500" /><span>已复制</span></>
+                    : <><Copy className="w-3 h-3" /><span>复制</span></>}
+                </Button>
               )}
             </div>
           </CardHeader>
-          <CardContent className="p-0 flex-1 relative bg-white">
-            {executing ? (
-              <div className="flex flex-col items-center justify-center h-full space-y-3">
-                <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-2xs font-bold text-muted-foreground uppercase tracking-wider animate-pulse">正在请求...</p>
-              </div>
-            ) : execResult ? (
-              "error" in execResult ? (
-                <div className="p-8 text-sm text-red-500 font-mono">
-                  <div className="flex items-center gap-3 mb-6 bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 font-bold text-xs">
-                    <Trash2 className="w-4 h-4" /> 接口执行错误
+
+          <CardContent className="p-0 flex-1 relative bg-white overflow-hidden">
+            {/* 执行结果 */}
+            {resultTab === "result" && (
+              executing ? (
+                <div className="flex flex-col items-center justify-center h-full space-y-3">
+                  <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <p className="text-2xs font-bold text-muted-foreground uppercase tracking-wider animate-pulse">正在请求...</p>
+                </div>
+              ) : execResult ? (
+                "error" in execResult ? (
+                  <div className="p-8 text-sm text-red-500 font-mono">
+                    <div className="flex items-center gap-3 mb-6 bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 font-bold text-xs">
+                      <Trash2 className="w-4 h-4" /> 接口执行错误
+                    </div>
+                    <pre className="whitespace-pre-wrap leading-relaxed opacity-80 text-xs">{(execResult as { error: string }).error}</pre>
                   </div>
-                  <pre className="whitespace-pre-wrap leading-relaxed opacity-80 text-xs">{(execResult as { error: string }).error}</pre>
+                ) : (
+                  <Editor
+                    height="100%"
+                    defaultLanguage="json"
+                    theme="light"
+                    value={JSON.stringify(execResult, null, 2)}
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false },
+                      fontSize: 13,
+                      lineNumbers: "on",
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      padding: { top: 20 },
+                      wordWrap: "on",
+                    }}
+                  />
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                  <div className="w-14 h-14 bg-zinc-50 rounded-xl border border-border-subtle flex items-center justify-center mb-5">
+                    <Play className="w-6 h-6 text-zinc-300" />
+                  </div>
+                  <h4 className="text-sm font-bold text-zinc-600">等待执行</h4>
+                  <p className="text-xs text-muted-foreground mt-2 max-w-[220px] leading-relaxed">
+                    填写参数后点击「发送请求」，结果将在此展示。
+                  </p>
+                </div>
+              )
+            )}
+
+            {/* cURL */}
+            {resultTab === "curl" && (
+              curlCommand ? (
+                <div className="h-full flex flex-col p-4">
+                  <pre className="flex-1 overflow-auto rounded-lg bg-zinc-950 px-5 py-4 text-sm font-mono leading-7 whitespace-pre border border-zinc-800">
+                    <CurlHighlight command={curlCommand} />
+                  </pre>
+                  <p className="text-2xs text-muted-foreground mt-2 shrink-0">
+                    ⚠ 仅适用于已发布且上线的接口；「发送请求」可调试下线接口
+                  </p>
                 </div>
               ) : (
-                <Editor
-                  height="100%"
-                  defaultLanguage="json"
-                  theme="light"
-                  value={JSON.stringify(execResult, null, 2)}
-                  options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    fontSize: 13,
-                    lineNumbers: "on",
-                    scrollBeyondLastLine: false,
-                    automaticLayout: true,
-                    padding: { top: 20 },
-                    wordWrap: "on",
-                  }}
-                />
-              )
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                <div className="w-14 h-14 bg-zinc-50 rounded-xl border border-border-subtle flex items-center justify-center mb-5">
-                  <Play className="w-6 h-6 text-zinc-300" />
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <div className="w-14 h-14 bg-zinc-50 rounded-xl border border-border-subtle flex items-center justify-center mb-5">
+                    <Terminal className="w-6 h-6 text-zinc-300" />
+                  </div>
+                  <h4 className="text-sm font-bold text-zinc-600">等待生成</h4>
+                  <p className="text-xs text-muted-foreground mt-2 max-w-[220px] leading-relaxed">
+                    选择环境并配置参数后自动生成。
+                  </p>
                 </div>
-                <h4 className="text-sm font-bold text-zinc-600">等待执行</h4>
-                <p className="text-xs text-muted-foreground mt-2 max-w-[220px] leading-relaxed">
-                  填写参数后点击「发送请求」，结果将在此展示。
-                </p>
-              </div>
+              )
             )}
           </CardContent>
         </Card>
@@ -286,7 +469,71 @@ export function DebugTab() {
   )
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── CurlHighlight ─────────────────────────────────────────────────────────────
+
+function CurlHighlight({ command }: { command: string }) {
+  return (
+    <>
+      {command.split("\n").map((line, i, arr) => (
+        <span key={i}>
+          {highlightLine(line)}
+          {i < arr.length - 1 ? "\n" : ""}
+        </span>
+      ))}
+    </>
+  )
+}
+
+function highlightLine(line: string): React.ReactNode {
+  const t = line.trimStart()
+
+  // curl [-X METHOD] \
+  if (t.startsWith("curl")) {
+    const m = line.match(/^(curl)(\s+-X\s+(\w+))?(\s+\\)?$/)
+    if (m) return <>
+      <span className="text-white font-semibold">{m[1]}</span>
+      {m[2] && <><span className="text-zinc-500"> -X </span><span className="text-white font-semibold">{m[3]}</span></>}
+      {m[4] && <span className="text-zinc-600">{m[4]}</span>}
+    </>
+  }
+
+  // URL line:   "https://..." \
+  if (t.startsWith('"')) {
+    const m = line.match(/^(\s+)(".*?")(\s*\\?)$/)
+    if (m) return <>
+      <span>{m[1]}</span>
+      <span className="text-sky-300">{m[2]}</span>
+      <span className="text-zinc-600">{m[3]}</span>
+    </>
+  }
+
+  // Header: -H "Key: value" \
+  if (t.startsWith("-H")) {
+    const m = line.match(/^(\s+)(-H\s+)(")([^:]+)(:\s*)([^"]*)(")(\s*\\?)$/)
+    if (m) return <>
+      <span>{m[1]}</span>
+      <span className="text-zinc-500">{m[2]}</span>
+      <span className="text-zinc-600">{m[3]}</span>
+      <span className="text-zinc-300">{m[4]}</span>
+      <span className="text-zinc-600">{m[5]}</span>
+      <span className="text-zinc-400">{m[6]}</span>
+      <span className="text-zinc-600">{m[7]}{m[8]}</span>
+    </>
+  }
+
+  // Body: -d '...'
+  if (t.startsWith("-d")) {
+    const m = line.match(/^(\s+)(-d\s+)('.*')(\s*\\?)$/)
+    if (m) return <>
+      <span>{m[1]}</span>
+      <span className="text-zinc-500">{m[2]}</span>
+      <span className="text-zinc-300">{m[3]}</span>
+      <span className="text-zinc-600">{m[4]}</span>
+    </>
+  }
+
+  return <span className="text-zinc-400">{line}</span>
+}
 
 function ParamSection({
   label, tag, color, children,

@@ -318,6 +318,7 @@ type QueryResult struct {
 	Data            []byte                 `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"` // JSON 格式的查询结果
 	RowsAffected    int64                  `protobuf:"varint,5,opt,name=rows_affected,json=rowsAffected,proto3" json:"rows_affected,omitempty"`
 	ExecutionTimeMs int64                  `protobuf:"varint,6,opt,name=execution_time_ms,json=executionTimeMs,proto3" json:"execution_time_ms,omitempty"`
+	ErrorCode       int32                  `protobuf:"varint,7,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"` // 业务/HTTP 状态码，0 表示沿用默认（成功 200 / 失败 500）
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
@@ -390,6 +391,13 @@ func (x *QueryResult) GetRowsAffected() int64 {
 func (x *QueryResult) GetExecutionTimeMs() int64 {
 	if x != nil {
 		return x.ExecutionTimeMs
+	}
+	return 0
+}
+
+func (x *QueryResult) GetErrorCode() int32 {
+	if x != nil {
+		return x.ErrorCode
 	}
 	return 0
 }
@@ -606,8 +614,8 @@ type ExecuteQueryRequest struct {
 	Sql            string                 `protobuf:"bytes,3,opt,name=sql,proto3" json:"sql,omitempty"`
 	Params         map[string]string      `protobuf:"bytes,4,rep,name=params,proto3" json:"params,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	TimeoutSeconds int32                  `protobuf:"varint,5,opt,name=timeout_seconds,json=timeoutSeconds,proto3" json:"timeout_seconds,omitempty"`
-	PreScript      string                 `protobuf:"bytes,6,opt,name=pre_script,json=preScript,proto3" json:"pre_script,omitempty"`
-	PostScript     string                 `protobuf:"bytes,7,opt,name=post_script,json=postScript,proto3" json:"post_script,omitempty"`
+	PreScripts     []string               `protobuf:"bytes,6,rep,name=pre_scripts,json=preScripts,proto3" json:"pre_scripts,omitempty"`    // 前置脚本链，按顺序串行执行
+	PostScripts    []string               `protobuf:"bytes,7,rep,name=post_scripts,json=postScripts,proto3" json:"post_scripts,omitempty"` // 后置脚本链，data 顺序流过
 	DbType         string                 `protobuf:"bytes,8,opt,name=db_type,json=dbType,proto3" json:"db_type,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -678,18 +686,18 @@ func (x *ExecuteQueryRequest) GetTimeoutSeconds() int32 {
 	return 0
 }
 
-func (x *ExecuteQueryRequest) GetPreScript() string {
+func (x *ExecuteQueryRequest) GetPreScripts() []string {
 	if x != nil {
-		return x.PreScript
+		return x.PreScripts
 	}
-	return ""
+	return nil
 }
 
-func (x *ExecuteQueryRequest) GetPostScript() string {
+func (x *ExecuteQueryRequest) GetPostScripts() []string {
 	if x != nil {
-		return x.PostScript
+		return x.PostScripts
 	}
-	return ""
+	return nil
 }
 
 func (x *ExecuteQueryRequest) GetDbType() string {
@@ -726,7 +734,7 @@ const file_gateway_proto_rawDesc = "" +
 	"\vcpu_percent\x18\x01 \x01(\x01R\n" +
 	"cpuPercent\x12%\n" +
 	"\x0ememory_percent\x18\x02 \x01(\x01R\rmemoryPercent\x12-\n" +
-	"\x12active_connections\x18\x03 \x01(\x05R\x11activeConnections\"\xc1\x01\n" +
+	"\x12active_connections\x18\x03 \x01(\x05R\x11activeConnections\"\xe0\x01\n" +
 	"\vQueryResult\x12\x1d\n" +
 	"\n" +
 	"request_id\x18\x01 \x01(\tR\trequestId\x12\x18\n" +
@@ -734,7 +742,9 @@ const file_gateway_proto_rawDesc = "" +
 	"\x05error\x18\x03 \x01(\tR\x05error\x12\x12\n" +
 	"\x04data\x18\x04 \x01(\fR\x04data\x12#\n" +
 	"\rrows_affected\x18\x05 \x01(\x03R\frowsAffected\x12*\n" +
-	"\x11execution_time_ms\x18\x06 \x01(\x03R\x0fexecutionTimeMs\"\x80\x02\n" +
+	"\x11execution_time_ms\x18\x06 \x01(\x03R\x0fexecutionTimeMs\x12\x1d\n" +
+	"\n" +
+	"error_code\x18\a \x01(\x05R\terrorCode\"\x80\x02\n" +
 	"\rServerMessage\x12H\n" +
 	"\fregister_ack\x18\x01 \x01(\v2#.owlapi.gateway.v1.RegisterResponseH\x00R\vregisterAck\x12K\n" +
 	"\rheartbeat_ack\x18\x02 \x01(\v2$.owlapi.gateway.v1.HeartbeatResponseH\x00R\fheartbeatAck\x12M\n" +
@@ -747,18 +757,18 @@ const file_gateway_proto_rawDesc = "" +
 	"session_id\x18\x03 \x01(\tR\tsessionId\"4\n" +
 	"\x11HeartbeatResponse\x12\x1f\n" +
 	"\vserver_time\x18\x01 \x01(\x03R\n" +
-	"serverTime\"\xdb\x02\n" +
+	"serverTime\"\xe5\x02\n" +
 	"\x13ExecuteQueryRequest\x12\x1d\n" +
 	"\n" +
-	"request_id\x18\x01 \x01(\tR\trequestId\x12#\n" +
-	"\rdatasource_id\x18\x02 \x01(\tR\fdatasourceId\x12\x10\n" +
+	"request_id\x18\x01 \x01(\tR\trequestId\x12\x10\n" +
+	"\x03dsn\x18\x02 \x01(\tR\x03dsn\x12\x10\n" +
 	"\x03sql\x18\x03 \x01(\tR\x03sql\x12J\n" +
 	"\x06params\x18\x04 \x03(\v22.owlapi.gateway.v1.ExecuteQueryRequest.ParamsEntryR\x06params\x12'\n" +
-	"\x0ftimeout_seconds\x18\x05 \x01(\x05R\x0etimeoutSeconds\x12\x1d\n" +
-	"\n" +
-	"pre_script\x18\x06 \x01(\tR\tpreScript\x12\x1f\n" +
-	"\vpost_script\x18\a \x01(\tR\n" +
-	"postScript\x1a9\n" +
+	"\x0ftimeout_seconds\x18\x05 \x01(\x05R\x0etimeoutSeconds\x12\x1f\n" +
+	"\vpre_scripts\x18\x06 \x03(\tR\n" +
+	"preScripts\x12!\n" +
+	"\fpost_scripts\x18\a \x03(\tR\vpostScripts\x12\x17\n" +
+	"\adb_type\x18\b \x01(\tR\x06dbType\x1a9\n" +
 	"\vParamsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x012d\n" +

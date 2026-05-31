@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useCallback } from "react"
+import { useEffect, useCallback, useState } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { AlignLeft, Play, Save, Code2, Loader2, X } from "lucide-react"
@@ -8,13 +8,43 @@ import { cn } from "@/lib/utils"
 import { useEndpointFormStore } from "../_store/useEndpointFormStore"
 import { useApiEditorStore } from "../_store/useApiEditorStore"
 import { useReferenceData } from "../_hooks/useReferenceData"
-import { useSchemaQuery } from "../_hooks/useSchemaQuery"
 import { useTenantProject } from "../_hooks/useTenantProject"
-import { useEnvironments, useEnvBindings, useProjectBindings, useDataSources } from "@/hooks"
+import { useEnvironments, useEnvBindings, useProjectBindings, useDataSources, useDataSourceSchema } from "@/hooks"
 import { useMemo } from "react"
 import { showConfirm } from "@/store/useConfirmStore"
 import { ParamDefCard } from "./DesignTab/ParamDefCard"
+import { ResponseDefCard } from "./DesignTab/ResponseDefCard"
 import { SqlEditorPanel } from "./SqlEditorPanel"
+import type { ResponseDef, ParamType } from "../_types"
+
+function extractResponseDefsFromResult(result: unknown): ResponseDef[] {
+  let rows: unknown[] = []
+  if (Array.isArray(result)) {
+    rows = result
+  } else if (result && typeof result === "object") {
+    const r = result as Record<string, unknown>
+    if (Array.isArray(r.data)) rows = r.data
+    else if (r.data && typeof r.data === "object") {
+      const inner = r.data as Record<string, unknown>
+      if (Array.isArray(inner.list)) rows = inner.list
+    }
+    if (rows.length === 0 && Array.isArray(r.list)) rows = r.list
+  }
+  if (rows.length === 0) return []
+  const first = rows[0]
+  if (typeof first !== "object" || first === null) return []
+  return Object.entries(first as Record<string, unknown>).map(([name, val]) => ({
+    name,
+    type: inferType(val),
+    desc: "",
+  }))
+}
+
+function inferType(val: unknown): ParamType {
+  if (typeof val === "boolean") return "boolean"
+  if (typeof val === "number") return Number.isInteger(val) ? "integer" : "number"
+  return "string"
+}
 
 interface SqlDesignerModalProps {
   open: boolean
@@ -35,6 +65,8 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
   const setSelectedId = useApiEditorStore(s => s.setSelectedId)
   const setIsNew = useApiEditorStore(s => s.setIsNew)
 
+  const [rightTab, setRightTab] = useState<"params" | "response">("params")
+
   const form = useEndpointFormStore(s => s.form)
   const setFormField = useEndpointFormStore(s => s.setFormField)
   const saving = useEndpointFormStore(s => s.saving)
@@ -42,6 +74,14 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
   const designExecuting = useEndpointFormStore(s => s.designExecuting)
   const save = useEndpointFormStore(s => s.save)
   const revertToSaved = useEndpointFormStore(s => s.revertToSaved)
+  const setResponseDefs = useEndpointFormStore(s => s.setResponseDefs)
+
+  const handleExtractResponseDefs = useCallback((result: unknown) => {
+    const defs = extractResponseDefsFromResult(result)
+    if (defs.length === 0) return
+    setResponseDefs(defs)
+    setRightTab("response")
+  }, [setResponseDefs])
   const runDesign = useEndpointFormStore(s => s.runDesign)
   const formatSQL = useEndpointFormStore(s => s.formatSQL)
   const designExecResult = useEndpointFormStore(s => s.designExecResult)
@@ -60,7 +100,7 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
   // Resolve current alias → physical datasource for schema panel (uses default env).
   const aliasBinding = defaultEnvBindings.find(b => b.alias === form.datasourceAlias)
   const resolvedDsId = aliasBinding?.datasource_id ?? 0
-  const { data: tables = [], isLoading: schemaLoading } = useSchemaQuery(activeTenant, resolvedDsId)
+  const { data: tables = [], isLoading: schemaLoading } = useDataSourceSchema(activeTenant, resolvedDsId, !!resolvedDsId)
 
   // Project-level alias union for the dropdown.
   const aliasNames = Array.from(new Set(allBindings.map(b => b.alias)))
@@ -199,8 +239,8 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
           <SqlEditorPanel
             sql={form.sql}
             datasourceAlias={form.datasourceAlias}
-            preScriptId={form.preScriptId}
-            postScriptId={form.postScriptId}
+            preScripts={form.preScripts}
+            postScripts={form.postScripts}
             aliases={aliases}
             currentEnvName={defaultEnvName}
             scripts={scripts}
@@ -209,20 +249,67 @@ export function SqlDesignerModal({ open, onClose }: SqlDesignerModalProps) {
             designExecResult={designExecResult}
             onSqlChange={val => setFormField("sql", val)}
             onDatasourceAliasChange={h => setFormField("datasourceAlias", h)}
-            onPreScriptChange={id => setFormField("preScriptId", id)}
-            onPostScriptChange={id => setFormField("postScriptId", id)}
+            onPreScriptsChange={steps => setFormField("preScripts", steps)}
+            onPostScriptsChange={steps => setFormField("postScripts", steps)}
             onClearResult={() => setDesignExecResult(null)}
+            onExtractResponseDefs={handleExtractResponseDefs}
           />
 
-          {/* ── Col 3: Params ── */}
-          <div className="w-64 shrink-0 border-l border-border-subtle flex flex-col bg-white">
-            <div className="flex-1 min-h-0 overflow-hidden">
-              <ParamDefCard compact />
-            </div>
-          </div>
+          {/* ── Col 3: 参数 / 响应 tab ── */}
+          <RightPanel rightTab={rightTab} onTabChange={setRightTab} />
         </div>
       </div>
     </div>,
     document.body
+  )
+}
+
+// ── RightPanel ────────────────────────────────────────────────────────────────
+
+function RightPanel({
+  rightTab,
+  onTabChange,
+}: {
+  rightTab: "params" | "response"
+  onTabChange: (tab: "params" | "response") => void
+}) {
+  const paramCount    = useEndpointFormStore(s => s.form.paramDefs.length)
+  const responseCount = useEndpointFormStore(s => s.form.responseDefs.length)
+
+  return (
+    <div className="w-64 shrink-0 border-l border-border-subtle flex flex-col bg-white">
+      {/* Tab header */}
+      <div className="flex shrink-0 border-b border-border-subtle">
+        {([
+          { key: "params",   label: "请求参数", count: paramCount },
+          { key: "response", label: "响应字段", count: responseCount },
+        ] as const).map(({ key, label, count }) => (
+          <button
+            key={key}
+            onClick={() => onTabChange(key)}
+            className={cn(
+              "flex-1 h-9 flex items-center justify-center gap-1.5 text-xs font-bold transition-colors",
+              rightTab === key
+                ? "text-primary border-b-2 border-primary bg-primary/5"
+                : "text-muted-foreground hover:text-zinc-600"
+            )}
+          >
+            {label}
+            {count > 0 && (
+              <span className={cn(
+                "text-2xs px-1.5 py-0.5 rounded-full font-bold leading-none",
+                rightTab === key ? "bg-primary/10 text-primary" : "bg-zinc-100 text-zinc-400"
+              )}>
+                {count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {rightTab === "params" ? <ParamDefCard compact /> : <ResponseDefCard />}
+      </div>
+    </div>
   )
 }

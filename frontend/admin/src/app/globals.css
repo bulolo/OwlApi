@@ -12,6 +12,13 @@
   --shadow-card-hover:  0 6px 16px -4px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
   --shadow-modal:       0 24px 48px -12px rgb(0 0 0 / 0.18), 0 0 0 1px rgb(0 0 0 / 0.03);
   --shadow-glow:        0 0 12px -2px hsl(var(--primary) / 0.4);
+
+  /* ── Animations ──────────────────────────────────────────────────── */
+  --animate-pipe-flow: pipe-flow 1.5s ease-in-out infinite;
+  @keyframes pipe-flow {
+    0%, 100% { opacity: 0.25; transform: translateX(-3px); }
+    50%      { opacity: 1;    transform: translateX(3px); }
+  }
 }
 
 @layer base {

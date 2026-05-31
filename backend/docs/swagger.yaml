@@ -24,26 +24,35 @@ definitions:
       latest_version:
         description: newest version number in endpoint_versions for this endpoint
         type: integer
-      methods:
-        items:
-          type: string
-        type: array
+      method:
+        type: string
       param_defs:
         items:
           $ref: '#/definitions/domain.ParamDef'
         type: array
-      params:
-        items:
-          type: string
-        type: array
       path:
         type: string
-      post_script_id:
-        type: integer
-      pre_script_id:
-        type: integer
+      post_scripts:
+        items:
+          $ref: '#/definitions/domain.ScriptStep'
+        type: array
+      pre_scripts:
+        description: |-
+          PreScripts / PostScripts are ordered chains run sequentially around the SQL.
+          Each step is either a reference to a reusable library script or inline code
+          stored on the endpoint itself (see ScriptStep). In the pre-chain each stage's
+          output params feed the next and any `{ error }` short-circuits; in the
+          post-chain each stage's output becomes the next stage's `data`, and the last
+          stage's output is the response body.
+        items:
+          $ref: '#/definitions/domain.ScriptStep'
+        type: array
       project_id:
         type: integer
+      response_defs:
+        items:
+          $ref: '#/definitions/domain.ResponseDef'
+        type: array
       sql:
         type: string
       summary:
@@ -78,6 +87,27 @@ definitions:
         description: string, integer, number, boolean
         type: string
     type: object
+  domain.ResponseDef:
+    properties:
+      desc:
+        type: string
+      name:
+        type: string
+      type:
+        description: string, integer, number, boolean
+        type: string
+    type: object
+  domain.ScriptStep:
+    properties:
+      code:
+        type: string
+      name:
+        type: string
+      script_id:
+        type: integer
+      source:
+        type: string
+    type: object
   http.APIEndpointListResp:
     properties:
       list:
@@ -110,26 +140,28 @@ definitions:
         type: integer
       latest_version:
         type: integer
-      methods:
-        items:
-          type: string
-        type: array
+      method:
+        type: string
       param_defs:
         items:
           $ref: '#/definitions/http.ParamDefResp'
         type: array
-      params:
-        items:
-          type: string
-        type: array
       path:
         type: string
-      post_script_id:
-        type: integer
-      pre_script_id:
-        type: integer
+      post_scripts:
+        items:
+          $ref: '#/definitions/http.ScriptStepResp'
+        type: array
+      pre_scripts:
+        items:
+          $ref: '#/definitions/http.ScriptStepResp'
+        type: array
       project_id:
         type: integer
+      response_defs:
+        items:
+          $ref: '#/definitions/http.ResponseDefResp'
+        type: array
       sql:
         type: string
       summary:
@@ -144,8 +176,7 @@ definitions:
     - group_id
     - has_draft
     - id
-    - methods
-    - params
+    - method
     - path
     - project_id
     - sql
@@ -186,6 +217,37 @@ definitions:
     - project_id
     - tenant_id
     type: object
+  http.ActivityEventResp:
+    properties:
+      at:
+        description: RFC3339
+        type: string
+      desc:
+        type: string
+      severity:
+        description: info / warning / error
+        type: string
+      title:
+        type: string
+      type:
+        description: api / error / slow
+        type: string
+    required:
+    - at
+    - desc
+    - severity
+    - title
+    - type
+    type: object
+  http.ActivityListResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/http.ActivityEventResp'
+        type: array
+    required:
+    - list
+    type: object
   http.AuthResp:
     properties:
       tenant:
@@ -201,6 +263,22 @@ definitions:
     required:
     - token
     - user
+    type: object
+  http.BindingResp:
+    properties:
+      alias:
+        type: string
+      datasource_id:
+        type: integer
+      env_id:
+        type: integer
+      tenant_id:
+        type: integer
+    required:
+    - alias
+    - datasource_id
+    - env_id
+    - tenant_id
     type: object
   http.DataSourceListResp:
     properties:
@@ -292,6 +370,31 @@ definitions:
     - id
     - tenant_id
     type: object
+  http.EndpointActiveVersionResp:
+    properties:
+      activated_at:
+        type: string
+      activated_by:
+        type: integer
+      endpoint_id:
+        type: integer
+      env_id:
+        type: integer
+      tenant_id:
+        type: integer
+      version:
+        type: integer
+      version_id:
+        type: integer
+    required:
+    - activated_at
+    - activated_by
+    - endpoint_id
+    - env_id
+    - tenant_id
+    - version
+    - version_id
+    type: object
   http.EndpointCallLogListResp:
     properties:
       list:
@@ -308,6 +411,10 @@ definitions:
     properties:
       at:
         type: string
+      body_params:
+        additionalProperties:
+          type: string
+        type: object
       endpoint_id:
         type: integer
       env_id:
@@ -316,6 +423,10 @@ definitions:
         type: string
       error:
         type: string
+      headers:
+        additionalProperties:
+          type: string
+        type: object
       id:
         type: integer
       ip:
@@ -329,6 +440,14 @@ definitions:
         type: object
       path:
         type: string
+      path_params:
+        additionalProperties:
+          type: string
+        type: object
+      query_params:
+        additionalProperties:
+          type: string
+        type: object
       status:
         type: integer
       tenant_id:
@@ -393,10 +512,14 @@ definitions:
         type: boolean
       note:
         type: string
-      post_script_snapshot:
-        $ref: '#/definitions/http.ScriptSnapshotResp'
-      pre_script_snapshot:
-        $ref: '#/definitions/http.ScriptSnapshotResp'
+      post_script_snapshots:
+        items:
+          $ref: '#/definitions/http.ScriptSnapshotResp'
+        type: array
+      pre_script_snapshots:
+        items:
+          $ref: '#/definitions/http.ScriptSnapshotResp'
+        type: array
       snapshot:
         $ref: '#/definitions/domain.APIEndpoint'
       snapshot_v:
@@ -415,6 +538,28 @@ definitions:
     - snapshot_v
     - tenant_id
     - version
+    type: object
+  http.EnvironmentResp:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_default:
+        type: boolean
+      name:
+        type: string
+      project_id:
+        type: integer
+      tenant_id:
+        type: integer
+    required:
+    - created_at
+    - id
+    - is_default
+    - name
+    - project_id
+    - tenant_id
     type: object
   http.GatewayListResp:
     properties:
@@ -510,8 +655,17 @@ definitions:
     properties:
       allow_self_register:
         type: boolean
+      logo_url:
+        type: string
+      platform_name:
+        type: string
+      platform_tagline:
+        type: string
     required:
     - allow_self_register
+    type: object
+  http.PreviewRow:
+    additionalProperties: true
     type: object
   http.ProjectListResp:
     properties:
@@ -527,6 +681,8 @@ definitions:
     type: object
   http.ProjectResp:
     properties:
+      auth_type:
+        type: string
       avatar:
         type: string
       created_at:
@@ -542,6 +698,7 @@ definitions:
       tenant_id:
         type: integer
     required:
+    - auth_type
     - created_at
     - description
     - id
@@ -609,12 +766,40 @@ definitions:
     - data
     - msg
     type: object
+  http.RActivityList:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.ActivityListResp'
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
   http.RAuth:
     properties:
       code:
         type: integer
       data:
         $ref: '#/definitions/http.AuthResp'
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  http.RBindingList:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/http.BindingResp'
+        type: array
       msg:
         type: string
     required:
@@ -661,6 +846,21 @@ definitions:
     - data
     - msg
     type: object
+  http.REndpointActiveVersionList:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/http.EndpointActiveVersionResp'
+        type: array
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
   http.REndpointCallLogList:
     properties:
       code:
@@ -693,6 +893,34 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/http.EndpointVersionListResp'
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  http.REnvironment:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.EnvironmentResp'
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  http.REnvironmentList:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/http.EnvironmentResp'
+        type: array
       msg:
         type: string
     required:
@@ -745,6 +973,21 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/http.PlatformSettingsResp'
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  http.RPreviewTable:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/http.PreviewRow'
+        type: array
       msg:
         type: string
     required:
@@ -843,6 +1086,31 @@ definitions:
     - data
     - msg
     type: object
+  http.RTrafficSeries:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/http.TrafficSeriesResp'
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  http.ResponseDefResp:
+    properties:
+      desc:
+        type: string
+      name:
+        type: string
+      type:
+        type: string
+    required:
+    - name
+    - type
+    type: object
   http.ScriptListResp:
     properties:
       list:
@@ -869,6 +1137,8 @@ definitions:
         type: boolean
       name:
         type: string
+      ref_count:
+        type: integer
       tenant_id:
         type: integer
       type:
@@ -879,6 +1149,7 @@ definitions:
     - id
     - is_platform
     - name
+    - ref_count
     - type
     type: object
   http.ScriptSnapshotResp:
@@ -896,6 +1167,20 @@ definitions:
     - id
     - name
     - type
+    type: object
+  http.ScriptStepResp:
+    properties:
+      code:
+        type: string
+      name:
+        type: string
+      script_id:
+        type: integer
+      source:
+        description: '"library" | "inline"'
+        type: string
+    required:
+    - source
     type: object
   http.TenantListResp:
     properties:
@@ -917,11 +1202,11 @@ definitions:
         type: string
       id:
         type: integer
+      is_demo:
+        type: boolean
       max_release_versions:
         type: integer
       name:
-        type: string
-      plan:
         type: string
       slug:
         type: string
@@ -934,7 +1219,6 @@ definitions:
     - id
     - max_release_versions
     - name
-    - plan
     - slug
     - status
     - updated_at
@@ -968,6 +1252,51 @@ definitions:
     - role
     - tenant_id
     - user_id
+    type: object
+  http.TrafficBucketResp:
+    properties:
+      errors:
+        description: 该桶错误数（status >= 400）
+        type: integer
+      total:
+        description: 该桶总请求数
+        type: integer
+      ts:
+        description: 桶起始时刻（RFC3339, UTC）
+        type: string
+    required:
+    - errors
+    - total
+    - ts
+    type: object
+  http.TrafficSeriesResp:
+    properties:
+      bucket:
+        description: hour / day
+        type: string
+      buckets:
+        items:
+          $ref: '#/definitions/http.TrafficBucketResp'
+        type: array
+      errors:
+        description: 区间总错误数
+        type: integer
+      peak:
+        description: 单桶峰值请求数
+        type: integer
+      range:
+        description: 24h / 7d / 30d
+        type: string
+      total:
+        description: 区间总请求数
+        type: integer
+    required:
+    - bucket
+    - buckets
+    - errors
+    - peak
+    - range
+    - total
     type: object
   http.UserResp:
     properties:
@@ -1083,12 +1412,57 @@ definitions:
     - alias
     - datasource_id
     type: object
+  platform.RTenantEEConfig:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/platform.TenantEEConfigResp'
+      msg:
+        type: string
+    required:
+    - code
+    - data
+    - msg
+    type: object
+  platform.TenantEEConfigResp:
+    properties:
+      advanced_config:
+        additionalProperties: {}
+        type: object
+      contact_email:
+        type: string
+      contact_phone:
+        type: string
+      max_datasources:
+        type: integer
+      max_endpoints:
+        type: integer
+      max_gateways:
+        type: integer
+      max_projects:
+        type: integer
+      plan:
+        type: string
+      plan_expires_at:
+        type: string
+      tenant_id:
+        type: integer
+    required:
+    - advanced_config
+    - max_datasources
+    - max_endpoints
+    - max_gateways
+    - max_projects
+    - plan
+    - tenant_id
+    type: object
 host: localhost:3000
 info:
   contact: {}
   description: 企业级 SQL to API 智能网关平台管理接口
   title: OwlApi Control Plane
-  version: 0.2.0
+  version: 0.2.1
 paths:
   /-/{env}/{tenantSlug}/{projectSlug}/{path}:
     delete:
@@ -1383,6 +1757,127 @@ paths:
       summary: 获取当前用户的租户列表
       tags:
       - tenant
+  /v1/platform/scripts:
+    get:
+      operationId: listPlatformScripts
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      - description: 是否分页，0=返回全部（默认1）
+        in: query
+        name: is_pager
+        type: integer
+      - description: 关键词
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RScriptList'
+      security:
+      - BearerAuth: []
+      summary: 获取平台内置脚本列表（仅超管）
+      tags:
+      - platform
+    post:
+      consumes:
+      - application/json
+      operationId: createPlatformScript
+      parameters:
+      - description: 脚本信息
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            code:
+              type: string
+            description:
+              type: string
+            name:
+              type: string
+            type:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RScript'
+      security:
+      - BearerAuth: []
+      summary: 创建平台内置脚本（仅超管）
+      tags:
+      - platform
+  /v1/platform/scripts/{scriptId}:
+    delete:
+      operationId: deletePlatformScript
+      parameters:
+      - description: 脚本ID
+        in: path
+        name: scriptId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除平台内置脚本（仅超管）
+      tags:
+      - platform
+    put:
+      consumes:
+      - application/json
+      operationId: updatePlatformScript
+      parameters:
+      - description: 脚本ID
+        in: path
+        name: scriptId
+        required: true
+        type: integer
+      - description: 更新信息
+        in: body
+        name: body
+        schema:
+          properties:
+            code:
+              type: string
+            description:
+              type: string
+            name:
+              type: string
+            type:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RScript'
+      security:
+      - BearerAuth: []
+      summary: 更新平台内置脚本（仅超管）
+      tags:
+      - platform
   /v1/platform/settings:
     get:
       operationId: getPlatformSettings
@@ -1409,6 +1904,12 @@ paths:
           properties:
             allow_self_register:
               type: boolean
+            logo_url:
+              type: string
+            platform_name:
+              type: string
+            platform_tagline:
+              type: string
           type: object
       produces:
       - application/json
@@ -1533,15 +2034,13 @@ paths:
         name: slug
         required: true
         type: string
-      - description: 更新信息
+      - description: 更新信息（plan 改走 /tenants/{slug}/ee-config）
         in: body
         name: body
         required: true
         schema:
           properties:
             name:
-              type: string
-            plan:
               type: string
             status:
               type: string
@@ -1771,7 +2270,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/http.RPreviewTable'
       security:
       - BearerAuth: []
       summary: 预览表数据
@@ -1818,6 +2317,74 @@ paths:
       summary: 测试数据源连接
       tags:
       - datasource
+  /v1/tenants/{slug}/ee-config:
+    get:
+      operationId: getTenantEEConfig
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/platform.RTenantEEConfig'
+      security:
+      - BearerAuth: []
+      summary: 获取租户 EE 扩展配置（SuperAdmin）
+      tags:
+      - platform
+    put:
+      consumes:
+      - application/json
+      operationId: upsertTenantEEConfig
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: EE 配置
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            advanced_config:
+              type: object
+            contact_email:
+              type: string
+            contact_phone:
+              type: string
+            max_datasources:
+              type: integer
+            max_endpoints:
+              type: integer
+            max_gateways:
+              type: integer
+            max_projects:
+              type: integer
+            plan:
+              type: string
+            plan_expires_at:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/platform.RTenantEEConfig'
+      security:
+      - BearerAuth: []
+      summary: 更新租户 EE 扩展配置（SuperAdmin）
+      tags:
+      - platform
   /v1/tenants/{slug}/gateways:
     get:
       operationId: listGateways
@@ -1937,6 +2504,58 @@ paths:
       summary: 获取网关详情
       tags:
       - gateway
+  /v1/tenants/{slug}/overview/activity:
+    get:
+      description: 合并资产变更事件（发布/激活/回滚等）与流量异常（5xx / 慢查询），按时间倒序返回当前租户的最近动态。
+      operationId: getOverviewActivity
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 返回条数上限（默认 10，最大 50）
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RActivityList'
+      security:
+      - BearerAuth: []
+      summary: 概览最近动态
+      tags:
+      - overview
+  /v1/tenants/{slug}/overview/traffic:
+    get:
+      description: 按时间桶聚合当前租户在选定时间范围内的接口调用量（总请求数 + 错误数），用于概览页流量趋势图。空桶补零，返回连续序列。
+      operationId: getOverviewTraffic
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 时间范围：24h（默认，按小时分桶）/ 7d / 30d（按天分桶）
+        in: query
+        name: range
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RTrafficSeries'
+      security:
+      - BearerAuth: []
+      summary: 概览流量趋势
+      tags:
+      - overview
   /v1/tenants/{slug}/projects:
     get:
       operationId: listProjects
@@ -1984,13 +2603,17 @@ paths:
         name: slug
         required: true
         type: string
-      - description: 项目信息
+      - description: 项目信息（env：初始环境名，默认 prod；datasource_id：为初始环境的 main 别名绑定的数据源，可选）
         in: body
         name: body
         required: true
         schema:
           properties:
+            datasource_id:
+              type: integer
             description:
+              type: string
+            env:
               type: string
             name:
               type: string
@@ -2132,6 +2755,140 @@ paths:
       summary: 跨 env 重命名 alias
       tags:
       - environment
+  /v1/tenants/{slug}/projects/{projectId}/auth:
+    get:
+      operationId: getProjectAuth
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 获取项目访问控制配置
+      tags:
+      - project
+    put:
+      consumes:
+      - application/json
+      operationId: updateProjectAuth
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 鉴权类型
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            auth_type:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 切换项目访问控制方式
+      tags:
+      - project
+  /v1/tenants/{slug}/projects/{projectId}/auth/keys:
+    post:
+      consumes:
+      - application/json
+      operationId: createProjectAuthKey
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: Key 类型、名称及可选过期时间
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            expires_at:
+              type: string
+            name:
+              type: string
+            type:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 创建鉴权密钥（API Key 或 JWT 签名密钥）
+      tags:
+      - project
+  /v1/tenants/{slug}/projects/{projectId}/auth/keys/{keyId}:
+    delete:
+      operationId: deleteProjectAuthKey
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: Key ID
+        in: path
+        name: keyId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.R'
+      security:
+      - BearerAuth: []
+      summary: 删除鉴权密钥
+      tags:
+      - project
   /v1/tenants/{slug}/projects/{projectId}/bindings:
     get:
       operationId: listProjectBindings
@@ -2152,7 +2909,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.R'
+            $ref: '#/definitions/http.RBindingList'
       security:
       - BearerAuth: []
       summary: 获取项目所有 env 的 alias 绑定（用于编辑器解析弹窗）
@@ -2188,6 +2945,10 @@ paths:
         in: query
         name: keyword
         type: string
+      - description: 按分组过滤（0=不过滤）
+        in: query
+        name: group_id
+        type: integer
       produces:
       - application/json
       responses:
@@ -2227,16 +2988,16 @@ paths:
               type: string
             group_id:
               type: integer
-            methods:
-              type: array
+            method:
+              type: string
             param_defs:
               type: array
             path:
               type: string
-            post_script_id:
-              type: integer
-            pre_script_id:
-              type: integer
+            post_scripts:
+              type: array
+            pre_scripts:
+              type: array
             sql:
               type: string
             summary:
@@ -2285,6 +3046,46 @@ paths:
       summary: 删除 API 端点
       tags:
       - endpoint
+    patch:
+      consumes:
+      - application/json
+      operationId: patchEndpoint
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 端点ID
+        in: path
+        name: endpointId
+        required: true
+        type: integer
+      - description: 需更新的字段
+        in: body
+        name: body
+        schema:
+          properties:
+            group_id:
+              type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RAPIEndpoint'
+      security:
+      - BearerAuth: []
+      summary: 局部更新 API 端点（仅 group_id 等可选字段）
+      tags:
+      - endpoint
     put:
       consumes:
       - application/json
@@ -2305,9 +3106,10 @@ paths:
         name: endpointId
         required: true
         type: integer
-      - description: 更新信息
+      - description: 完整端点信息（全量替换）
         in: body
         name: body
+        required: true
         schema:
           properties:
             datasource_alias:
@@ -2316,16 +3118,18 @@ paths:
               type: string
             group_id:
               type: integer
-            methods:
-              type: array
+            method:
+              type: string
             param_defs:
               type: array
             path:
               type: string
-            post_script_id:
-              type: integer
-            pre_script_id:
-              type: integer
+            post_scripts:
+              type: array
+            pre_scripts:
+              type: array
+            response_defs:
+              type: array
             sql:
               type: string
             summary:
@@ -2407,7 +3211,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.R'
+            $ref: '#/definitions/http.REndpointActiveVersionList'
       security:
       - BearerAuth: []
       summary: 列出该接口在各 env 的当前激活版本（per-env 激活快照）
@@ -2816,7 +3620,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.R'
+            $ref: '#/definitions/http.REnvironmentList'
       security:
       - BearerAuth: []
       summary: 获取项目环境列表
@@ -2849,7 +3653,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.R'
+            $ref: '#/definitions/http.REnvironment'
       security:
       - BearerAuth: []
       summary: 创建项目环境
@@ -2949,7 +3753,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/http.R'
+            $ref: '#/definitions/http.RBindingList'
       security:
       - BearerAuth: []
       summary: 获取单个环境的 binding 列表
@@ -3241,9 +4045,97 @@ paths:
             type: object
       security:
       - BearerAuth: []
-      summary: 导出项目 OpenAPI 规范（按指定 env 导出；默认导出 default env）
+      summary: 导出项目 OpenAPI 规范
       tags:
       - project
+  /v1/tenants/{slug}/projects/{projectId}/run:
+    post:
+      consumes:
+      - application/json
+      operationId: runEndpoint
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 执行参数
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            auth_credential:
+              type: string
+            endpoint_id:
+              type: integer
+            env_id:
+              type: integer
+            ignore_scripts:
+              type: boolean
+            params:
+              type: object
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 代理执行 API 端点（含鉴权验证和访问日志）
+      tags:
+      - query
+  /v1/tenants/{slug}/projects/{projectId}/run-sql:
+    post:
+      consumes:
+      - application/json
+      operationId: runSQL
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 项目ID
+        in: path
+        name: projectId
+        required: true
+        type: integer
+      - description: 执行参数
+        in: body
+        name: body
+        required: true
+        schema:
+          properties:
+            datasource_alias:
+              type: string
+            env_id:
+              type: integer
+            params:
+              type: object
+            sql:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: 直接执行 SQL（不保存，仅用于设计器调试）
+      tags:
+      - query
   /v1/tenants/{slug}/query/test:
     post:
       consumes:
@@ -3421,6 +4313,65 @@ paths:
       security:
       - BearerAuth: []
       summary: 更新脚本
+      tags:
+      - script
+  /v1/tenants/{slug}/scripts/builtins:
+    get:
+      operationId: listScriptBuiltins
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 页码（默认1）
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量（默认10）
+        in: query
+        name: size
+        type: integer
+      - description: 关键词搜索
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RScriptList'
+      security:
+      - BearerAuth: []
+      summary: 获取平台内置脚本（供「从内置添加」选择）
+      tags:
+      - script
+  /v1/tenants/{slug}/scripts/builtins/{builtinId}/copy:
+    post:
+      operationId: copyScriptFromBuiltin
+      parameters:
+      - description: 租户slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: 平台内置脚本ID
+        in: path
+        name: builtinId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.RScript'
+      security:
+      - BearerAuth: []
+      summary: 从平台内置脚本复制一份到租户脚本库
       tags:
       - script
   /v1/tenants/{slug}/settings:

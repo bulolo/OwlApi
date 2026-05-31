@@ -2,12 +2,10 @@ package service
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/bulolo/owlapi/internal/pkg/auth"
-	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -49,7 +47,7 @@ func NewAuthService(users domain.UserRepository, tenants domain.TenantRepository
 
 func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthResponse, error) {
 	existing, err := s.users.GetByEmail(ctx, req.Email)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if err != nil && !domain.IsNotFound(err) {
 		return nil, err
 	}
 	if existing != nil {
@@ -80,7 +78,7 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 
 	if req.TenantSlug != "" {
 		existingTenant, err := s.tenants.GetBySlug(ctx, req.TenantSlug)
-		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		if err != nil && !domain.IsNotFound(err) {
 			return nil, err
 		}
 		if existingTenant != nil {
@@ -88,7 +86,7 @@ func (s *authService) Register(ctx context.Context, req RegisterRequest) (*AuthR
 		}
 		tenant := &domain.Tenant{
 			Name: req.TenantName, Slug: req.TenantSlug,
-			Plan: domain.PlanFree, Status: domain.TenantActive,
+			Status:    domain.TenantActive,
 			CreatedAt: time.Now(), UpdatedAt: time.Now(),
 		}
 		if err := s.tenants.Create(ctx, tenant); err != nil {

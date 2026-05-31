@@ -1,5 +1,6 @@
-# Binaries
+# Binaries（每个 cmd/<name> 直接 go build 后产物会落在仓库根）
 /server
 /init
+/sdkbuilder
 /tmp/
 

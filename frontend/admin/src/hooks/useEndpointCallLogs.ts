@@ -1,5 +1,7 @@
-import { useQuery } from "@tanstack/react-query"
-import { apiListEndpointCallLogs, type CallLogQuery } from "@/lib/api-client"
+import { useListEndpointCallLogs } from "@/lib/sdk"
+import type { ListEndpointCallLogsParams } from "@/lib/sdk"
+
+type CallLogQuery = ListEndpointCallLogsParams
 
 /**
  * 拉取接口调用日志。
@@ -13,12 +15,12 @@ export function useEndpointCallLogs(
   q: CallLogQuery,
   autoRefresh = true,
 ) {
-  const result = useQuery({
-    queryKey: ["endpoint-call-logs", slug, projectId, endpointId, q],
-    queryFn: () => apiListEndpointCallLogs(slug, projectId, endpointId, q),
-    enabled: !!slug && !!projectId && !!endpointId,
-    refetchInterval: autoRefresh ? 30_000 : false,
-    staleTime: 5_000,
+  const result = useListEndpointCallLogs(slug, projectId, endpointId, q, {
+    query: {
+      enabled: !!slug && !!projectId && !!endpointId,
+      refetchInterval: autoRefresh ? 30_000 : false,
+      staleTime: 5_000,
+    },
   })
   return {
     ...result,

@@ -2,26 +2,21 @@ package service
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/bulolo/owlapi/internal/domain"
-	"github.com/jackc/pgx/v5"
 )
 
 var ErrSlugExists = domain.ErrConflict("tenant slug already exists")
 
-// Valid plan and status values for validation.
-var (
-	validPlans    = map[domain.TenantPlan]bool{domain.PlanFree: true, domain.PlanPro: true, domain.PlanEnterprise: true, domain.PlanDemo: true}
-	validStatuses = map[domain.TenantStatus]bool{domain.TenantActive: true, domain.TenantSuspended: true}
-)
+// 租户 status 校验（plan 已下移 EE，不在核心校验）。
+var validStatuses = map[domain.TenantStatus]bool{domain.TenantActive: true, domain.TenantSuspended: true}
 
 type TenantService interface {
 	Create(ctx context.Context, tenant *domain.Tenant, creatorUserID int64) error
 	List(ctx context.Context, p domain.ListParams) ([]*domain.Tenant, int, error)
 	GetBySlug(ctx context.Context, slug string) (*domain.Tenant, error)
-	Update(ctx context.Context, slug string, name, plan, status string) (*domain.Tenant, error)
+	Update(ctx context.Context, slug string, name, status string) (*domain.Tenant, error)
 	UpdateSettings(ctx context.Context, slug string, maxReleaseVersions int, avatar string) (*domain.Tenant, error)
 	Delete(ctx context.Context, slug string) error
 	ListByUser(ctx context.Context, userID int64, p domain.ListParams) ([]*domain.Tenant, int, error)
@@ -38,7 +33,7 @@ func NewTenantService(tenants domain.TenantRepository, tenantUsers domain.Tenant
 
 func (s *tenantService) Create(ctx context.Context, tenant *domain.Tenant, creatorUserID int64) error {
 	existing, err := s.tenants.GetBySlug(ctx, tenant.Slug)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+	if err != nil && !domain.IsNotFound(err) {
 		return err
 	}
 	if existing != nil {
@@ -48,9 +43,6 @@ func (s *tenantService) Create(ctx context.Context, tenant *domain.Tenant, creat
 	tenant.UpdatedAt = time.Now()
 	if tenant.Status == "" {
 		tenant.Status = domain.TenantActive
-	}
-	if tenant.Plan == "" {
-		tenant.Plan = domain.PlanFree
 	}
 	if tenant.MaxReleaseVersions == 0 {
 		tenant.MaxReleaseVersions = 5
@@ -71,20 +63,13 @@ func (s *tenantService) GetBySlug(ctx context.Context, slug string) (*domain.Ten
 	return s.tenants.GetBySlug(ctx, slug)
 }
 
-func (s *tenantService) Update(ctx context.Context, slug string, name, plan, status string) (*domain.Tenant, error) {
+func (s *tenantService) Update(ctx context.Context, slug string, name, status string) (*domain.Tenant, error) {
 	t, err := s.tenants.GetBySlug(ctx, slug)
 	if err != nil {
 		return nil, err
 	}
 	if name != "" {
 		t.Name = name
-	}
-	if plan != "" {
-		p := domain.TenantPlan(plan)
-		if !validPlans[p] {
-			return nil, domain.ErrBadRequestf("invalid plan: %s", plan)
-		}
-		t.Plan = p
 	}
 	if status != "" {
 		st := domain.TenantStatus(status)

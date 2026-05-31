@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
+import { useState, useRef, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { useUIStore } from "@/store/useUIStore"
 import { useIsCompactViewport } from "@/hooks/useIsCompactViewport"
 import { useEdition } from "@/hooks/useEdition"
+import { usePlatformBranding } from "@/hooks/usePlatformBranding"
 import pkg from "../../../package.json"
 
 export function Sidebar({ slug }: { slug?: string }) {
@@ -33,6 +34,15 @@ export function Sidebar({ slug }: { slug?: string }) {
     : isLicensed
       ? "bg-violet-50 text-violet-700 border-violet-200"
       : "bg-amber-50 text-amber-700 border-amber-200"
+
+  const { isLoaded, platformName, platformTagline, logoSrc } = usePlatformBranding()
+  const [imgReady, setImgReady] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
+
+  // 缓存图片的 load 事件在 React 挂载事件监听器之前就已触发，需主动检测 complete
+  useEffect(() => {
+    if (imgRef.current?.complete) setImgReady(true)
+  }, [logoSrc, isLoaded])
 
   const activeTenant = slug ?? ""
 
@@ -67,11 +77,44 @@ export function Sidebar({ slug }: { slug?: string }) {
       {/* Brand */}
       <div className={cn("h-16 flex items-center mb-1", collapsed ? "px-3 justify-center" : "px-5")}>
         <Link href={`/${activeTenant}/overview`} className="flex items-center gap-3 group">
-          <Image src="/logo.svg" alt="OwlApi" width={36} height={36} className="shrink-0" />
+          {/* 相对定位容器：骨架和图片叠放，图片 onLoad 后才显示，完全避免拉伸帧 */}
+          <div style={{ position: "relative", width: 36, height: 36, minWidth: 36, flexShrink: 0 }}>
+            {/* 骨架：数据未就绪 或 图片未加载完成时显示 */}
+            {(!isLoaded || !imgReady) && (
+              <div className="absolute inset-0 rounded-lg bg-zinc-100 animate-pulse" />
+            )}
+            {/* 图片：始终挂载以触发加载，onLoad 前 opacity:0 不可见 */}
+            {isLoaded && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                ref={imgRef}
+                key={logoSrc}
+                src={logoSrc}
+                alt={platformName}
+                onLoad={() => setImgReady(true)}
+                style={{
+                  display: "block",
+                  width: 36,
+                  height: 36,
+                  objectFit: "contain",
+                  opacity: imgReady ? 1 : 0,
+                }}
+              />
+            )}
+          </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-lg font-bold text-foreground tracking-tight leading-none group-hover:text-primary transition-colors">OwlAPI</span>
-              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-widest mt-1.5">API网关平台</span>
+              {isLoaded ? (
+                <>
+                  <span className="text-lg font-bold text-foreground tracking-tight leading-none group-hover:text-primary transition-colors">{platformName}</span>
+                  <span className="text-2xs font-bold text-muted-foreground uppercase tracking-widest mt-1.5">{platformTagline}</span>
+                </>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <div className="h-4 w-20 bg-zinc-100 rounded animate-pulse" />
+                  <div className="h-2 w-16 bg-zinc-100 rounded animate-pulse" />
+                </div>
+              )}
             </div>
           )}
         </Link>
@@ -143,7 +186,10 @@ export function Sidebar({ slug }: { slug?: string }) {
 
           <div className="space-y-3 pt-2 border-t border-border-subtle/80">
             <div className="flex items-center justify-between px-1">
-              <span className="text-2xs font-bold tracking-wider text-zinc-300 uppercase">OwlAPI</span>
+              {isLoaded
+                ? <span className="text-2xs font-bold tracking-wider text-zinc-300 uppercase">{platformName}</span>
+                : <div className="h-2 w-12 bg-zinc-100 rounded animate-pulse" />
+              }
               <div className="flex items-center gap-1.5">
                 <span
                   className={cn(
@@ -160,7 +206,7 @@ export function Sidebar({ slug }: { slug?: string }) {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="flex-1 text-center text-2xs text-zinc-300/70 font-medium">© 2026 OwlAPI</span>
+              <span className="flex-1 text-center text-2xs text-zinc-300/70 font-medium">© 2026 {isLoaded ? platformName : ""}</span>
               <button
                 onClick={() => setSidebarCollapsed(true)}
                 className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-zinc-600 hover:bg-zinc-100 transition-colors"

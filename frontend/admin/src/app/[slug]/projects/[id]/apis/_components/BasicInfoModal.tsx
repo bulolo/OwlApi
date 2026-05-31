@@ -31,7 +31,7 @@ export function BasicInfoModal({ open, onClose, mode, initialValues, loading, on
   const { activeTenant, projectId } = useTenantProject()
   const { list: groups = [] } = useGroupsQuery(activeTenant, projectId)
 
-  const [method, setMethod] = useState<HttpMethod>(initialValues?.method ?? "POST")
+  const [method, setMethod] = useState<HttpMethod>(initialValues?.method ?? "GET")
   const [path, setPath] = useState(initialValues?.path ?? "")
   const [summary, setSummary] = useState(initialValues?.summary ?? "")
   const [groupId, setGroupId] = useState(initialValues?.groupId ?? 0)
@@ -39,7 +39,7 @@ export function BasicInfoModal({ open, onClose, mode, initialValues, loading, on
 
   useEffect(() => {
     if (open) {
-      setMethod(initialValues?.method ?? "POST")
+      setMethod(initialValues?.method ?? "GET")
       setPath(initialValues?.path ?? "")
       setSummary(initialValues?.summary ?? "")
       setGroupId(initialValues?.groupId ?? 0)

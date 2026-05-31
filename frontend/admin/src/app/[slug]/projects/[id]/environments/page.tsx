@@ -1,4 +1,4 @@
-import EnvironmentsClientPage from "./EnvironmentsClientPage"
+import Environments from "./Environments"
 
 export default async function Page({
   params,
@@ -6,5 +6,5 @@ export default async function Page({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  return <EnvironmentsClientPage projectId={Number(id)} />
+  return <Environments projectId={Number(id)} />
 }

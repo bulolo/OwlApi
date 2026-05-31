@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bulolo/owlapi/internal/domain"
@@ -71,13 +72,17 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 	path := c.Param("path")
 
 	var (
-		tenantID   int64
-		envID      int64
-		endpointID int64
-		versionID  int64
-		versionNum int
-		params     map[string]string
-		respErr    string
+		tenantID    int64
+		envID       int64
+		endpointID  int64
+		versionID   int64
+		versionNum  int
+		params      map[string]string
+		pathParams  map[string]string
+		queryParams map[string]string
+		bodyParams  map[string]string
+		headers     map[string]string
+		respErr     string
 	)
 
 	defer func() {
@@ -93,19 +98,23 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 			}
 		}
 		h.callLogs.Append(c.Request.Context(), &domain.EndpointCallLog{
-			TenantID:   tenantID,
-			EndpointID: endpointID,
-			EnvID:      envID,
-			VersionID:  versionID,
-			Version:    versionNum,
-			Method:     method,
-			Path:       path,
-			Params:     p,
-			Status:     status,
-			LatencyMs:  int(time.Since(start).Milliseconds()),
-			Error:      respErr,
-			IP:         c.ClientIP(),
-			UserAgent:  c.Request.UserAgent(),
+			TenantID:    tenantID,
+			EndpointID:  endpointID,
+			EnvID:       envID,
+			VersionID:   versionID,
+			Version:     versionNum,
+			Method:      method,
+			Path:        path,
+			Params:      p,
+			PathParams:  pathParams,
+			QueryParams: queryParams,
+			BodyParams:  bodyParams,
+			Headers:     headers,
+			Status:      status,
+			LatencyMs:   int(time.Since(start).Milliseconds()),
+			Error:       respErr,
+			IP:          c.ClientIP(),
+			UserAgent:   c.Request.UserAgent(),
 		})
 	}()
 
@@ -121,6 +130,13 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 		Fail(c, http.StatusNotFound, "project not found")
 		return
 	}
+
+	if err := h.projects.ValidateAuth(c.Request.Context(), project, c.GetHeader("Authorization")); err != nil {
+		Fail(c, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	headers = captureHeaders(c.Request.Header)
 
 	env, err := h.envs.GetByName(c.Request.Context(), tenant.ID, project.ID, c.Param("env"))
 	if err != nil {
@@ -146,8 +162,8 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 	versionNum = v.Version
 	endpoint := v.Snapshot
 
-	if !methodAllowed(method, endpoint.Methods) {
-		c.Header("Allow", joinMethods(endpoint.Methods))
+	if !strings.EqualFold(endpoint.Method, method) {
+		c.Header("Allow", endpoint.Method)
 		respErr = "method not allowed"
 		Fail(c, http.StatusMethodNotAllowed, "method not allowed")
 		return
@@ -156,16 +172,28 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 	raw := make(map[string]interface{})
 	switch method {
 	case http.MethodGet, http.MethodDelete:
+		qp := make(map[string]string)
 		for k, vs := range c.Request.URL.Query() {
 			if len(vs) > 0 {
 				raw[k] = vs[0]
+				qp[k] = vs[0]
 			}
+		}
+		if len(qp) > 0 {
+			queryParams = qp
 		}
 	default:
 		if err := c.ShouldBindJSON(&raw); err != nil && err.Error() != "EOF" {
 			respErr = "invalid request body: " + err.Error()
 			Fail(c, http.StatusBadRequest, "invalid request body: "+err.Error())
 			return
+		}
+		if len(raw) > 0 {
+			bp := make(map[string]string, len(raw))
+			for k, v := range raw {
+				bp[k] = fmt.Sprintf("%v", v)
+			}
+			bodyParams = bp
 		}
 	}
 
@@ -200,29 +228,36 @@ func (h *QueryHandler) HandleQuery(c *gin.Context) {
 
 	if !result.Success {
 		respErr = result.Error
-		Fail(c, http.StatusInternalServerError, result.Error)
+		Fail(c, resultStatus(result.ErrorCode), result.Error)
 		return
 	}
 
 	c.Data(http.StatusOK, "application/json", result.Data)
 }
 
-func methodAllowed(method string, allowed []string) bool {
-	for _, m := range allowed {
-		if m == method {
-			return true
-		}
-	}
-	return false
+// skipHeaders lists headers that must not be logged (sensitive or irrelevant to replay).
+var skipHeaders = map[string]struct{}{
+	"authorization":     {},
+	"cookie":            {},
+	"content-length":    {},
+	"host":              {},
+	"connection":        {},
+	"transfer-encoding": {},
+	"accept-encoding":   {},
 }
 
-func joinMethods(methods []string) string {
-	result := ""
-	for i, m := range methods {
-		if i > 0 {
-			result += ", "
+func captureHeaders(h http.Header) map[string]string {
+	out := make(map[string]string, len(h))
+	for k, vs := range h {
+		if _, skip := skipHeaders[strings.ToLower(k)]; skip {
+			continue
 		}
-		result += m
+		if len(vs) > 0 {
+			out[k] = vs[0]
+		}
 	}
-	return result
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

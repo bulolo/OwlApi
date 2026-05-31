@@ -1,10 +1,10 @@
 /**
  * API 管理模块 — 完整类型定义
  */
-import type { ApiEndpoint, DataSource, Script, ApiGroup } from "@/lib/api-client"
+import type { APIEndpointResp, DataSourceResp, ScriptResp, APIGroupResp } from "@/lib/sdk"
 
 // ── Re-exports ──
-export type { ApiEndpoint, DataSource, Script, ApiGroup }
+export type { APIEndpointResp as ApiEndpoint, DataSourceResp as DataSource, ScriptResp as Script, APIGroupResp as ApiGroup }
 
 // ── HTTP ──
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE"
@@ -21,6 +21,13 @@ export interface ParamDef {
   type: ParamType
   required: boolean
   default?: string
+  desc?: string
+}
+
+// ── 返回字段 ──
+export interface ResponseDef {
+  name: string
+  type: ParamType
   desc?: string
 }
 
@@ -56,6 +63,16 @@ export function isExecutionSuccess(r: ExecutionResult): r is ExecutionSuccessMes
   return r !== null && typeof r === "object" && "success" in r
 }
 
+// ── 脚本链步骤 ──
+// 一步要么引用库脚本(source=library, scriptId)，要么内联代码(source=inline, name/code)。
+export type ScriptStepSource = "library" | "inline"
+export interface ScriptStep {
+  source: ScriptStepSource
+  scriptId?: number
+  name?: string
+  code?: string
+}
+
 // ── Endpoint 表单状态 ──
 export interface EndpointFormState {
   path: string
@@ -64,9 +81,10 @@ export interface EndpointFormState {
   sql: string
   datasourceAlias: string
   groupId: number
-  preScriptId: number
-  postScriptId: number
+  preScripts: ScriptStep[]
+  postScripts: ScriptStep[]
   paramDefs: ParamDef[]
+  responseDefs: ResponseDef[]
   paramInput: string
 }
 

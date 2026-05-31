@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
-import { apiHealth, type HealthInfo } from "@/lib/api-client"
+import { useHealth } from "@/lib/sdk"
 
 export type Edition = "community" | "enterprise"
 
@@ -13,12 +12,8 @@ export type Edition = "community" | "enterprise"
  *   - 拿不到数据时按 community 处理，避免 EE 入口闪现
  */
 export function useEdition() {
-  const { data, isLoading, error } = useQuery<HealthInfo>({
-    queryKey: ["health-edition"],
-    queryFn: apiHealth,
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
-    retry: 1,
+  const { data, isLoading, error } = useHealth({
+    query: { staleTime: 60_000, gcTime: 5 * 60_000, retry: 1 },
   })
 
   if (error && typeof window !== "undefined") {

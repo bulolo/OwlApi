@@ -61,20 +61,13 @@ func (s *queryService) Execute(ctx context.Context, tenantID string, envID int64
 		return nil, domain.ErrUnavailablef("gateway %s not connected", gatewayID)
 	}
 
-	var preScript, postScript string
-	if endpoint.PreScriptID > 0 {
-		sc, err := s.scripts.GetByID(ctx, endpoint.TenantID, endpoint.PreScriptID)
-		if err != nil {
-			return nil, domain.ErrInternalf("pre_script %d lookup failed: %v", endpoint.PreScriptID, err)
-		}
-		preScript = sc.Code
+	preScripts, err := s.resolveChain(ctx, endpoint.TenantID, endpoint.PreScripts, "pre_script")
+	if err != nil {
+		return nil, err
 	}
-	if endpoint.PostScriptID > 0 {
-		sc, err := s.scripts.GetByID(ctx, endpoint.TenantID, endpoint.PostScriptID)
-		if err != nil {
-			return nil, domain.ErrInternalf("post_script %d lookup failed: %v", endpoint.PostScriptID, err)
-		}
-		postScript = sc.Code
+	postScripts, err := s.resolveChain(ctx, endpoint.TenantID, endpoint.PostScripts, "post_script")
+	if err != nil {
+		return nil, err
 	}
 
 	requestID := generateRequestID()
@@ -91,8 +84,8 @@ func (s *queryService) Execute(ctx context.Context, tenantID string, envID int64
 				Sql:            endpoint.SQL,
 				Params:         params,
 				TimeoutSeconds: 30,
-				PreScript:      preScript,
-				PostScript:     postScript,
+				PreScripts:     preScripts,
+				PostScripts:    postScripts,
 			},
 		},
 	})
@@ -111,6 +104,33 @@ func (s *queryService) Execute(ctx context.Context, tenantID string, envID int64
 	case <-timer.C:
 		return nil, ErrQueryTimeout
 	}
+}
+
+// resolveChain turns an ordered pre/post chain into the JS code strings sent to
+// the gateway. Inline steps use their own code; library steps resolve code by ID.
+// Empty-code steps are skipped so they don't perturb the chain.
+func (s *queryService) resolveChain(ctx context.Context, tenantID int64, steps []domain.ScriptStep, label string) ([]string, error) {
+	var codes []string
+	for _, step := range steps {
+		switch step.Source {
+		case domain.ScriptStepInline:
+			if step.Code != "" {
+				codes = append(codes, step.Code)
+			}
+		case domain.ScriptStepLibrary:
+			if step.ScriptID <= 0 {
+				continue
+			}
+			sc, err := s.scripts.GetByID(ctx, tenantID, step.ScriptID)
+			if err != nil {
+				return nil, domain.ErrInternalf("%s %d lookup failed: %v", label, step.ScriptID, err)
+			}
+			if sc.Code != "" {
+				codes = append(codes, sc.Code)
+			}
+		}
+	}
+	return codes, nil
 }
 
 func (s *queryService) ExecuteDirect(ctx context.Context, tenantID, gatewayID, dsn, sqlStr string) (*pb.QueryResult, error) {

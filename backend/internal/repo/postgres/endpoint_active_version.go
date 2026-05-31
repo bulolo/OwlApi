@@ -15,7 +15,7 @@ const eavCols = `eav.tenant_id, eav.endpoint_id, eav.env_id, eav.version_id, ev.
 func scanEAV(scan func(dest ...any) error) (*domain.EndpointActiveVersion, error) {
 	var av domain.EndpointActiveVersion
 	if err := scan(&av.TenantID, &av.EndpointID, &av.EnvID, &av.VersionID, &av.Version, &av.ActivatedBy, &av.ActivatedAt); err != nil {
-		return nil, err
+		return nil, nfErr(err, "active version")
 	}
 	return &av, nil
 }

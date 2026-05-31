@@ -15,7 +15,7 @@ const bindingCols = `tenant_id, env_id, alias, datasource_id`
 func scanBinding(scan func(dest ...any) error) (*domain.EndpointDatasourceBinding, error) {
 	var b domain.EndpointDatasourceBinding
 	if err := scan(&b.TenantID, &b.EnvID, &b.Alias, &b.DataSourceID); err != nil {
-		return nil, err
+		return nil, nfErr(err, "datasource binding")
 	}
 	return &b, nil
 }

@@ -22,7 +22,7 @@ import {
 import { useUsers } from "@/hooks/useUsers"
 import { showConfirm } from "@/store/useConfirmStore"
 import { toast } from "sonner"
-import type { EndpointVersion } from "@/lib/api-client"
+import type { EndpointVersionResp as EndpointVersion } from "@/lib/sdk"
 import { VersionDiff } from "./VersionDiff"
 import { ActivationLog } from "./ActivationLog"
 
@@ -245,7 +245,7 @@ function VersionRow({
             )}
             {snap && (
               <span className="text-xs text-muted-foreground font-mono truncate">
-                {(snap.methods?.[0] ?? "").toUpperCase()} {snap.path}
+                {(snap.method ?? "").toUpperCase()} {snap.path}
               </span>
             )}
           </div>
@@ -268,8 +268,6 @@ function VersionRow({
               <RotateCcw className="w-3 h-3 mr-1.5" /> 复制到编辑器
             </Button>
           )}
-          {/* 统一的"上线到 ▾"——所有 env 列出来，已上线的勾选+置灰，未上线的可点击。
-              替代之前"激活到 X" + "Promote" 双按钮的歧义。 */}
           {envs.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -278,14 +276,16 @@ function VersionRow({
                   disabled={activating}
                   onClick={e => e.stopPropagation()}
                   className="h-7 px-3 text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-                  title="选择一个环境让这个版本在该环境生效"
+                  title="选择一个环境上线或下线此版本"
                 >
-                  <Rocket className="w-3 h-3 mr-1.5" /> 上线到 <ChevronDown className="w-3 h-3 ml-0.5" />
+                  <Rocket className="w-3 h-3 mr-1.5" />
+                  {activeEnvs.length === 0 ? "上线到" : activeEnvs.length === envs.length ? "下线到" : "上线/下线到"}
+                  <ChevronDown className="w-3 h-3 ml-0.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 rounded-lg shadow-modal border-border p-1">
                 <div className="px-2 pt-1 pb-1.5 text-2xs font-bold uppercase tracking-wider text-muted-foreground">
-                  在该环境激活此版本
+                  在该环境激活或下线此版本
                 </div>
                 {envs.map(env => {
                   const activeInEnv = activeEnvs.some(ae => ae.envId === env.id)

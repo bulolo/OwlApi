@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Server, ShieldCheck, Loader2, Zap, CheckCircle2, XCircle, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { defaultPort, type ConnParams } from "@/lib/database-helpers"
-import type { Gateway } from "@/lib/api-client"
+import type { GatewayResp as Gateway } from "@/lib/sdk"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -16,7 +16,8 @@ module/
   _store/        # module-local Zustand stores
   _types/        # module-local TypeScript types
   page.tsx       # thin Next.js page wrapper
-  XxxClientPage.tsx  # main client component
+  Xxx.tsx        # main client component, named after the module
+                 # (e.g. Apis.tsx, Gateways.tsx, Environments.tsx) — not "XxxClientPage"
 ```
 
 Examples of modules following this pattern:

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: owlapi
+description: SQL 驱动的 API 构建与管理平台
+type: application
+version: 0.2.1
+appVersion: "0.2.1"
+keywords:
+  - api
+  - sql
+  - openapi
+home: https://owlapi.cn
+sources:
+  - https://github.com/owlapi/owlapi
+maintainers:
+  - name: OwlApi Team

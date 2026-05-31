@@ -1,25 +1,62 @@
 "use client"
 
 import { useState } from "react"
-import { Activity, Server, ArrowUpRight, ArrowDownRight, Box, FolderGit2 } from "lucide-react"
+import { Activity, Server, ArrowUpRight, ArrowDownRight, Box, FolderGit2, Loader2 } from "lucide-react"
 import { useTenant } from "@/providers/TenantProvider"
 import { useGateways, useProjects, useDataSources, useScripts } from "@/hooks"
+import { useGetOverviewTraffic, useGetOverviewActivity } from "@/lib/sdk/overview"
+import type { TrafficBucketResp, ActivityEventResp } from "@/lib/sdk"
 
-const TRAFFIC_DATA = {
-  "24H": [30, 45, 32, 50, 65, 54, 80, 75, 90, 85, 120, 110, 140, 130, 125, 100, 95, 110, 125, 115, 100, 80, 60, 40],
-  "7D": [420, 580, 490, 710, 850, 620, 940],
-  "30D": [1200, 1500, 1340, 1800, 2100, 1950, 2400, 2200, 2800, 2650]
+// 事件严重度 → 时间线圆点颜色 / 类型标签中文。
+const SEVERITY_DOT: Record<string, string> = {
+  info: "bg-primary/80",
+  warning: "bg-amber-500",
+  error: "bg-red-500",
+}
+const TYPE_LABEL: Record<string, string> = {
+  api: "API",
+  error: "错误",
+  slow: "慢查询",
 }
 
-const RANGE_LABELS = {
-  "24H": "过去 24 小时的 API 请求动态",
-  "7D": "过去 7 天的流量趋势 (日均)",
-  "30D": "过去 30 天的总请求趋势"
+function relativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const s = Math.floor(diffMs / 1000)
+  if (s < 60) return "刚刚"
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m} 分钟前`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h} 小时前`
+  const d = Math.floor(h / 24)
+  return `${d} 天前`
 }
+
+// UI 上的范围标签 → 后端 range 参数（24h / 7d / 30d）。
+const RANGES = [
+  { ui: "24H", api: "24h", label: "过去 24 小时的 API 请求趋势 (按小时)" },
+  { ui: "7D", api: "7d", label: "过去 7 天的流量趋势 (按天)" },
+  { ui: "30D", api: "30d", label: "过去 30 天的流量趋势 (按天)" },
+] as const
 
 export default function OverviewPage() {
-  const [range, setRange] = useState<keyof typeof TRAFFIC_DATA>("24H")
+  const [range, setRange] = useState<(typeof RANGES)[number]["api"]>("24h")
   const activeTenant = useTenant()
+  // 概览是实时看板：每次进入页面都强制重拉（refetchOnMount: "always"），
+  // 覆盖全局 5min staleTime，避免刚产生新数据、切回概览却看到旧缓存。
+  const { data: traffic, isLoading: trafficLoading } = useGetOverviewTraffic(
+    activeTenant,
+    { range },
+    { query: { refetchOnMount: "always" } },
+  )
+  const buckets = traffic?.buckets ?? []
+  const rangeLabel = RANGES.find(r => r.api === range)?.label ?? ""
+
+  const { data: activity, isLoading: activityLoading } = useGetOverviewActivity(
+    activeTenant,
+    { limit: 6 },
+    { query: { refetchOnMount: "always" } },
+  )
+  const events: ActivityEventResp[] = activity?.list ?? []
   const { gateways, pagination: gwPagination } = useGateways(activeTenant, { is_pager: 0 })
   const { pagination: projPagination } = useProjects(activeTenant, { is_pager: 0 })
   const { pagination: dsPagination } = useDataSources(activeTenant, { is_pager: 0 })
@@ -52,27 +89,38 @@ export default function OverviewPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h3 className="text-lg font-bold text-foreground">流量趋势</h3>
-              <p className="text-2xs text-muted-foreground font-bold uppercase tracking-tight mt-0.5">{RANGE_LABELS[range]}</p>
+              <p className="text-2xs text-muted-foreground font-bold uppercase tracking-tight mt-0.5">{rangeLabel}</p>
             </div>
             <div className="flex gap-1 bg-zinc-50 p-1 rounded-lg border border-border-subtle">
-              {(["24H", "7D", "30D"] as const).map((r) => (
+              {RANGES.map((r) => (
                 <button
-                  key={r}
-                  onClick={() => setRange(r)}
+                  key={r.api}
+                  onClick={() => setRange(r.api)}
                   className={`text-2xs px-3 py-1 rounded-lg font-black tracking-tight uppercase transition-all ${
-                    range === r
+                    range === r.api
                       ? "bg-white shadow-sm border border-border text-foreground"
                       : "text-muted-foreground hover:bg-white/50 border border-transparent"
                   }`}
                 >
-                  {r}
+                  {r.ui}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="h-[280px] w-full relative">
-            <TrafficChart data={TRAFFIC_DATA[range]} rangeType={range} />
+            {trafficLoading ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <Loader2 className="w-5 h-5 animate-spin" />
+              </div>
+            ) : (traffic?.total ?? 0) === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-2">
+                <Activity className="w-8 h-8 text-zinc-200" />
+                <p className="text-xs text-muted-foreground">该时间段暂无 API 调用</p>
+              </div>
+            ) : (
+              <TrafficChart buckets={buckets} bucket={traffic?.bucket ?? "hour"} />
+            )}
           </div>
 
           <div className="mt-6 flex items-center justify-between pt-4 border-t border-zinc-50 border-dashed">
@@ -82,68 +130,85 @@ export default function OverviewPage() {
                 <span className="text-xs font-bold text-zinc-600">正常请求</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
-                <span className="text-xs font-bold text-muted-foreground">平均负载</span>
+                <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                <span className="text-xs font-bold text-muted-foreground">错误请求</span>
               </div>
             </div>
-            <div className="text-xs text-muted-foreground font-medium">
-              峰值数据: <span className="text-foreground font-black">
-                {range === "24H"
-                  ? `${Math.max(...TRAFFIC_DATA[range])} req/min`
-                  : `${(Math.max(...TRAFFIC_DATA[range]) / 1000).toFixed(1)}k req/day`}
-              </span>
+            <div className="flex items-center gap-5 text-xs text-muted-foreground font-medium">
+              <span>区间总量: <span className="text-foreground font-black">{(traffic?.total ?? 0).toLocaleString()}</span></span>
+              <span>峰值: <span className="text-foreground font-black">
+                {traffic?.peak ?? 0} {traffic?.bucket === "day" ? "req/day" : "req/h"}
+              </span></span>
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-lg border border-border-subtle shadow-card p-6">
           <h3 className="text-lg font-bold text-foreground mb-4">最近动态</h3>
-          <div className="space-y-6 relative before:absolute before:left-[15px] before:top-2 before:h-full before:w-[2px] before:bg-zinc-100">
-            {[
-              { type: "API", title: "User_Profile_Query", desc: "SQL 接口发布至生产环境", time: "3 分钟前", color: "bg-primary/80" },
-              { type: "GATEWAY", title: "HK-Edge-01", desc: "远程网关节点已上线", time: "12 分钟前", color: "bg-emerald-500" },
-              { type: "SQL", title: "Slow Query Alert", desc: "检测到 5 笔慢查询请求 (Sales_Data)", time: "42 分钟前", color: "bg-amber-500" },
-              { type: "AUTH", title: "Security Warning", desc: "产生 5 次未授权的 API 访问尝试", time: "5 小时前", color: "bg-red-500" },
-            ].map((item, i) => (
-              <div key={i} className="relative flex items-start gap-4">
-                <div className="w-8 h-8 rounded-full bg-white border-2 border-border-subtle flex items-center justify-center shrink-0 z-10 transition-transform hover:scale-110">
-                  <div className={`w-2.5 h-2.5 rounded-full ${item.color} shadow-sm`} />
+          {activityLoading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin" />
+            </div>
+          ) : events.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2">
+              <Activity className="w-8 h-8 text-zinc-200" />
+              <p className="text-xs text-muted-foreground">暂无动态——发布接口或产生调用后会显示在这里</p>
+            </div>
+          ) : (
+            <div className="space-y-5 relative max-h-[360px] overflow-y-auto pr-1 before:absolute before:left-[15px] before:top-2 before:h-full before:w-[2px] before:bg-zinc-100">
+              {events.map((item, i) => (
+                <div key={i} className="relative flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full bg-white border-2 border-border-subtle flex items-center justify-center shrink-0 z-10 transition-transform hover:scale-110">
+                    <div className={`w-2.5 h-2.5 rounded-full ${SEVERITY_DOT[item.severity] ?? "bg-zinc-300"} shadow-sm`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-foreground font-medium truncate">
+                      <span className="text-muted-foreground mr-1">[{TYPE_LABEL[item.type] ?? item.type}]</span> {item.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                    <p className="text-2xs text-muted-foreground mt-1 font-bold uppercase tracking-tight">{relativeTime(item.at)}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-foreground font-medium">
-                    <span className="text-muted-foreground mr-1">[{item.type}]</span> {item.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-                  <p className="text-2xs text-muted-foreground mt-1 font-bold uppercase tracking-tight">{item.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-function TrafficChart({ data, rangeType }: { data: number[], rangeType: string }) {
-  const maxValue = Math.max(...data)
+function TrafficChart({ buckets, bucket }: { buckets: TrafficBucketResp[], bucket: string }) {
   const height = 280
   const width = 800
+  // 以总量最大值定纵轴（至少 1，避免除零）；错误线共用同一刻度便于直观对比占比。
+  const maxValue = Math.max(1, ...buckets.map(b => b.total))
+  const n = buckets.length
 
-  const points = data.map((val, i) => ({
-    x: (i / (data.length - 1)) * width,
-    y: height - (val / maxValue) * height * 0.8
-  }))
+  const xAt = (i: number) => (n <= 1 ? width / 2 : (i / (n - 1)) * width)
+  const yAt = (v: number) => height - (v / maxValue) * height * 0.8
 
-  const pathD = `M ${points[0].x} ${points[0].y} ` +
-    points.slice(1).map((p, i) => {
-      const prev = points[i]
-      const cx1 = prev.x + (p.x - prev.x) / 2
-      const cx2 = prev.x + (p.x - prev.x) / 2
-      return `C ${cx1} ${prev.y}, ${cx2} ${p.y}, ${p.x} ${p.y}`
+  // 平滑曲线路径：给定每个桶取某个数值字段。
+  const linePath = (pick: (b: TrafficBucketResp) => number) => {
+    const pts = buckets.map((b, i) => ({ x: xAt(i), y: yAt(pick(b)) }))
+    if (pts.length === 0) return ""
+    return `M ${pts[0].x} ${pts[0].y} ` + pts.slice(1).map((p, i) => {
+      const prev = pts[i]
+      const cx = prev.x + (p.x - prev.x) / 2
+      return `C ${cx} ${prev.y}, ${cx} ${p.y}, ${p.x} ${p.y}`
     }).join(" ")
+  }
 
-  const areaD = `${pathD} V ${height} H 0 Z`
+  const totalPath = linePath(b => b.total)
+  const errorPath = linePath(b => b.errors)
+  const areaD = `${totalPath} V ${height} H 0 Z`
+
+  // X 轴标签：按桶数量稀疏显示，避免拥挤。
+  const labelStep = n <= 8 ? 1 : Math.ceil(n / 7)
+  const fmtLabel = (ts: string) => {
+    const d = new Date(ts)
+    return bucket === "day" ? `${d.getMonth() + 1}/${d.getDate()}` : `${d.getHours()}:00`
+  }
 
   return (
     <div className="w-full h-full">
@@ -157,17 +222,17 @@ function TrafficChart({ data, rangeType }: { data: number[], rangeType: string }
         {[0, 1, 2, 3].map((i) => (
           <line key={i} x1="0" y1={(i / 3) * height * 0.8} x2={width} y2={(i / 3) * height * 0.8} stroke="hsl(var(--border))" strokeWidth="1" />
         ))}
-        <g key={rangeType}>
+        <g key={bucket}>
           <path d={areaD} fill="url(#chartGradient)" />
-          <path d={pathD} fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round" />
-          {points.map((p, i) => {
-            const show = (rangeType === "24H" && i % 4 === 0) || rangeType === "7D" || (rangeType === "30D" && i % 2 === 0)
-            if (!show) return null
-            const label = rangeType === "24H" ? `${i}:00` : rangeType === "7D" ? `Day ${i + 1}` : `Day ${i * 3 + 1}`
+          <path d={errorPath} fill="none" stroke="rgb(248 113 113)" strokeWidth="2" strokeLinecap="round" strokeDasharray="4 3" />
+          <path d={totalPath} fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round" />
+          {buckets.map((b, i) => {
+            if (i % labelStep !== 0 && i !== n - 1) return null
+            const x = xAt(i)
             return (
               <g key={i}>
-                <circle cx={p.x} cy={p.y} r="4" fill="hsl(var(--primary))" stroke="white" strokeWidth="2" />
-                <text x={p.x} y={height + 20} textAnchor="middle" className="text-2xs fill-zinc-400 font-bold uppercase tracking-tight">{label}</text>
+                <circle cx={x} cy={yAt(b.total)} r="4" fill="hsl(var(--primary))" stroke="white" strokeWidth="2" />
+                <text x={x} y={height + 20} textAnchor="middle" className="text-2xs fill-zinc-400 font-bold uppercase tracking-tight">{fmtLabel(b.ts)}</text>
               </g>
             )
           })}

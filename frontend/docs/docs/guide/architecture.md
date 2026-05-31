@@ -87,7 +87,7 @@ internal/
 
 - **反向隧道** — 通过 gRPC 双向流主动连接 Control Plane，无需开放公网端口
 - **SQL 执行** — 接收 `ExecuteQueryRequest`（含 DSN、SQL、参数、超时），执行查询，返回 JSON
-- **JS 脚本** — 支持前置脚本（修改参数）和后置脚本（转换结果），在 Goja 运行时执行
+- **JS 脚本** — 支持前置脚本链（依次加工参数）和后置脚本链（依次加工结果），在 Goja 运行时执行
 - **驱动解析** — 优先使用 `db_type` 字段确定数据库驱动，兜底使用 DSN 前缀推断
 - **心跳上报** — 定期上报 CPU、内存、活跃连接数等系统指标
 - **安全隔离** — 数据库 DSN 仅存在于 Gateway 侧，Control Plane 仅传递 DSN 串，不存储凭据
@@ -101,9 +101,9 @@ internal/
   │  HTTP  /{tenant-slug}/{project-slug}/{path}
   ▼
 Control Plane（匹配已发布接口快照）
-  │  gRPC ExecuteQueryRequest { dsn, db_type, sql, params, pre_script, post_script }
+  │  gRPC ExecuteQueryRequest { dsn, db_type, sql, params, pre_scripts, post_scripts }
   ▼
-Gateway（执行前置脚本 → SQL → 后置脚本）
+Gateway（执行前置脚本链 → SQL → 后置脚本链）
   │  gRPC QueryResult { data: JSON bytes }
   ▼
 Control Plane（透传响应）

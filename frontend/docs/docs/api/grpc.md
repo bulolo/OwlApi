@@ -75,8 +75,8 @@ Gateway 启动后发送的第一条消息。
 | sql | string | 待执行的 SQL 语句 |
 | params | map\<string, string\> | 查询参数（替换 SQL 中的占位符） |
 | timeout_seconds | int32 | SQL 执行超时（秒） |
-| pre_script | string | 前置 JS 脚本（在执行 SQL 前修改 params） |
-| post_script | string | 后置 JS 脚本（在返回结果前转换 data） |
+| pre_scripts | repeated string | 前置 JS 脚本链，按顺序在执行 SQL 前依次加工 params；任意一段 `return { error }` 即中断 |
+| post_scripts | repeated string | 后置 JS 脚本链，按顺序在返回结果前依次加工 data（上一段输出喂给下一段，末段即响应体） |
 
 ## 通信流程
 
@@ -92,7 +92,7 @@ Gateway                              Control Plane
   │                              外部 HTTP 请求到达
   │                                        │  匹配已发布接口
   │◄── ExecuteQueryRequest ────────────   │  填充 dsn, db_type, sql, params, scripts
-  │   执行前置脚本 → SQL → 后置脚本       │
+  │   执行前置脚本链 → SQL → 后置脚本链   │
   │── QueryResult ─────────────────────►  │  透传 JSON 响应给调用方
 ```
 

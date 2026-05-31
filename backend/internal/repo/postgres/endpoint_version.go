@@ -13,7 +13,7 @@ type EndpointVersionRepo struct{ DB *DB }
 
 var _ domain.EndpointVersionRepository = (*EndpointVersionRepo)(nil)
 
-const evCols = `id, tenant_id, endpoint_id, version, snapshot, snapshot_v, pre_script_snapshot, post_script_snapshot, datasource_ref, note, created_by, created_at`
+const evCols = `id, tenant_id, endpoint_id, version, snapshot, snapshot_v, pre_script_snapshots, post_script_snapshots, datasource_ref, note, created_by, created_at`
 
 func (r *EndpointVersionRepo) NextVersion(ctx context.Context, tenantID, endpointID int64) (int, error) {
 	var maxVersion int
@@ -28,11 +28,11 @@ func (r *EndpointVersionRepo) Create(ctx context.Context, v *domain.EndpointVers
 	if err != nil {
 		return err
 	}
-	pre, err := marshalNullable(v.PreScriptSnapshot)
+	pre, err := marshalScriptSnapshots(v.PreScriptSnapshots)
 	if err != nil {
 		return err
 	}
-	post, err := marshalNullable(v.PostScriptSnapshot)
+	post, err := marshalScriptSnapshots(v.PostScriptSnapshots)
 	if err != nil {
 		return err
 	}
@@ -44,7 +44,7 @@ func (r *EndpointVersionRepo) Create(ctx context.Context, v *domain.EndpointVers
 		v.SnapshotV = 1
 	}
 	return r.DB.Pool.QueryRow(ctx,
-		`INSERT INTO endpoint_versions (tenant_id, endpoint_id, version, snapshot, snapshot_v, pre_script_snapshot, post_script_snapshot, datasource_ref, note, created_by)
+		`INSERT INTO endpoint_versions (tenant_id, endpoint_id, version, snapshot, snapshot_v, pre_script_snapshots, post_script_snapshots, datasource_ref, note, created_by)
 		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id, created_at`,
 		v.TenantID, v.EndpointID, v.Version, snap, v.SnapshotV, pre, post, dsRef, v.Note, v.CreatedBy,
 	).Scan(&v.ID, &v.CreatedAt)
@@ -54,7 +54,13 @@ func (r *EndpointVersionRepo) GetByID(ctx context.Context, tenantID, id int64) (
 	row := r.DB.Pool.QueryRow(ctx,
 		`SELECT `+evCols+` FROM endpoint_versions WHERE tenant_id=$1 AND id=$2`,
 		tenantID, id)
-	return scanVersion(row.Scan)
+	v, err := scanVersion(row.Scan)
+	if domain.IsNotFound(err) {
+		// 比通用 "endpoint version not found" 更友好：常见诱因是版本列表为旧缓存
+		//（如重置/重建库后），点上线发的是已不存在的版本 ID。
+		return nil, domain.ErrNotFoundf("版本不存在（id=%d），可能已被删除或列表已过期，请刷新后重试", id)
+	}
+	return v, err
 }
 
 func (r *EndpointVersionRepo) GetByVersion(ctx context.Context, tenantID, endpointID int64, version int) (*domain.EndpointVersion, error) {
@@ -137,16 +143,20 @@ func (r *EndpointVersionRepo) Delete(ctx context.Context, tenantID, id int64) er
 	return err
 }
 
+// marshalScriptSnapshots stores a script chain snapshot as a JSON array, or NULL when empty.
+func marshalScriptSnapshots(snaps []domain.ScriptSnapshot) ([]byte, error) {
+	if len(snaps) == 0 {
+		return nil, nil
+	}
+	return json.Marshal(snaps)
+}
+
 func marshalNullable(v interface{}) ([]byte, error) {
 	if v == nil {
 		return nil, nil
 	}
 	// nil interface containing nil pointer
 	switch x := v.(type) {
-	case *domain.ScriptSnapshot:
-		if x == nil {
-			return nil, nil
-		}
 	case *domain.DataSourceRef:
 		if x == nil {
 			return nil, nil
@@ -160,7 +170,7 @@ func scanVersion(scan func(dest ...any) error) (*domain.EndpointVersion, error) 
 	var snapJSON, preJSON, postJSON, dsJSON []byte
 	err := scan(&v.ID, &v.TenantID, &v.EndpointID, &v.Version, &snapJSON, &v.SnapshotV, &preJSON, &postJSON, &dsJSON, &v.Note, &v.CreatedBy, &v.CreatedAt)
 	if err != nil {
-		return nil, err
+		return nil, nfErr(err, "endpoint version")
 	}
 	hydrateVersionPayloads(&v, snapJSON, preJSON, postJSON, dsJSON)
 	return &v, nil
@@ -174,15 +184,13 @@ func hydrateVersionPayloads(v *domain.EndpointVersion, snapJSON, preJSON, postJS
 		}
 	}
 	if len(preJSON) > 0 {
-		v.PreScriptSnapshot = &domain.ScriptSnapshot{}
-		if err := json.Unmarshal(preJSON, v.PreScriptSnapshot); err != nil {
-			slog.Warn("unmarshal pre script snapshot failed", "err", err)
+		if err := json.Unmarshal(preJSON, &v.PreScriptSnapshots); err != nil {
+			slog.Warn("unmarshal pre script snapshots failed", "err", err)
 		}
 	}
 	if len(postJSON) > 0 {
-		v.PostScriptSnapshot = &domain.ScriptSnapshot{}
-		if err := json.Unmarshal(postJSON, v.PostScriptSnapshot); err != nil {
-			slog.Warn("unmarshal post script snapshot failed", "err", err)
+		if err := json.Unmarshal(postJSON, &v.PostScriptSnapshots); err != nil {
+			slog.Warn("unmarshal post script snapshots failed", "err", err)
 		}
 	}
 	if len(dsJSON) > 0 {

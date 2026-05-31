@@ -44,7 +44,6 @@ services:
       - /app/.next # Anonymous volume for build cache
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:3000
-      - INTERNAL_API_URL=http://owlapi_backend_dev:3000
     depends_on:
       backend:
         condition: service_healthy
@@ -70,11 +69,32 @@ services:
       backend-init:
         condition: service_completed_successfully
 
+  # SDK Builder Sidecar (EE-only — wraps openapi-generator-cli)
+  # 默认不启动；用 `docker compose --profile ee up sdkbuilder` 显式拉起。
+  sdkbuilder:
+    profiles: ["ee"]
+    build:
+      context: ./backend
+      dockerfile: cmd/sdkbuilder/Dockerfile
+    container_name: owlapi_sdkbuilder_dev
+    restart: unless-stopped
+    # 用 7100 而不是 7000——macOS AirPlay Receiver 默认占 5000/7000。
+    # host 和 container 内部端口保持一致，省得心智上两个 number。
+    ports:
+      - "7100:7100"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7100/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
   # PostgreSQL Database
   postgres:
     image: postgres:18-alpine
     container_name: owlapi_postgres
     restart: unless-stopped
+    command: postgres -c log_min_messages=WARNING -c log_min_error_statement=WARNING
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres

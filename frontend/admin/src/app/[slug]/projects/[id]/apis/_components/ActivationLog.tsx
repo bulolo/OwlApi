@@ -1,10 +1,10 @@
 "use client"
 
 import { format } from "date-fns"
-import { Rocket, RotateCcw, ArrowDownCircle, FilePlus2, Activity, Trash2 } from "lucide-react"
+import { Rocket, RotateCcw, ArrowDownCircle, Activity, Trash2, GitCommitHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useEndpointActivationLog } from "@/hooks/useEndpointVersions"
-import type { EndpointActivationLog } from "@/lib/api-client"
+import type { EndpointActivationLogResp as EndpointActivationLog } from "@/lib/sdk"
 
 function formatDate(d: string) {
   try { return format(new Date(d), "yyyy-MM-dd HH:mm:ss") } catch { return d }
@@ -44,13 +44,12 @@ export function ActivationLog({ slug, projectId, endpointId }: ActivationLogProp
     <ul className="relative border-l-2 border-border-subtle ml-2 space-y-4 pl-6 py-1">
       {logs.map((log: EndpointActivationLog) => {
         const actor = log.actor_name || (log.actor_id ? `用户 #${log.actor_id}` : "系统")
-        // 版本号取自后端 JOIN 出来的 version 字段。被删除的版本 JOIN 结果为空 → 显示"已删除 #ID"。
         const versionLabel = log.version
           ? `v${log.version}`
           : log.version_id
             ? `已删除 #${log.version_id}`
             : ""
-        return <LogRow key={log.id} log={log} actor={actor} versionLabel={versionLabel} />
+        return <LogRow key={log.id} log={log} actor={actor} versionLabel={versionLabel} envName={log.env_name ?? ""} />
       })}
     </ul>
   )
@@ -59,44 +58,58 @@ export function ActivationLog({ slug, projectId, endpointId }: ActivationLogProp
 interface ActionMeta {
   Icon: typeof Rocket
   tone: "emerald" | "primary" | "amber" | "zinc"
-  /** 返回 JSX 片段，将 versionLabel 嵌入到合适的位置 */
   describe: (versionLabel: string) => React.ReactNode
 }
 
+function Ver({ label, cls }: { label: string; cls: string }) {
+  if (!label) return null
+  return <strong className={cn("font-bold", cls)}>{label}</strong>
+}
+
 const actionMeta: Record<string, ActionMeta> = {
+  version_create: {
+    Icon: GitCommitHorizontal,
+    tone: "zinc",
+    describe: (v) => <>创建了 <Ver label={v} cls="text-zinc-600" /> 版本快照</>,
+  },
   publish: {
     Icon: Rocket,
     tone: "emerald",
-    describe: (v) => <>发布并上线 <strong className="font-bold text-emerald-700">{v}</strong></>,
+    describe: (v) => <>上线 <Ver label={v} cls="text-emerald-700" /> 版本</>,
   },
   activate: {
-    Icon: FilePlus2,
-    tone: "primary",
-    describe: (v) => <>把线上切换到 <strong className="font-bold text-primary">{v}</strong></>,
+    Icon: Rocket,
+    tone: "emerald",
+    describe: (v) => <>上线 <Ver label={v} cls="text-emerald-700" /> 版本</>,
+  },
+  promote: {
+    Icon: Rocket,
+    tone: "emerald",
+    describe: (v) => <>上线 <Ver label={v} cls="text-emerald-700" /> 版本</>,
   },
   rollback: {
     Icon: RotateCcw,
     tone: "amber",
-    describe: (v) => <>回滚到了 <strong className="font-bold text-amber-700">{v}</strong></>,
+    describe: (v) => <>回滚至 <Ver label={v} cls="text-amber-700" /> 版本</>,
   },
   unpublish: {
     Icon: ArrowDownCircle,
     tone: "zinc",
-    describe: () => <>把接口下线（调用方会收到 404）</>,
+    describe: () => <>将接口下线（调用方会收到 404）</>,
   },
   version_deleted: {
     Icon: Trash2,
     tone: "zinc",
-    describe: (v) => <>删除了 <strong className="font-bold text-zinc-700">{v}</strong></>,
+    describe: (v) => <>删除了 <Ver label={v} cls="text-zinc-700" /> 版本</>,
   },
   revert: {
     Icon: RotateCcw,
     tone: "amber",
-    describe: (v) => <>丢弃未发布修改，还原到 <strong className="font-bold text-amber-700">{v}</strong></>,
+    describe: (v) => <>还原至 <Ver label={v} cls="text-amber-700" /> 版本</>,
   },
 }
 
-function LogRow({ log, actor, versionLabel }: { log: EndpointActivationLog; actor: string; versionLabel: string }) {
+function LogRow({ log, actor, versionLabel, envName }: { log: EndpointActivationLog; actor: string; versionLabel: string; envName: string }) {
   const meta = actionMeta[log.action] ?? {
     Icon: Activity,
     tone: "zinc" as const,
@@ -133,6 +146,11 @@ function LogRow({ log, actor, versionLabel }: { log: EndpointActivationLog; acto
             <span className="font-bold text-foreground">{actor}</span>
             <span className="text-muted-foreground"> · </span>
             {meta.describe(versionLabel)}
+            {envName && (
+              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-2xs font-medium bg-zinc-100 text-zinc-500 border border-border-subtle align-middle">
+                {envName}
+              </span>
+            )}
           </p>
           <p className="text-xs text-muted-foreground font-mono mt-0.5">{formatDate(log.at)}</p>
         </div>

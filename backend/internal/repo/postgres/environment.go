@@ -15,7 +15,7 @@ const envCols = `id, tenant_id, project_id, name, is_default, created_at`
 func scanEnv(scan func(dest ...any) error) (*domain.ProjectEnvironment, error) {
 	var e domain.ProjectEnvironment
 	if err := scan(&e.ID, &e.TenantID, &e.ProjectID, &e.Name, &e.IsDefault, &e.CreatedAt); err != nil {
-		return nil, err
+		return nil, nfErr(err, "environment")
 	}
 	return &e, nil
 }

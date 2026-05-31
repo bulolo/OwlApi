@@ -3,17 +3,29 @@
 import { create } from "zustand"
 import { toast } from "sonner"
 import { format as formatSql } from "sql-formatter"
-import {
-  apiCreateEndpoint,
-  apiUpdateEndpoint,
-  apiRun,
-  type ApiEndpoint,
-  type EndpointVersion,
-} from "@/lib/api-client"
+import { createEndpoint, updateEndpoint, getListEndpointsQueryKey } from "@/lib/sdk"
+import type { APIEndpointResp as ApiEndpoint, EndpointVersionResp as EndpointVersion } from "@/lib/sdk"
+import { apiRun, apiRunSQL } from "@/lib/query"
 import { queryClient } from "@/lib/queryClient"
 import { getErrorMessage } from "@/lib/errors"
 import { PARAM_PLACEHOLDER_PREFIX } from "@/lib/constants"
-import type { HttpMethod, ParamDef, ExecutionResult, EndpointFormState } from "../_types"
+import type { HttpMethod, ParamDef, ResponseDef, ExecutionResult, EndpointFormState, ScriptStep, ScriptStepSource } from "../_types"
+
+// SDK 用 snake_case(script_id)，表单用 camelCase(scriptId)，双向映射。
+type SdkScriptStep = { source?: string; script_id?: number; name?: string; code?: string }
+function stepsFromSdk(steps?: SdkScriptStep[]): ScriptStep[] {
+  return (steps || []).map(s => ({
+    source: (s.source as ScriptStepSource) ?? "library",
+    scriptId: s.script_id,
+    name: s.name,
+    code: s.code,
+  }))
+}
+function stepsToSdk(steps: ScriptStep[]): SdkScriptStep[] {
+  return steps.map(s => s.source === "inline"
+    ? { source: "inline", name: s.name ?? "", code: s.code ?? "" }
+    : { source: "library", script_id: s.scriptId ?? 0 })
+}
 
 export const SQL_TEMPLATES: Record<HttpMethod, string> = {
   GET:    "SELECT *\nFROM table_name\nWHERE id = :id",
@@ -32,28 +44,30 @@ function buildParamJSON(paramDefs: ParamDef[]): string {
 function epToForm(ep: ApiEndpoint, defaultHandle = "main"): EndpointFormState {
   return {
     path: ep.path ?? "",
-    method: (ep.methods?.[0] ?? "POST") as HttpMethod,
+    method: (ep.method ?? "POST") as HttpMethod,
     summary: ep.summary ?? "",
     sql: ep.sql ?? "",
     datasourceAlias: ep.datasource_alias || defaultHandle,
     groupId: ep.group_id || 0,
-    preScriptId: ep.pre_script_id || 0,
-    postScriptId: ep.post_script_id || 0,
+    preScripts: stepsFromSdk(ep.pre_scripts),
+    postScripts: stepsFromSdk(ep.post_scripts),
     paramDefs: (ep.param_defs || []) as ParamDef[],
+    responseDefs: (ep.response_defs || []) as ResponseDef[],
     paramInput: "",
   }
 }
 
 const initialForm: EndpointFormState = {
   path: "",
-  method: "POST",
+  method: "GET",
   summary: "",
   sql: "",
   datasourceAlias: "main",
   groupId: 0,
-  preScriptId: 0,
-  postScriptId: 0,
+  preScripts: [],
+  postScripts: [],
   paramDefs: [],
+  responseDefs: [],
   paramInput: "",
 }
 
@@ -66,6 +80,7 @@ export interface RestoredFromVersion {
 interface FormState {
   form: EndpointFormState
   _savedForm: EndpointFormState
+  _loadedEndpointId: number | null
   isDirty: boolean
   saving: boolean
   authToken: string
@@ -83,6 +98,7 @@ interface FormActions {
   setFormField: <K extends keyof EndpointFormState>(key: K, value: EndpointFormState[K]) => void
   setParamDefs: (updater: ParamDef[] | ((prev: ParamDef[]) => ParamDef[])) => void
   syncParamDefs: (updater: ParamDef[] | ((prev: ParamDef[]) => ParamDef[])) => void
+  setResponseDefs: (defs: ResponseDef[]) => void
 
   save: (tenant: string, projectId: string, isNew: boolean, selectedId: number | null) => Promise<ApiEndpoint | null>
 
@@ -106,6 +122,7 @@ export type EndpointFormStore = FormState & FormActions
 export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
   form: { ...initialForm },
   _savedForm: { ...initialForm },
+  _loadedEndpointId: null,
   isDirty: false,
   saving: false,
   authToken: "",
@@ -118,6 +135,8 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
   _preRestoreForm: null,
 
   initForm: (ep, defaultHandle = "main", initialMethod?) => {
+    const prevForm = get().form
+    const isSameEndpoint = ep != null && get()._loadedEndpointId === ep.id
     const form = ep
       ? epToForm(ep, defaultHandle)
       : {
@@ -125,13 +144,22 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
           datasourceAlias: defaultHandle,
           ...(initialMethod && { method: initialMethod, sql: SQL_TEMPLATES[initialMethod] }),
         }
+    // When re-loading the same endpoint and the server doesn't return response_defs
+    // (e.g. backend running old binary, or omitempty dropped empty array), preserve
+    // whatever the current form has so the user's extracted fields survive the refetch.
+    if (isSameEndpoint && form.responseDefs.length === 0 && prevForm.responseDefs.length > 0) {
+      form.responseDefs = prevForm.responseDefs
+    }
     set({
       form,
       _savedForm: { ...form },
+      _loadedEndpointId: ep?.id ?? null,
       isDirty: false,
       paramJSON: buildParamJSON(form.paramDefs),
       execResult: null,
-      designExecResult: null,
+      // Keep design result when refreshing the same endpoint (e.g. after auto-save invalidates the list).
+      // Clear it only when switching to a different endpoint.
+      ...(!isSameEndpoint && { designExecResult: null }),
       restoredFromVersion: null,
       _preRestoreForm: null,
     })
@@ -158,44 +186,61 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
   syncParamDefs: (updater) =>
     set((s) => {
       const newDefs = typeof updater === "function" ? updater(s.form.paramDefs) : updater
+      // 无变化时返回原 state，避免新建 form 触发无限 re-render（useParamSync 在无新增时回传原数组）。
+      if (newDefs === s.form.paramDefs) return s
       return {
         form: { ...s.form, paramDefs: newDefs },
         paramJSON: buildParamJSON(newDefs),
       }
     }),
 
+  setResponseDefs: (defs) =>
+    set((s) => ({ form: { ...s.form, responseDefs: defs }, isDirty: true })),
+
   save: async (tenant, projectId, isNew, selectedId) => {
     const { form } = get()
-    if (!form.path || !form.sql) {
-      toast.error("请填写路径和 SQL")
+    if (!form.path.trim()) {
+      toast.error("请填写接口路径")
+      return null
+    }
+    if (!form.path.trim().startsWith("/")) {
+      toast.error("路径必须以 / 开头")
+      return null
+    }
+    if (!form.method) {
+      toast.error("请选择请求方法")
+      return null
+    }
+    if (!form.sql.trim()) {
+      toast.error("请填写 SQL")
       return null
     }
     const payload = {
       path: form.path,
-      methods: [form.method],
+      method: form.method,
       summary: form.summary,
       sql: form.sql,
-      params: form.paramDefs.map((d) => d.name).filter(Boolean),
       param_defs: form.paramDefs,
+      response_defs: form.responseDefs,
       datasource_alias: form.datasourceAlias,
       group_id: form.groupId,
-      pre_script_id: form.preScriptId,
-      post_script_id: form.postScriptId,
+      pre_scripts: stepsToSdk(form.preScripts),
+      post_scripts: stepsToSdk(form.postScripts),
     }
     set({ saving: true })
     try {
       let saved: ApiEndpoint
       if (isNew) {
-        saved = await apiCreateEndpoint(tenant, Number(projectId), payload)
+        saved = await createEndpoint(tenant, Number(projectId), payload) as ApiEndpoint
         toast.success("接口创建成功")
       } else if (selectedId) {
-        saved = await apiUpdateEndpoint(tenant, Number(projectId), selectedId, payload)
+        saved = await updateEndpoint(tenant, Number(projectId), selectedId, payload) as ApiEndpoint
         toast.success("接口已保存")
       } else {
         return null
       }
       set({ _savedForm: { ...form }, isDirty: false })
-      queryClient.invalidateQueries({ queryKey: ["endpoints", tenant, projectId] })
+      queryClient.invalidateQueries({ queryKey: getListEndpointsQueryKey(tenant, Number(projectId)) })
       return saved
     } catch (err) {
       toast.error("保存失败", { description: getErrorMessage(err) })
@@ -245,29 +290,12 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
     }
     set({ designExecuting: true, designExecResult: null })
     try {
-      await apiUpdateEndpoint(tenant, Number(projectId), selectedId, {
-        path: form.path,
-        methods: [form.method],
-        sql: form.sql,
-        datasource_alias: form.datasourceAlias,
-        pre_script_id: form.preScriptId || undefined,
-        post_script_id: form.postScriptId || undefined,
-        group_id: form.groupId || undefined,
-        param_defs: form.paramDefs,
-      })
-      set({ _savedForm: { ...form }, isDirty: false })
-      queryClient.invalidateQueries({ queryKey: ["endpoints", tenant, projectId] })
-    } catch (err) {
-      set({ designExecResult: { error: "草稿保存失败: " + getErrorMessage(err) }, designExecuting: false })
-      return
-    }
-    try {
       let params: Record<string, string> = {}
       try { params = JSON.parse(paramJSON) } catch { /* ignore */ }
       for (const def of form.paramDefs) {
         if (def.name && !(def.name in params) && def.default) params[def.name] = def.default
       }
-      const data = await apiRun(tenant, selectedId, envId, params, true)
+      const data = await apiRunSQL(tenant, Number(projectId), form.sql, form.datasourceAlias, envId, params)
       set({ designExecResult: data as ExecutionResult })
     } catch (err) {
       set({ designExecResult: { error: getErrorMessage(err) } })
@@ -299,14 +327,16 @@ export const useEndpointFormStore = create<EndpointFormStore>((set, get) => ({
     const snap = version.snapshot
     if (!snap) return
     const paramDefs = (snap.param_defs || []) as ParamDef[]
+    const responseDefs = (snap.response_defs || []) as ResponseDef[]
     set((s) => {
       const nextForm: EndpointFormState = {
         ...s.form,
         ...(snap.sql !== undefined && { sql: snap.sql }),
         ...(snap.path !== undefined && { path: snap.path }),
-        ...(snap.methods?.[0] && { method: snap.methods[0] as HttpMethod }),
+        ...(snap.method && { method: snap.method as HttpMethod }),
         ...(snap.datasource_alias && { datasourceAlias: snap.datasource_alias }),
         paramDefs,
+        responseDefs,
       }
       return {
         _preRestoreForm: s._preRestoreForm ?? { ...s.form },

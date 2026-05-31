@@ -38,7 +38,7 @@ type renameAliasReq struct {
 // @Produce json
 // @Param slug path string true "租户slug"
 // @Param projectId path int true "项目ID"
-// @Success 200 {object} R
+// @Success 200 {object} REnvironmentList
 // @Router /v1/tenants/{slug}/projects/{projectId}/environments [get]
 func (h *EnvironmentHandler) HandleList(c *gin.Context) {
 	tenant := GetTenant(c)
@@ -64,7 +64,7 @@ func (h *EnvironmentHandler) HandleList(c *gin.Context) {
 // @Param slug path string true "租户slug"
 // @Param projectId path int true "项目ID"
 // @Param body body createEnvReq true "环境信息"
-// @Success 200 {object} R
+// @Success 200 {object} REnvironment
 // @Router /v1/tenants/{slug}/projects/{projectId}/environments [post]
 func (h *EnvironmentHandler) HandleCreate(c *gin.Context) {
 	tenant := GetTenant(c)
@@ -176,7 +176,7 @@ func (h *EnvironmentHandler) HandleDelete(c *gin.Context) {
 // @Produce json
 // @Param slug path string true "租户slug"
 // @Param projectId path int true "项目ID"
-// @Success 200 {object} R
+// @Success 200 {object} RBindingList
 // @Router /v1/tenants/{slug}/projects/{projectId}/bindings [get]
 func (h *EnvironmentHandler) HandleListBindings(c *gin.Context) {
 	tenant := GetTenant(c)
@@ -201,7 +201,7 @@ func (h *EnvironmentHandler) HandleListBindings(c *gin.Context) {
 // @Param slug path string true "租户slug"
 // @Param projectId path int true "项目ID"
 // @Param envId path int true "环境ID"
-// @Success 200 {object} R
+// @Success 200 {object} RBindingList
 // @Router /v1/tenants/{slug}/projects/{projectId}/environments/{envId}/bindings [get]
 func (h *EnvironmentHandler) HandleListEnvBindings(c *gin.Context) {
 	tenant := GetTenant(c)

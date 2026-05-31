@@ -61,22 +61,26 @@ func (h *EndpointCallLogHandler) HandleList(c *gin.Context) {
 // ---- Swagger response types ----
 
 type EndpointCallLogResp struct {
-	ID         int64                  `json:"id"          validate:"required"`
-	TenantID   int64                  `json:"tenant_id"   validate:"required"`
-	EndpointID int64                  `json:"endpoint_id" validate:"required"`
-	EnvID      int64                  `json:"env_id,omitempty"`
-	EnvName    string                 `json:"env_name,omitempty"`
-	VersionID  int64                  `json:"version_id,omitempty"`
-	Version    int                    `json:"version,omitempty"`
-	Method     string                 `json:"method"      validate:"required"`
-	Path       string                 `json:"path"        validate:"required"`
-	Params     map[string]interface{} `json:"params,omitempty"`
-	Status     int                    `json:"status"      validate:"required"`
-	LatencyMs  int                    `json:"latency_ms"  validate:"required"`
-	Error      string                 `json:"error,omitempty"`
-	IP         string                 `json:"ip,omitempty"`
-	UserAgent  string                 `json:"user_agent,omitempty"`
-	At         string                 `json:"at"          validate:"required"`
+	ID          int64                  `json:"id"           validate:"required"`
+	TenantID    int64                  `json:"tenant_id"    validate:"required"`
+	EndpointID  int64                  `json:"endpoint_id"  validate:"required"`
+	EnvID       int64                  `json:"env_id,omitempty"`
+	EnvName     string                 `json:"env_name,omitempty"`
+	VersionID   int64                  `json:"version_id,omitempty"`
+	Version     int                    `json:"version,omitempty"`
+	Method      string                 `json:"method"       validate:"required"`
+	Path        string                 `json:"path"         validate:"required"`
+	Params      map[string]interface{} `json:"params,omitempty"`
+	PathParams  map[string]string      `json:"path_params,omitempty"`
+	QueryParams map[string]string      `json:"query_params,omitempty"`
+	BodyParams  map[string]string      `json:"body_params,omitempty"`
+	Headers     map[string]string      `json:"headers,omitempty"`
+	Status      int                    `json:"status"       validate:"required"`
+	LatencyMs   int                    `json:"latency_ms"   validate:"required"`
+	Error       string                 `json:"error,omitempty"`
+	IP          string                 `json:"ip,omitempty"`
+	UserAgent   string                 `json:"user_agent,omitempty"`
+	At          string                 `json:"at"           validate:"required"`
 }
 
 type EndpointCallLogListResp struct {

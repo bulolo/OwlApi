@@ -22,7 +22,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id int64) (*domain.User, error) 
 		`SELECT id, email, name, password_hash, is_superadmin, created_at, updated_at FROM users WHERE id=$1`, id).
 		Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.IsSuperAdmin, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
-		return nil, err
+		return nil, nfErr(err, "user")
 	}
 	return &u, nil
 }
@@ -33,7 +33,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*domain.User, 
 		`SELECT id, email, name, password_hash, is_superadmin, created_at, updated_at FROM users WHERE email=$1`, email).
 		Scan(&u.ID, &u.Email, &u.Name, &u.PasswordHash, &u.IsSuperAdmin, &u.CreatedAt, &u.UpdatedAt)
 	if err != nil {
-		return nil, err
+		return nil, nfErr(err, "user")
 	}
 	return &u, nil
 }

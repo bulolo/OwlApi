@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Auto-generated files:
     "src/lib/sdk/**",
+    // Vendored static assets — never lint (swagger-ui-bundle.js is a huge minified
+    // file that OOM-crashes the reporter, making `make check-all` falsely pass).
+    "public/**",
   ]),
   // Project-level rule overrides.
   {
@@ -32,6 +35,10 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-require-imports": "warn",
       // Downgrade from error: unescaped entities are harmless in Chinese UI text.
       "react/no-unescaped-entities": "warn",
+      // Forbid new Function / Function() globally — eval-like and a real injection
+      // risk. The two legitimate sandbox-preview sites opt out explicitly with an
+      // inline eslint-disable, so no new uses can slip in unnoticed.
+      "no-new-func": "error",
     },
   },
 ]);

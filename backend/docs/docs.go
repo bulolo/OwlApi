@@ -460,6 +460,199 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/platform/scripts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platform"
+                ],
+                "summary": "获取平台内置脚本列表（仅超管）",
+                "operationId": "listPlatformScripts",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "页码",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "是否分页，0=返回全部（默认1）",
+                        "name": "is_pager",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "关键词",
+                        "name": "keyword",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RScriptList"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platform"
+                ],
+                "summary": "创建平台内置脚本（仅超管）",
+                "operationId": "createPlatformScript",
+                "parameters": [
+                    {
+                        "description": "脚本信息",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "type": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RScript"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/platform/scripts/{scriptId}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platform"
+                ],
+                "summary": "更新平台内置脚本（仅超管）",
+                "operationId": "updatePlatformScript",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "脚本ID",
+                        "name": "scriptId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "更新信息",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "code": {
+                                    "type": "string"
+                                },
+                                "description": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "type": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RScript"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platform"
+                ],
+                "summary": "删除平台内置脚本（仅超管）",
+                "operationId": "deletePlatformScript",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "脚本ID",
+                        "name": "scriptId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/platform/settings": {
             "get": {
                 "produces": [
@@ -502,6 +695,15 @@ const docTemplate = `{
                             "properties": {
                                 "allow_self_register": {
                                     "type": "boolean"
+                                },
+                                "logo_url": {
+                                    "type": "string"
+                                },
+                                "platform_name": {
+                                    "type": "string"
+                                },
+                                "platform_tagline": {
+                                    "type": "string"
                                 }
                             }
                         }
@@ -675,7 +877,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "更新信息",
+                        "description": "更新信息（plan 改走 /tenants/{slug}/ee-config）",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -683,9 +885,6 @@ const docTemplate = `{
                             "type": "object",
                             "properties": {
                                 "name": {
-                                    "type": "string"
-                                },
-                                "plan": {
                                     "type": "string"
                                 },
                                 "status": {
@@ -1139,7 +1338,114 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/http.RPreviewTable"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/ee-config": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platform"
+                ],
+                "summary": "获取租户 EE 扩展配置（SuperAdmin）",
+                "operationId": "getTenantEEConfig",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/platform.RTenantEEConfig"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "platform"
+                ],
+                "summary": "更新租户 EE 扩展配置（SuperAdmin）",
+                "operationId": "upsertTenantEEConfig",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "EE 配置",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "advanced_config": {
+                                    "type": "object"
+                                },
+                                "contact_email": {
+                                    "type": "string"
+                                },
+                                "contact_phone": {
+                                    "type": "string"
+                                },
+                                "max_datasources": {
+                                    "type": "integer"
+                                },
+                                "max_endpoints": {
+                                    "type": "integer"
+                                },
+                                "max_gateways": {
+                                    "type": "integer"
+                                },
+                                "max_projects": {
+                                    "type": "integer"
+                                },
+                                "plan": {
+                                    "type": "string"
+                                },
+                                "plan_expires_at": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/platform.RTenantEEConfig"
                         }
                     }
                 }
@@ -1332,6 +1638,88 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/tenants/{slug}/overview/activity": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "合并资产变更事件（发布/激活/回滚等）与流量异常（5xx / 慢查询），按时间倒序返回当前租户的最近动态。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "overview"
+                ],
+                "summary": "概览最近动态",
+                "operationId": "getOverviewActivity",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "返回条数上限（默认 10，最大 50）",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RActivityList"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/overview/traffic": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "按时间桶聚合当前租户在选定时间范围内的接口调用量（总请求数 + 错误数），用于概览页流量趋势图。空桶补零，返回连续序列。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "overview"
+                ],
+                "summary": "概览流量趋势",
+                "operationId": "getOverviewTraffic",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "时间范围：24h（默认，按小时分桶）/ 7d / 30d（按天分桶）",
+                        "name": "range",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RTrafficSeries"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/tenants/{slug}/projects": {
             "get": {
                 "security": [
@@ -1415,14 +1803,20 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "项目信息",
+                        "description": "项目信息（env：初始环境名，默认 prod；datasource_id：为初始环境的 main 别名绑定的数据源，可选）",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "type": "object",
                             "properties": {
+                                "datasource_id": {
+                                    "type": "integer"
+                                },
                                 "description": {
+                                    "type": "string"
+                                },
+                                "env": {
                                     "type": "string"
                                 },
                                 "name": {
@@ -1637,6 +2031,215 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/tenants/{slug}/projects/{projectId}/auth": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "project"
+                ],
+                "summary": "获取项目访问控制配置",
+                "operationId": "getProjectAuth",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "project"
+                ],
+                "summary": "切换项目访问控制方式",
+                "operationId": "updateProjectAuth",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "鉴权类型",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "auth_type": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/auth/keys": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "project"
+                ],
+                "summary": "创建鉴权密钥（API Key 或 JWT 签名密钥）",
+                "operationId": "createProjectAuthKey",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Key 类型、名称及可选过期时间",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "expires_at": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "type": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/auth/keys/{keyId}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "project"
+                ],
+                "summary": "删除鉴权密钥",
+                "operationId": "deleteProjectAuthKey",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Key ID",
+                        "name": "keyId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/tenants/{slug}/projects/{projectId}/bindings": {
             "get": {
                 "security": [
@@ -1672,7 +2275,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.R"
+                            "$ref": "#/definitions/http.RBindingList"
                         }
                     }
                 }
@@ -1730,6 +2333,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "关键词搜索",
                         "name": "keyword",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "按分组过滤（0=不过滤）",
+                        "name": "group_id",
                         "in": "query"
                     }
                 ],
@@ -1791,8 +2400,8 @@ const docTemplate = `{
                                 "group_id": {
                                     "type": "integer"
                                 },
-                                "methods": {
-                                    "type": "array"
+                                "method": {
+                                    "type": "string"
                                 },
                                 "param_defs": {
                                     "type": "array"
@@ -1800,11 +2409,11 @@ const docTemplate = `{
                                 "path": {
                                     "type": "string"
                                 },
-                                "post_script_id": {
-                                    "type": "integer"
+                                "post_scripts": {
+                                    "type": "array"
                                 },
-                                "pre_script_id": {
-                                    "type": "integer"
+                                "pre_scripts": {
+                                    "type": "array"
                                 },
                                 "sql": {
                                     "type": "string"
@@ -1867,9 +2476,10 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "更新信息",
+                        "description": "完整端点信息（全量替换）",
                         "name": "body",
                         "in": "body",
+                        "required": true,
                         "schema": {
                             "type": "object",
                             "properties": {
@@ -1882,8 +2492,8 @@ const docTemplate = `{
                                 "group_id": {
                                     "type": "integer"
                                 },
-                                "methods": {
-                                    "type": "array"
+                                "method": {
+                                    "type": "string"
                                 },
                                 "param_defs": {
                                     "type": "array"
@@ -1891,11 +2501,14 @@ const docTemplate = `{
                                 "path": {
                                     "type": "string"
                                 },
-                                "post_script_id": {
-                                    "type": "integer"
+                                "post_scripts": {
+                                    "type": "array"
                                 },
-                                "pre_script_id": {
-                                    "type": "integer"
+                                "pre_scripts": {
+                                    "type": "array"
+                                },
+                                "response_defs": {
+                                    "type": "array"
                                 },
                                 "sql": {
                                     "type": "string"
@@ -1958,6 +2571,68 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/http.R"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "endpoint"
+                ],
+                "summary": "局部更新 API 端点（仅 group_id 等可选字段）",
+                "operationId": "patchEndpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "端点ID",
+                        "name": "endpointId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "需更新的字段",
+                        "name": "body",
+                        "in": "body",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "group_id": {
+                                    "type": "integer"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RAPIEndpoint"
                         }
                     }
                 }
@@ -2065,7 +2740,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.R"
+                            "$ref": "#/definitions/http.REndpointActiveVersionList"
                         }
                     }
                 }
@@ -2694,7 +3369,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.R"
+                            "$ref": "#/definitions/http.REnvironmentList"
                         }
                     }
                 }
@@ -2745,7 +3420,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.R"
+                            "$ref": "#/definitions/http.REnvironment"
                         }
                     }
                 }
@@ -2899,7 +3574,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/http.R"
+                            "$ref": "#/definitions/http.RBindingList"
                         }
                     }
                 }
@@ -3317,7 +3992,7 @@ const docTemplate = `{
                 "tags": [
                     "project"
                 ],
-                "summary": "导出项目 OpenAPI 规范（按指定 env 导出；默认导出 default env）",
+                "summary": "导出项目 OpenAPI 规范",
                 "operationId": "exportOpenApi",
                 "parameters": [
                     {
@@ -3339,6 +4014,143 @@ const docTemplate = `{
                         "description": "环境名（默认: 项目默认 env）",
                         "name": "env",
                         "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/run": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "query"
+                ],
+                "summary": "代理执行 API 端点（含鉴权验证和访问日志）",
+                "operationId": "runEndpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "执行参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "auth_credential": {
+                                    "type": "string"
+                                },
+                                "endpoint_id": {
+                                    "type": "integer"
+                                },
+                                "env_id": {
+                                    "type": "integer"
+                                },
+                                "ignore_scripts": {
+                                    "type": "boolean"
+                                },
+                                "params": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/projects/{projectId}/run-sql": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "query"
+                ],
+                "summary": "直接执行 SQL（不保存，仅用于设计器调试）",
+                "operationId": "runSQL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "项目ID",
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "执行参数",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "datasource_alias": {
+                                    "type": "string"
+                                },
+                                "env_id": {
+                                    "type": "integer"
+                                },
+                                "params": {
+                                    "type": "object"
+                                },
+                                "sql": {
+                                    "type": "string"
+                                }
+                            }
+                        }
                     }
                 ],
                 "responses": {
@@ -3515,6 +4327,99 @@ const docTemplate = `{
                                 }
                             }
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RScript"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/scripts/builtins": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "script"
+                ],
+                "summary": "获取平台内置脚本（供「从内置添加」选择）",
+                "operationId": "listScriptBuiltins",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "页码（默认1）",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "每页数量（默认10）",
+                        "name": "size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "关键词搜索",
+                        "name": "keyword",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RScriptList"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/tenants/{slug}/scripts/builtins/{builtinId}/copy": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "script"
+                ],
+                "summary": "从平台内置脚本复制一份到租户脚本库",
+                "operationId": "copyScriptFromBuiltin",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "租户slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "平台内置脚本ID",
+                        "name": "builtinId",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -3933,11 +4838,8 @@ const docTemplate = `{
                     "description": "newest version number in endpoint_versions for this endpoint",
                     "type": "integer"
                 },
-                "methods": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "method": {
+                    "type": "string"
                 },
                 "param_defs": {
                     "type": "array",
@@ -3945,23 +4847,30 @@ const docTemplate = `{
                         "$ref": "#/definitions/domain.ParamDef"
                     }
                 },
-                "params": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "path": {
                     "type": "string"
                 },
-                "post_script_id": {
-                    "type": "integer"
+                "post_scripts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ScriptStep"
+                    }
                 },
-                "pre_script_id": {
-                    "type": "integer"
+                "pre_scripts": {
+                    "description": "PreScripts / PostScripts are ordered chains run sequentially around the SQL.\nEach step is either a reference to a reusable library script or inline code\nstored on the endpoint itself (see ScriptStep). In the pre-chain each stage's\noutput params feed the next and any ` + "`" + `{ error }` + "`" + ` short-circuits; in the\npost-chain each stage's output becomes the next stage's ` + "`" + `data` + "`" + `, and the last\nstage's output is the response body.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ScriptStep"
+                    }
                 },
                 "project_id": {
                     "type": "integer"
+                },
+                "response_defs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ResponseDef"
+                    }
                 },
                 "sql": {
                     "type": "string"
@@ -4015,6 +4924,38 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.ResponseDef": {
+            "type": "object",
+            "properties": {
+                "desc": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "string, integer, number, boolean",
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ScriptStep": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "script_id": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
         "http.APIEndpointListResp": {
             "type": "object",
             "required": [
@@ -4041,8 +4982,7 @@ const docTemplate = `{
                 "group_id",
                 "has_draft",
                 "id",
-                "methods",
-                "params",
+                "method",
                 "path",
                 "project_id",
                 "sql",
@@ -4078,11 +5018,8 @@ const docTemplate = `{
                 "latest_version": {
                     "type": "integer"
                 },
-                "methods": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "method": {
+                    "type": "string"
                 },
                 "param_defs": {
                     "type": "array",
@@ -4090,23 +5027,29 @@ const docTemplate = `{
                         "$ref": "#/definitions/http.ParamDefResp"
                     }
                 },
-                "params": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "path": {
                     "type": "string"
                 },
-                "post_script_id": {
-                    "type": "integer"
+                "post_scripts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.ScriptStepResp"
+                    }
                 },
-                "pre_script_id": {
-                    "type": "integer"
+                "pre_scripts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.ScriptStepResp"
+                    }
                 },
                 "project_id": {
                     "type": "integer"
+                },
+                "response_defs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.ResponseDefResp"
+                    }
                 },
                 "sql": {
                     "type": "string"
@@ -4170,6 +5113,50 @@ const docTemplate = `{
                 }
             }
         },
+        "http.ActivityEventResp": {
+            "type": "object",
+            "required": [
+                "at",
+                "desc",
+                "severity",
+                "title",
+                "type"
+            ],
+            "properties": {
+                "at": {
+                    "description": "RFC3339",
+                    "type": "string"
+                },
+                "desc": {
+                    "type": "string"
+                },
+                "severity": {
+                    "description": "info / warning / error",
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "api / error / slow",
+                    "type": "string"
+                }
+            }
+        },
+        "http.ActivityListResp": {
+            "type": "object",
+            "required": [
+                "list"
+            ],
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.ActivityEventResp"
+                    }
+                }
+            }
+        },
         "http.AuthResp": {
             "type": "object",
             "required": [
@@ -4191,6 +5178,29 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/http.UserResp"
+                }
+            }
+        },
+        "http.BindingResp": {
+            "type": "object",
+            "required": [
+                "alias",
+                "datasource_id",
+                "env_id",
+                "tenant_id"
+            ],
+            "properties": {
+                "alias": {
+                    "type": "string"
+                },
+                "datasource_id": {
+                    "type": "integer"
+                },
+                "env_id": {
+                    "type": "integer"
+                },
+                "tenant_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -4325,6 +5335,41 @@ const docTemplate = `{
                 }
             }
         },
+        "http.EndpointActiveVersionResp": {
+            "type": "object",
+            "required": [
+                "activated_at",
+                "activated_by",
+                "endpoint_id",
+                "env_id",
+                "tenant_id",
+                "version",
+                "version_id"
+            ],
+            "properties": {
+                "activated_at": {
+                    "type": "string"
+                },
+                "activated_by": {
+                    "type": "integer"
+                },
+                "endpoint_id": {
+                    "type": "integer"
+                },
+                "env_id": {
+                    "type": "integer"
+                },
+                "tenant_id": {
+                    "type": "integer"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "version_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "http.EndpointCallLogListResp": {
             "type": "object",
             "required": [
@@ -4359,6 +5404,12 @@ const docTemplate = `{
                 "at": {
                     "type": "string"
                 },
+                "body_params": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "endpoint_id": {
                     "type": "integer"
                 },
@@ -4370,6 +5421,12 @@ const docTemplate = `{
                 },
                 "error": {
                     "type": "string"
+                },
+                "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "id": {
                     "type": "integer"
@@ -4389,6 +5446,18 @@ const docTemplate = `{
                 },
                 "path": {
                     "type": "string"
+                },
+                "path_params": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "query_params": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 },
                 "status": {
                     "type": "integer"
@@ -4483,11 +5552,17 @@ const docTemplate = `{
                 "note": {
                     "type": "string"
                 },
-                "post_script_snapshot": {
-                    "$ref": "#/definitions/http.ScriptSnapshotResp"
+                "post_script_snapshots": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.ScriptSnapshotResp"
+                    }
                 },
-                "pre_script_snapshot": {
-                    "$ref": "#/definitions/http.ScriptSnapshotResp"
+                "pre_script_snapshots": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.ScriptSnapshotResp"
+                    }
                 },
                 "snapshot": {
                     "$ref": "#/definitions/domain.APIEndpoint"
@@ -4499,6 +5574,37 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "version": {
+                    "type": "integer"
+                }
+            }
+        },
+        "http.EnvironmentResp": {
+            "type": "object",
+            "required": [
+                "created_at",
+                "id",
+                "is_default",
+                "name",
+                "project_id",
+                "tenant_id"
+            ],
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "integer"
+                },
+                "tenant_id": {
                     "type": "integer"
                 }
             }
@@ -4640,8 +5746,21 @@ const docTemplate = `{
             "properties": {
                 "allow_self_register": {
                     "type": "boolean"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "platform_name": {
+                    "type": "string"
+                },
+                "platform_tagline": {
+                    "type": "string"
                 }
             }
+        },
+        "http.PreviewRow": {
+            "type": "object",
+            "additionalProperties": true
         },
         "http.ProjectListResp": {
             "type": "object",
@@ -4664,6 +5783,7 @@ const docTemplate = `{
         "http.ProjectResp": {
             "type": "object",
             "required": [
+                "auth_type",
                 "created_at",
                 "description",
                 "id",
@@ -4672,6 +5792,9 @@ const docTemplate = `{
                 "tenant_id"
             ],
             "properties": {
+                "auth_type": {
+                    "type": "string"
+                },
                 "avatar": {
                     "type": "string"
                 },
@@ -4783,6 +5906,25 @@ const docTemplate = `{
                 }
             }
         },
+        "http.RActivityList": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/http.ActivityListResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
         "http.RAuth": {
             "type": "object",
             "required": [
@@ -4796,6 +5938,28 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/http.AuthResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.RBindingList": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.BindingResp"
+                    }
                 },
                 "msg": {
                     "type": "string"
@@ -4859,6 +6023,28 @@ const docTemplate = `{
                 }
             }
         },
+        "http.REndpointActiveVersionList": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.EndpointActiveVersionResp"
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
         "http.REndpointCallLogList": {
             "type": "object",
             "required": [
@@ -4910,6 +6096,47 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/http.EndpointVersionListResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.REnvironment": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/http.EnvironmentResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.REnvironmentList": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.EnvironmentResp"
+                    }
                 },
                 "msg": {
                     "type": "string"
@@ -4986,6 +6213,28 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/http.PlatformSettingsResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.RPreviewTable": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.PreviewRow"
+                    }
                 },
                 "msg": {
                     "type": "string"
@@ -5125,6 +6374,43 @@ const docTemplate = `{
                 }
             }
         },
+        "http.RTrafficSeries": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/http.TrafficSeriesResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.ResponseDefResp": {
+            "type": "object",
+            "required": [
+                "name",
+                "type"
+            ],
+            "properties": {
+                "desc": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "http.ScriptListResp": {
             "type": "object",
             "required": [
@@ -5151,6 +6437,7 @@ const docTemplate = `{
                 "id",
                 "is_platform",
                 "name",
+                "ref_count",
                 "type"
             ],
             "properties": {
@@ -5171,6 +6458,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "ref_count": {
+                    "type": "integer"
                 },
                 "tenant_id": {
                     "type": "integer"
@@ -5203,6 +6493,27 @@ const docTemplate = `{
                 }
             }
         },
+        "http.ScriptStepResp": {
+            "type": "object",
+            "required": [
+                "source"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "script_id": {
+                    "type": "integer"
+                },
+                "source": {
+                    "description": "\"library\" | \"inline\"",
+                    "type": "string"
+                }
+            }
+        },
         "http.TenantListResp": {
             "type": "object",
             "required": [
@@ -5228,7 +6539,6 @@ const docTemplate = `{
                 "id",
                 "max_release_versions",
                 "name",
-                "plan",
                 "slug",
                 "status",
                 "updated_at"
@@ -5243,13 +6553,13 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "is_demo": {
+                    "type": "boolean"
+                },
                 "max_release_versions": {
                     "type": "integer"
                 },
                 "name": {
-                    "type": "string"
-                },
-                "plan": {
                     "type": "string"
                 },
                 "slug": {
@@ -5303,6 +6613,67 @@ const docTemplate = `{
                     "$ref": "#/definitions/http.UserResp"
                 },
                 "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "http.TrafficBucketResp": {
+            "type": "object",
+            "required": [
+                "errors",
+                "total",
+                "ts"
+            ],
+            "properties": {
+                "errors": {
+                    "description": "该桶错误数（status \u003e= 400）",
+                    "type": "integer"
+                },
+                "total": {
+                    "description": "该桶总请求数",
+                    "type": "integer"
+                },
+                "ts": {
+                    "description": "桶起始时刻（RFC3339, UTC）",
+                    "type": "string"
+                }
+            }
+        },
+        "http.TrafficSeriesResp": {
+            "type": "object",
+            "required": [
+                "bucket",
+                "buckets",
+                "errors",
+                "peak",
+                "range",
+                "total"
+            ],
+            "properties": {
+                "bucket": {
+                    "description": "hour / day",
+                    "type": "string"
+                },
+                "buckets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.TrafficBucketResp"
+                    }
+                },
+                "errors": {
+                    "description": "区间总错误数",
+                    "type": "integer"
+                },
+                "peak": {
+                    "description": "单桶峰值请求数",
+                    "type": "integer"
+                },
+                "range": {
+                    "description": "24h / 7d / 30d",
+                    "type": "string"
+                },
+                "total": {
+                    "description": "区间总请求数",
                     "type": "integer"
                 }
             }
@@ -5470,6 +6841,70 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
+        },
+        "platform.RTenantEEConfig": {
+            "type": "object",
+            "required": [
+                "code",
+                "data",
+                "msg"
+            ],
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/platform.TenantEEConfigResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "platform.TenantEEConfigResp": {
+            "type": "object",
+            "required": [
+                "advanced_config",
+                "max_datasources",
+                "max_endpoints",
+                "max_gateways",
+                "max_projects",
+                "plan",
+                "tenant_id"
+            ],
+            "properties": {
+                "advanced_config": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "contact_email": {
+                    "type": "string"
+                },
+                "contact_phone": {
+                    "type": "string"
+                },
+                "max_datasources": {
+                    "type": "integer"
+                },
+                "max_endpoints": {
+                    "type": "integer"
+                },
+                "max_gateways": {
+                    "type": "integer"
+                },
+                "max_projects": {
+                    "type": "integer"
+                },
+                "plan": {
+                    "type": "string"
+                },
+                "plan_expires_at": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "integer"
+                }
+            }
         }
     },
     "securityDefinitions": {
@@ -5484,7 +6919,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "0.2.0",
+	Version:          "0.2.1",
 	Host:             "localhost:3000",
 	BasePath:         "/",
 	Schemes:          []string{},

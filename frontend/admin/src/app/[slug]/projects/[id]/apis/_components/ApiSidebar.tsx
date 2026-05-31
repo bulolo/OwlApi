@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, ChevronRight, Search, Trash2, PanelLeftClose, PanelLeftOpen, FileCode, Folder, FolderPlus, MoreVertical, Edit3 } from "lucide-react"
@@ -32,6 +32,10 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
 
   const { list: endpoints, isLoading } = useEndpointsQuery(activeTenant, projectId)
   const { list: groups } = useGroupsQuery(activeTenant, projectId)
+
+  // useSyncExternalStore gives false on server and true on client,
+  // ensuring both start with the same loading state during hydration.
+  const isClient = useSyncExternalStore(() => () => {}, () => true, () => false)
 
   const deleteEndpoint = useDeleteEndpoint(activeTenant, projectId)
   const deleteGroup = useDeleteGroup(activeTenant, projectId)
@@ -109,7 +113,7 @@ export function ApiSidebar({ onSelectEndpoint, onCreateNew }: ApiSidebarProps) {
       </div>
 
       <div className="flex-1 overflow-auto custom-scrollbar">
-        {isLoading ? (
+        {!isClient || isLoading ? (
           <div className="p-8 text-center text-muted-foreground text-xs">加载中...</div>
         ) : (
           <div className="flex flex-col py-1">
@@ -260,7 +264,7 @@ function EndpointItem({ ep, isSelected, onSelect, onDelete }: {
       )}
     >
       <StatusDot ep={ep} />
-      <MethodBadge method={ep.methods?.[0] as HttpMethod | undefined} isSelected={isSelected} />
+      <MethodBadge method={ep.method as HttpMethod | undefined} isSelected={isSelected} />
       <span className={cn(
         "flex-1 text-xs font-medium truncate min-w-0",
         isSelected ? "text-primary font-bold" : "text-zinc-600 group-hover:text-foreground"

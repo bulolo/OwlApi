@@ -14,14 +14,14 @@ var _ domain.TenantRepository = (*TenantRepo)(nil)
 
 func (r *TenantRepo) Create(ctx context.Context, t *domain.Tenant) error {
 	return r.DB.Pool.QueryRow(ctx,
-		`INSERT INTO tenants (name, slug, plan, status, max_release_versions, avatar, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
-		t.Name, t.Slug, t.Plan, t.Status, t.MaxReleaseVersions, t.Avatar, t.CreatedAt, t.UpdatedAt).Scan(&t.ID)
+		`INSERT INTO tenants (name, slug, status, max_release_versions, avatar, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+		t.Name, t.Slug, t.Status, t.MaxReleaseVersions, t.Avatar, t.CreatedAt, t.UpdatedAt).Scan(&t.ID)
 }
 
-const tenantCols = `id, name, slug, plan, status, max_release_versions, avatar, created_at, updated_at`
+const tenantCols = `id, name, slug, status, max_release_versions, avatar, created_at, updated_at`
 
 func scanTenant(t *domain.Tenant, scan func(dest ...any) error) error {
-	return scan(&t.ID, &t.Name, &t.Slug, &t.Plan, &t.Status, &t.MaxReleaseVersions, &t.Avatar, &t.CreatedAt, &t.UpdatedAt)
+	return nfErr(scan(&t.ID, &t.Name, &t.Slug, &t.Status, &t.MaxReleaseVersions, &t.Avatar, &t.CreatedAt, &t.UpdatedAt), "tenant")
 }
 
 func (r *TenantRepo) GetByID(ctx context.Context, id int64) (*domain.Tenant, error) {
@@ -70,7 +70,7 @@ func (r *TenantRepo) List(ctx context.Context, p domain.ListParams) ([]*domain.T
 	var tenants []*domain.Tenant
 	for rows.Next() {
 		var t domain.Tenant
-		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Plan, &t.Status, &t.MaxReleaseVersions, &t.Avatar, &t.CreatedAt, &t.UpdatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Status, &t.MaxReleaseVersions, &t.Avatar, &t.CreatedAt, &t.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		tenants = append(tenants, &t)
@@ -109,7 +109,7 @@ func (r *TenantRepo) ListByIDs(ctx context.Context, ids []int64, p domain.ListPa
 	var tenants []*domain.Tenant
 	for rows.Next() {
 		var t domain.Tenant
-		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Plan, &t.Status, &t.MaxReleaseVersions, &t.Avatar, &t.CreatedAt, &t.UpdatedAt); err != nil {
+		if err := rows.Scan(&t.ID, &t.Name, &t.Slug, &t.Status, &t.MaxReleaseVersions, &t.Avatar, &t.CreatedAt, &t.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		tenants = append(tenants, &t)
@@ -122,12 +122,54 @@ func (r *TenantRepo) ListByIDs(ctx context.Context, ids []int64, p domain.ListPa
 
 func (r *TenantRepo) Update(ctx context.Context, t *domain.Tenant) error {
 	_, err := r.DB.Pool.Exec(ctx,
-		`UPDATE tenants SET name=$1, plan=$2, status=$3, max_release_versions=$4, avatar=$5, updated_at=$6 WHERE id=$7`,
-		t.Name, t.Plan, t.Status, t.MaxReleaseVersions, t.Avatar, time.Now(), t.ID)
+		`UPDATE tenants SET name=$1, status=$2, max_release_versions=$3, avatar=$4, updated_at=$5 WHERE id=$6`,
+		t.Name, t.Status, t.MaxReleaseVersions, t.Avatar, time.Now(), t.ID)
 	return err
 }
 
+// Delete removes the tenant and all tenant-scoped data in one transaction.
+// 无外键，全部在应用层显式清理；平台级数据（tenant_id 为 NULL 的网关/脚本、
+// 全局 users / platform_settings）不受影响。
 func (r *TenantRepo) Delete(ctx context.Context, id int64) error {
-	_, err := r.DB.Pool.Exec(ctx, `DELETE FROM tenants WHERE id=$1`, id)
-	return err
+	tx, err := r.DB.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) // no-op once committed
+
+	// 所有带 tenant_id 的表（tenant_id 为 NULL 的平台级行不会被匹配）。
+	for _, tbl := range []string{
+		"endpoint_call_logs",
+		"endpoint_activation_log",
+		"endpoint_active_version",
+		"endpoint_versions",
+		"endpoint_datasource_bindings",
+		"api_endpoints",
+		"api_groups",
+		"project_environments",
+		"project_auth_keys",
+		"openapi_share_tokens",
+		"datasources",
+		"scripts",
+		"projects",
+		"gateways",
+		"tenant_users",
+	} {
+		if _, err := tx.Exec(ctx, `DELETE FROM `+tbl+` WHERE tenant_id=$1`, id); err != nil {
+			return err
+		}
+	}
+
+	// EE 模块注册的租户级清理（如 SDK 发布配置/记录）。
+	for _, fn := range tenantDeleteCleanups {
+		if err := fn(ctx, tx, id); err != nil {
+			return err
+		}
+	}
+
+	if _, err := tx.Exec(ctx, `DELETE FROM tenants WHERE id=$1`, id); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }

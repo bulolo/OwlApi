@@ -1,0 +1,53 @@
+{{- if .Values.gateway.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "owlapi.fullname" . }}-gateway
+  labels:
+    {{- include "owlapi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: {{ .Values.gateway.replicas }}
+  selector:
+    matchLabels:
+      {{- include "owlapi.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: gateway
+  template:
+    metadata:
+      labels:
+        {{- include "owlapi.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: gateway
+    spec:
+      containers:
+        - name: gateway
+          image: {{ include "owlapi.image" (dict "root" . "name" .Values.gateway.image) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: OWLAPI_SERVER_URL
+              value: {{ include "owlapi.backendUrl" . | quote }}
+            - name: OWLAPI_GATEWAY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "owlapi.fullname" . }}
+                  key: OWLAPI_GATEWAY_ID
+            - name: OWLAPI_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "owlapi.fullname" . }}
+                  key: OWLAPI_GATEWAY_TOKEN
+            - name: OWLAPI_TENANT_ID
+              value: {{ .Values.gateway.tenantId | quote }}
+            - name: OWLAPI_LOG_LEVEL
+              value: {{ .Values.gateway.logLevel | quote }}
+            - name: TZ
+              value: {{ .Values.gateway.tz | quote }}
+          resources:
+            {{- toYaml .Values.gateway.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "owlapi.fullname" . }}-gateway-data
+{{- end }}

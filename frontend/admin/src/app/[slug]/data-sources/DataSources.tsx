@@ -3,13 +3,14 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Plus, Search, Trash2, Server, Pencil, Table2, PlugZap, Lock, RefreshCw } from "lucide-react"
+import { Plus, Search, Trash2, Server, Pencil, Table2, PlugZap, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { RefreshButton } from "@/components/ui/refresh-button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { useTenant } from "@/providers/TenantProvider"
 import { useDataSources, useDeleteDataSource, useGateways, usePaginationState } from "@/hooks"
-import type { DataSource } from "@/lib/api-client"
+import type { DataSourceResp as DataSource } from "@/lib/sdk"
 import { cn } from "@/lib/utils"
 import { DB_TYPES } from "@/lib/constants"
 import { parseDsnPreview } from "@/lib/database-helpers"
@@ -61,9 +62,7 @@ export default function DataSources() {
           <p className="text-sm text-muted-foreground mt-1 font-medium">通过网关节点实现跨网络数据库安全接入</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" className="h-9 px-4 rounded-lg text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-zinc-100" onClick={() => refetch()}>
-            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> 刷新
-          </Button>
+          <RefreshButton onClick={() => refetch()} />
           <Link href={`/${activeTenant}/data-sources/new`}>
             <Button className="h-9 px-4 text-xs font-bold shadow-sm">
               <Plus className="w-4 h-4 mr-2" /> 新建

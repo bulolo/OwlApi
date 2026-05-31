@@ -11,7 +11,7 @@
 	prod-static-up prod-static-up-build prod-static-down prod-static-logs \
 	gen-proto gen-sdk gen-swagger clean set-version \
 	format check-changed check-all setup-hooks \
-	init-test-db \
+	init-test-db smoke-test \
  publish-ce-github
 
 # ------------------------------------------------------------------------------
@@ -22,6 +22,10 @@ UNAME_S := $(shell uname -s)
 DEV_COMPOSE    := docker compose -f docker-compose.dev.yml
 PROD_COMPOSE   := docker compose -f deploy/docker-compose.yml
 STATIC_COMPOSE := docker compose -f deploy/docker-compose.static.yml
+
+# EE=1 时附加 compose profile，把所有 profiles: ["ee"] 的服务（sdkbuilder 等）也拉起来。
+# 用法: make dev-up EE=1 / make prod-up EE=1
+EE_FLAGS       := $(if $(filter 1,$(EE)),--profile ee,)
 
 # 跨平台 sed -i (macOS 需要空字符串参数)
 ifeq ($(UNAME_S),Darwin)
@@ -41,10 +45,10 @@ help:
 	@echo ""
 	@echo " 🛠️  [开发环境] (Development Environment)"
 	@echo "  make dev-init            初始化开发环境配置 (复制 .env.example)"
-	@echo "  make dev-up              启动全栈热更新环境 (前台运行, 查看日志)"
-	@echo "  make dev-down            停止开发容器"
-	@echo "  make dev-build           构建开发镜像"
-	@echo "  make dev-rebuild         重建并启动开发环境 (后台运行)"
+	@echo "  make dev-up [EE=1]       启动全栈热更新环境 (前台运行); EE=1 时同步启动 sdkbuilder"
+	@echo "  make dev-down [EE=1]     停止开发容器; EE=1 时一并停 EE 服务"
+	@echo "  make dev-build [EE=1]    构建开发镜像; EE=1 时一并构建 EE 镜像"
+	@echo "  make dev-rebuild [EE=1]  重建并启动开发环境 (后台运行)"
 	@echo "  make dev-restart         重启开发环境所有服务"
 	@echo "  make dev-restart-backend 仅重启后端服务 (backend)"
 	@echo "  make dev-logs            查看开发环境所有服务日志"
@@ -54,10 +58,10 @@ help:
 	@echo ""
 	@echo " 🚀 [生产环境] (Production Environment)"
 	@echo "  make prod-init           初始化生产环境配置"
-	@echo "  make prod-up             启动生产集群 (后台运行, 拉取远端镜像)"
-	@echo "  make prod-up-build       启动生产集群并在本地构建"
-	@echo "  make prod-rebuild        无缓存重新构建并启动生产环境"
-	@echo "  make prod-down           停止生产集群"
+	@echo "  make prod-up [EE=1]      启动生产集群 (后台运行, 拉取远端镜像); EE=1 时同步启动 sdkbuilder"
+	@echo "  make prod-up-build [EE=1] 本地构建并启动生产集群; EE=1 时一并构建 EE 镜像"
+	@echo "  make prod-rebuild [EE=1] 无缓存重新构建并启动生产环境"
+	@echo "  make prod-down [EE=1]    停止生产集群; EE=1 时一并停 EE 服务"
 	@echo "  make prod-restart        重启生产环境所有服务"
 	@echo "  make prod-logs           查看生产环境日志"
 	@echo "  make prod-clean          停止容器并删除数据卷 (❗危险：清空生产数据)"
@@ -74,16 +78,17 @@ help:
 	@echo "  make gen-sdk             从 OpenAPI 生成前端 TypeScript SDK (含 gen-swagger)"
 	@echo "  make format              运行代码格式化 (后端 gofmt + 前端 eslint --fix)"
 	@echo "  make check-changed       仅检查已暂存改动 (增量, 用于 pre-commit)"
-	@echo "  make check-all           全量规范检查 (后端 gofmt+vet + 前端 lint+tsc)"
+	@echo "  make check-all           全量规范检查 (gofmt+vet + lint+tsc + swagger/sdk + 冒烟测试*)"
 	@echo "  make setup-hooks         配置 Git hooksPath 到 scripts/git-hooks"
 	@echo "  make clean               清理所有环境与缓存 (dev + prod + static)"
 	@echo "  make help                显示此帮助信息"
 	@echo ""
 	@echo " 📦 [发布同步] (Release & Sync)"
-	@echo "  make set-version v=0.2.0 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
+	@echo "  make set-version v=0.2.1 统一修改项目版本号 (package.json, 镜像标签, Go 版本)"
 	@echo "  make             从 ee 生成 Community Edition (CE) 分支"
 	@echo "  make   将 origin/ce 同步并推送到 GitHub 公开仓库"
 	@echo "  make init-test-db        向 default 租户写入四种测试数据源 (需服务已启动)"
+	@echo "  make smoke-test [c=0]    对运行中的 dev 全栈做端到端冒烟测试; c=0 保留测试数据"
 	@echo ""
 	@echo " ⚠️  Windows 用户注意: 请使用 WSL2 或 Git Bash 运行 make 命令"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -109,7 +114,7 @@ dev-init:
 
 dev-build: check-dev-env
 	@echo "🐳 [DEV] 正在构建开发镜像..."
-	$(DEV_COMPOSE) build
+	$(DEV_COMPOSE) $(EE_FLAGS) build
 
 dev-up: check-dev-env
 	@echo "🐳 [DEV] 正在启动热更新环境 (前台日志模式)..."
@@ -117,16 +122,17 @@ dev-up: check-dev-env
 	@echo "    - API:      http://localhost:3000"
 	@echo "    - Docs:     http://localhost:8003"
 	@echo "    - Postgres: localhost:5433"
+	@[ "$(EE)" = "1" ] && echo "    - SDK Builder (EE): http://localhost:7100" || true
 	@echo "    (按 Ctrl+C 停止服务)"
-	$(DEV_COMPOSE) up
+	$(DEV_COMPOSE) $(EE_FLAGS) up
 
 dev-down:
 	@echo "🛑 [DEV] 正在停止开发环境..."
-	$(DEV_COMPOSE) down
+	$(DEV_COMPOSE) $(EE_FLAGS) down --remove-orphans
 
 dev-rebuild: check-dev-env
 	@echo "🔧 [DEV] 重建并启动开发环境..."
-	$(DEV_COMPOSE) up -d --build
+	$(DEV_COMPOSE) $(EE_FLAGS) up -d --build
 
 dev-restart:
 	$(DEV_COMPOSE) restart
@@ -144,7 +150,7 @@ dev-clean:
 	@echo "🧹 [DEV] 正在尝试深度清理开发环境..."
 	@echo "⚠️  警告：此操作将删除所有开发容器相关的数据卷和数据！"
 	@read -p "您确定要继续吗？[y/N] " ans && [ $${ans:-N} = y ] || (echo "❌ 操作已取消"; exit 1)
-	$(DEV_COMPOSE) down -v
+	$(DEV_COMPOSE) --profile ee down -v --remove-orphans
 	@echo "✅ 开发环境深度清理完成"
 
 dev-db-psql:
@@ -173,23 +179,25 @@ prod-init:
 
 prod-up: check-prod-env
 	@echo "🚀 [PROD] 正在启动生产集群..."
-	$(PROD_COMPOSE) pull
-	$(PROD_COMPOSE) up -d
+	@[ "$(EE)" = "1" ] && echo "    - SDK Builder (EE): 已启用" || true
+	$(PROD_COMPOSE) $(EE_FLAGS) pull
+	$(PROD_COMPOSE) $(EE_FLAGS) up -d
 	@echo "✅ 生产集群已启动 (后台运行)"
 
 prod-up-build: check-prod-env
 	@echo "🚀 [PROD] 本地构建并启动生产集群..."
-	$(PROD_COMPOSE) up -d --build
+	@[ "$(EE)" = "1" ] && echo "    - SDK Builder (EE): 已启用" || true
+	$(PROD_COMPOSE) $(EE_FLAGS) up -d --build
 	@echo "✅ 生产集群已启动 (后台运行)"
 
 prod-rebuild: check-prod-env
 	@echo "🔧 [PROD] 无缓存重新构建生产环境..."
-	$(PROD_COMPOSE) build --no-cache
-	$(PROD_COMPOSE) up -d
+	$(PROD_COMPOSE) $(EE_FLAGS) build --no-cache
+	$(PROD_COMPOSE) $(EE_FLAGS) up -d
 
 prod-down: check-prod-env
 	@echo "🛑 [PROD] 正在停止生产集群..."
-	$(PROD_COMPOSE) down
+	$(PROD_COMPOSE) $(EE_FLAGS) down
 
 prod-restart: check-prod-env
 	$(PROD_COMPOSE) restart
@@ -241,9 +249,9 @@ gen-proto:
 	@echo "✅ gRPC 代码已生成"
 
 gen-sdk: gen-swagger
-	@echo "🔄 从 OpenAPI spec 生成前端 SDK..."
-	cd frontend/admin && npm run gen-sdk
-	@echo "✅ SDK 已生成"
+	@echo "⚙️  正在生成前端 SDK..."
+	@python3 backend/scripts/generate_sdk.py
+	@echo "✅ SDK 生成完成!"
 
 clean:
 	@echo "🧹 清理所有环境..."
@@ -309,12 +317,10 @@ check-all:
 	@SWAG="$$(go env GOPATH)/bin/swag"; \
 	if ! [ -x "$$SWAG" ]; then \
 		echo "  ⚠️  swag 未安装，跳过检查 (go install github.com/swaggo/swag/cmd/swag@latest)"; \
-	elif [ ! -f "frontend/admin/node_modules/.bin/openapi-ts" ]; then \
-		echo "  ⚠️  openapi-ts 未安装，跳过检查 (cd frontend/admin && pnpm install)"; \
+	elif [ ! -f "frontend/admin/node_modules/.bin/orval" ]; then \
+		echo "  ⚠️  orval 未安装，跳过检查 (cd frontend/admin && pnpm install)"; \
 	else \
-		(cd backend && "$$SWAG" init -g cmd/server/main.go -o docs >/dev/null 2>&1) && \
-		(cd frontend/admin && node scripts/strip-swagger-prefix.mjs >/dev/null 2>&1) && \
-		(cd frontend/admin && node_modules/.bin/openapi-ts >/dev/null 2>&1); \
+		python3 backend/scripts/generate_sdk.py >/dev/null 2>&1; \
 		if ! git diff --quiet -- backend/docs/ frontend/admin/src/lib/sdk/; then \
 			echo "❌ Swagger/SDK 已过期，请执行 make gen-sdk 后提交以下文件:"; \
 			git diff --stat -- backend/docs/ frontend/admin/src/lib/sdk/; \
@@ -322,6 +328,15 @@ check-all:
 			exit 1; \
 		fi; \
 		echo "  ✓ Swagger/SDK 已同步"; \
+	fi
+	@echo "  - 冒烟测试 (需 dev 全栈运行)"
+	@if curl -sf --max-time 3 http://localhost:3000/health >/dev/null 2>&1; then \
+		python3 scripts/smoke_test.py >/dev/null 2>&1 && echo "  ✓ 冒烟测试通过" || { \
+			echo "❌ 冒烟测试失败，详情请运行 make smoke-test"; \
+			exit 1; \
+		}; \
+	else \
+		echo "  ⚠️  后端未就绪 (localhost:3000)，跳过冒烟测试 (先 make dev-rebuild)"; \
 	fi
 	@echo "✅ 全量检查通过"
 

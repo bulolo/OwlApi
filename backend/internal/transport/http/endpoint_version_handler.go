@@ -157,7 +157,7 @@ func (h *EndpointVersionHandler) HandleList(c *gin.Context) {
 // @Param slug path string true "租户slug"
 // @Param projectId path int true "项目ID"
 // @Param endpointId path int true "端点ID"
-// @Success 200 {object} R
+// @Success 200 {object} REndpointActiveVersionList
 // @Router /v1/tenants/{slug}/projects/{projectId}/endpoints/{endpointId}/actives [get]
 func (h *EndpointVersionHandler) HandleListActives(c *gin.Context) {
 	tenant := GetTenant(c)
@@ -374,24 +374,32 @@ type ScriptSnapshotResp struct {
 	Code string `json:"code" validate:"required"`
 }
 
+// ScriptStepResp is one step in an endpoint's pre/post chain (swagger type).
+type ScriptStepResp struct {
+	Source   string `json:"source"               validate:"required"` // "library" | "inline"
+	ScriptID int64  `json:"script_id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Code     string `json:"code,omitempty"`
+}
+
 type DataSourceRefResp struct {
 	Alias string `json:"alias" validate:"required"`
 }
 
 type EndpointVersionResp struct {
-	ID                 int64               `json:"id"                   validate:"required"`
-	TenantID           int64               `json:"tenant_id"            validate:"required"`
-	EndpointID         int64               `json:"endpoint_id"          validate:"required"`
-	Version            int                 `json:"version"              validate:"required"`
-	Snapshot           *domain.APIEndpoint `json:"snapshot"`
-	SnapshotV          int                 `json:"snapshot_v"           validate:"required"`
-	PreScriptSnapshot  *ScriptSnapshotResp `json:"pre_script_snapshot,omitempty"`
-	PostScriptSnapshot *ScriptSnapshotResp `json:"post_script_snapshot,omitempty"`
-	DataSourceRef      *DataSourceRefResp  `json:"datasource_ref,omitempty"`
-	Note               string              `json:"note"                 validate:"required"`
-	CreatedBy          int64               `json:"created_by"           validate:"required"`
-	CreatedAt          string              `json:"created_at"           validate:"required"`
-	IsActive           bool                `json:"is_active"            validate:"required"`
+	ID                  int64                `json:"id"                   validate:"required"`
+	TenantID            int64                `json:"tenant_id"            validate:"required"`
+	EndpointID          int64                `json:"endpoint_id"          validate:"required"`
+	Version             int                  `json:"version"              validate:"required"`
+	Snapshot            *domain.APIEndpoint  `json:"snapshot"`
+	SnapshotV           int                  `json:"snapshot_v"           validate:"required"`
+	PreScriptSnapshots  []ScriptSnapshotResp `json:"pre_script_snapshots,omitempty"`
+	PostScriptSnapshots []ScriptSnapshotResp `json:"post_script_snapshots,omitempty"`
+	DataSourceRef       *DataSourceRefResp   `json:"datasource_ref,omitempty"`
+	Note                string               `json:"note"                 validate:"required"`
+	CreatedBy           int64                `json:"created_by"           validate:"required"`
+	CreatedAt           string               `json:"created_at"           validate:"required"`
+	IsActive            bool                 `json:"is_active"            validate:"required"`
 }
 
 type EndpointVersionListResp struct {

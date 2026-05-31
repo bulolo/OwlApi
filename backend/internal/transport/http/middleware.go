@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
@@ -11,6 +12,16 @@ import (
 	"github.com/bulolo/owlapi/internal/service"
 	"github.com/gin-gonic/gin"
 )
+
+// demoChecker（仅 EE 注册）判定某租户是否演示模式（基于 tenant_ee_configs.plan）。
+// CE 下保持 nil → DemoGuard 永不拦截。这是 Go 版的「核心委托 EE」——
+// 等价于 CatWiki 核心里 try/import EE 的 get_ee_tenant_is_demo。
+var demoChecker func(ctx context.Context, tenantID int64) bool
+
+// RegisterDemoChecker 由 EE 平台模块在注入时调用，插入 demo 判定逻辑。
+func RegisterDemoChecker(fn func(ctx context.Context, tenantID int64) bool) {
+	demoChecker = fn
+}
 
 // RequestID injects a unique request ID into every request context and response header.
 func RequestID() gin.HandlerFunc {
@@ -82,7 +93,7 @@ func DemoGuard() gin.HandlerFunc {
 			return
 		}
 		tenant := GetTenant(c)
-		if tenant != nil && tenant.Plan == domain.PlanDemo {
+		if tenant != nil && demoChecker != nil && demoChecker(c.Request.Context(), tenant.ID) {
 			Fail(c, http.StatusForbidden, "演示模式，暂不支持此操作")
 			c.Abort()
 			return

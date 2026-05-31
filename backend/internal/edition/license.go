@@ -27,13 +27,13 @@ type LicensePayload struct {
 //   - 生产环境替换为正式的 2048 位 RSA 公钥
 //   - 泄漏只会让攻击者能验证 license（不能签发新 license）
 const owlapiLicensePublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzWhknW1xIP8zibnzfnIN
-gexQfiy2QxcyPcgVTbqO3emb4883yAI/pwXG2hNrdSSQshX9MNfwlx3jHQuGYkH4
-qKpN2sdKAErp/V5a289ikJzaWYHXuAnevR2czhM2m0cKXUQl1cVKiHQRCvJKYXT6
-9EZrnAMT8pusKoXJblVWpqyz4LUpA4858bRT4QCxwwRakGqFpTRzCK4VXOdi3wVf
-0t5pESJbyECthxCkRDpzNVzkfjkVUvyMX1Lvuor4GcNz897KWWxr3CK8MDfSgyfS
-V7EbtDoU9Gs44yB+wPU1ty2RsG4k1FAneaZROzsTSWUYCgHKq1d8lBQ6VIHjehCS
-WQIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz1Tafd9W7ctROD16FySf
+yNUrG3/7ZmQSnTG0ad5em03aHhmfU39HBAhMbJr7veWkA3MsZrOpEmgOg2ZYVgjK
+psq5oWDWOTc9fo5tpqYwRWWdhPOBIijUzWYxNtRRP10tcZrzF3uQjsAUwZ1avOY/
+XAA0LjxoExlvpTtYld8Pz7OaJDTI0FLw3nfjV38QWpW+ita4flJlT1DlDi6SFqp9
+1jUM5o1RkfODp9be8pSFlKivX97EIDNJ9gR+ikTyCdfovQFfhUORzkoiCXBZGGcc
+KCqsM81Ttton8H76S+47+i0hGfNTv7DPcdggj49z0YAmzsK2mGqnpeRcK7JPJCkJ
+cQIDAQAB
 -----END PUBLIC KEY-----`
 
 // parsedPublicKey 在包级一次性解析，避免每次校验都重新 PEM decode。

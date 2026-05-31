@@ -34,6 +34,52 @@ func (h *ScriptHandler) HandleList(c *gin.Context) {
 	OKPaged(c, list, lp, total)
 }
 
+// HandleListBuiltins godoc
+// @Summary 获取平台内置脚本（供「从内置添加」选择）
+// @ID listScriptBuiltins
+// @Tags script
+// @Security BearerAuth
+// @Produce json
+// @Param slug path string true "租户slug"
+// @Param page query int false "页码（默认1）"
+// @Param size query int false "每页数量（默认10）"
+// @Param keyword query string false "关键词搜索"
+// @Success 200 {object} RScriptList
+// @Router /v1/tenants/{slug}/scripts/builtins [get]
+func (h *ScriptHandler) HandleListBuiltins(c *gin.Context) {
+	lp := parseListParams(c)
+	list, total, err := h.scripts.ListPlatform(c.Request.Context(), lp)
+	if err != nil {
+		FailErr(c, err)
+		return
+	}
+	OKPaged(c, list, lp, total)
+}
+
+// HandleCopyFromBuiltin godoc
+// @Summary 从平台内置脚本复制一份到租户脚本库
+// @ID copyScriptFromBuiltin
+// @Tags script
+// @Security BearerAuth
+// @Produce json
+// @Param slug path string true "租户slug"
+// @Param builtinId path int true "平台内置脚本ID"
+// @Success 200 {object} RScript
+// @Router /v1/tenants/{slug}/scripts/builtins/{builtinId}/copy [post]
+func (h *ScriptHandler) HandleCopyFromBuiltin(c *gin.Context) {
+	tenant := GetTenant(c)
+	bid, ok := pathInt64(c, "builtinId")
+	if !ok {
+		return
+	}
+	s, err := h.scripts.CopyFromBuiltin(c.Request.Context(), tenant.ID, bid)
+	if err != nil {
+		FailErr(c, err)
+		return
+	}
+	OK(c, s)
+}
+
 // HandleCreate godoc
 // @Summary 创建脚本
 // @ID createScript

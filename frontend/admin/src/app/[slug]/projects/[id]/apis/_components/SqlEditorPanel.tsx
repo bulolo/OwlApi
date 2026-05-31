@@ -8,8 +8,10 @@ import {
   ChevronDown, ChevronUp,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { SchemaTable } from "../_hooks/useSchemaQuery"
+import type { SchemaTable } from "@/hooks"
 import { SqlResultPreview } from "./SqlResultPreview"
+import { ChainEditor } from "./ChainEditor"
+import type { ScriptStep } from "../_types"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,8 +146,8 @@ function TableContextMenu({
 interface SqlEditorPanelProps {
   sql: string
   datasourceAlias: string
-  preScriptId: number | null | undefined
-  postScriptId: number | null | undefined
+  preScripts: ScriptStep[]
+  postScripts: ScriptStep[]
   aliases: AliasOption[]
   currentEnvName: string
   scripts: Script[]
@@ -154,16 +156,18 @@ interface SqlEditorPanelProps {
   designExecResult: unknown
   onSqlChange: (sql: string) => void
   onDatasourceAliasChange: (alias: string) => void
-  onPreScriptChange: (id: number) => void
-  onPostScriptChange: (id: number) => void
+  onPreScriptsChange: (steps: ScriptStep[]) => void
+  onPostScriptsChange: (steps: ScriptStep[]) => void
   onClearResult: () => void
+  onExtractResponseDefs?: (result: unknown) => void
 }
 
 export function SqlEditorPanel({
-  sql, datasourceAlias, preScriptId, postScriptId,
+  sql, datasourceAlias, preScripts, postScripts,
   aliases, currentEnvName, scripts, tables, schemaLoading,
   designExecResult,
-  onSqlChange, onDatasourceAliasChange, onPreScriptChange, onPostScriptChange, onClearResult,
+  onSqlChange, onDatasourceAliasChange, onPreScriptsChange, onPostScriptsChange, onClearResult,
+  onExtractResponseDefs,
 }: SqlEditorPanelProps) {
   const [tableSearch, setTableSearch] = useState("")
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set())
@@ -201,7 +205,7 @@ export function SqlEditorPanel({
   return (
     <>
       {/* ── Col 1: Table Browser ── */}
-      <div className="w-52 shrink-0 border-r border-border-subtle flex flex-col bg-zinc-50/60">
+      <div className="w-72 shrink-0 border-r border-border-subtle flex flex-col bg-zinc-50/60">
         {/* Datasource alias selector. Alias is project-scoped; what physical
             DB it resolves to depends on the env you're viewing. */}
         <div className="px-3 pt-3 pb-2.5 border-b border-border-subtle">
@@ -274,36 +278,23 @@ export function SqlEditorPanel({
           )}
         </div>
 
-        {/* Script config */}
-        <div className="shrink-0 border-t border-border-subtle px-3 py-3 space-y-2.5 bg-zinc-50/60">
-          <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider block">脚本</span>
-          <div className="flex items-center gap-2">
-            <span className="text-2xs text-muted-foreground w-7 shrink-0 font-medium">前置</span>
-            <Select value={String(preScriptId ?? 0)} onValueChange={v => onPreScriptChange(Number(v))}>
-              <SelectTrigger className="h-7 flex-1 text-xs border-border bg-white rounded-lg shadow-none">
-                <SelectValue placeholder="无" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">无</SelectItem>
-                {scripts.filter(s => s.type === "pre").map(s => (
-                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Script config — 前置 / 后置 有序链（库引用 + 内联） */}
+        <div className="shrink-0 border-t border-border-subtle px-3 py-3 space-y-3 bg-zinc-50/60">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">前置链</span>
+              <span className="text-2xs text-muted-foreground/70">params 依次流过</span>
+            </div>
+            <ChainEditor phase="pre" steps={preScripts} scripts={scripts} onChange={onPreScriptsChange} />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xs text-muted-foreground w-7 shrink-0 font-medium">后置</span>
-            <Select value={String(postScriptId ?? 0)} onValueChange={v => onPostScriptChange(Number(v))}>
-              <SelectTrigger className="h-7 flex-1 text-xs border-border bg-white rounded-lg shadow-none">
-                <SelectValue placeholder="无" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">无</SelectItem>
-                {scripts.filter(s => s.type === "post").map(s => (
-                  <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+              <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">后置链</span>
+              <span className="text-2xs text-muted-foreground/70">data 依次流过，包装放链尾</span>
+            </div>
+            <ChainEditor phase="post" steps={postScripts} scripts={scripts} onChange={onPostScriptsChange} />
           </div>
         </div>
       </div>
@@ -340,6 +331,14 @@ export function SqlEditorPanel({
             <div className="flex items-center justify-between px-4 h-9 bg-zinc-50 border-b border-border-subtle shrink-0">
               <span className="text-2xs font-bold text-muted-foreground uppercase tracking-wider">查询结果</span>
               <div className="flex items-center gap-3">
+                {onExtractResponseDefs && (
+                  <button
+                    onClick={() => onExtractResponseDefs(designExecResult)}
+                    className="text-2xs font-bold text-primary hover:text-primary/80 transition-colors"
+                  >
+                    提取响应字段
+                  </button>
+                )}
                 <button
                   onClick={() => setResultsCollapsed(v => !v)}
                   className="text-muted-foreground hover:text-zinc-600 transition-colors"

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/bulolo/owlapi/internal/domain"
 	"github.com/bulolo/owlapi/internal/pkg/pathutil"
@@ -11,6 +12,7 @@ type APIEndpointService interface {
 	List(ctx context.Context, tenantID, projectID int64, p domain.ListParams) ([]*domain.APIEndpoint, int, error)
 	GetByID(ctx context.Context, tenantID, id int64) (*domain.APIEndpoint, error)
 	GetByPath(ctx context.Context, tenantID int64, path string) (*domain.APIEndpoint, error)
+	ListPublishedInEnv(ctx context.Context, tenantID, projectID, envID int64) ([]*domain.APIEndpoint, error)
 	// MatchByPath resolves a request path+method to an endpoint within a specific (project, env).
 	// Tries exact path+method match first; falls back to pattern matching across endpoints
 	// that are published in that env.
@@ -31,6 +33,10 @@ func NewAPIEndpointService(repo domain.APIEndpointRepository, active domain.Endp
 
 func (s *apiEndpointService) List(ctx context.Context, tenantID, projectID int64, p domain.ListParams) ([]*domain.APIEndpoint, int, error) {
 	return s.repo.List(ctx, tenantID, projectID, p)
+}
+
+func (s *apiEndpointService) ListPublishedInEnv(ctx context.Context, tenantID, projectID, envID int64) ([]*domain.APIEndpoint, error) {
+	return s.repo.ListPublishedInEnv(ctx, tenantID, projectID, envID)
 }
 
 func (s *apiEndpointService) GetByID(ctx context.Context, tenantID, id int64) (*domain.APIEndpoint, error) {
@@ -82,14 +88,7 @@ func (s *apiEndpointService) MatchByPath(ctx context.Context, tenantID, projectI
 		if !pathutil.HasParams(candidate.Path) {
 			continue // static paths already tried via exact match above
 		}
-		methodOk := false
-		for _, m := range candidate.Methods {
-			if m == method {
-				methodOk = true
-				break
-			}
-		}
-		if !methodOk {
+		if !strings.EqualFold(candidate.Method, method) {
 			continue
 		}
 		params, ok := pathutil.Match(candidate.Path, requestPath)

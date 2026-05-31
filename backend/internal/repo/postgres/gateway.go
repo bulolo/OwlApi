@@ -33,7 +33,7 @@ func (r *GatewayRepo) GetByID(ctx context.Context, tenantID, id int64) (*domain.
 		id, tenantID,
 	).Scan(&gw.ID, &tid, &gw.IsPlatform, &gw.Name, &gw.Token, &gw.Status, &gw.IP, &gw.LastSeen, &gw.Version)
 	if err != nil {
-		return nil, err
+		return nil, nfErr(err, "gateway")
 	}
 	if tid != nil {
 		gw.TenantID = *tid
@@ -50,7 +50,7 @@ func (r *GatewayRepo) GetByToken(ctx context.Context, token string) (*domain.Gat
 		token,
 	).Scan(&gw.ID, &tid, &gw.IsPlatform, &gw.Name, &gw.Token, &gw.Status, &gw.IP, &gw.LastSeen, &gw.Version)
 	if err != nil {
-		return nil, err
+		return nil, nfErr(err, "gateway")
 	}
 	if tid != nil {
 		gw.TenantID = *tid

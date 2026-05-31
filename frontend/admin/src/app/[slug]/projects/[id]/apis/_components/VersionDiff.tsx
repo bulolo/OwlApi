@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { diffLines, type Change } from "diff"
 import { cn } from "@/lib/utils"
-import type { EndpointVersion } from "@/lib/api-client"
+import type { EndpointVersionResp as EndpointVersion } from "@/lib/sdk"
 
 /**
  * 单个版本相对于"上一个版本"的变更视图。
@@ -40,11 +40,11 @@ export function VersionDiff({ current, previous }: { current: EndpointVersion; p
 
   const scalarChanges: ScalarDiff[] = [
     { label: "路径",      a: snapA.path,                  b: snapB.path },
-    { label: "方法",      a: (snapA.methods ?? []).join(", "), b: (snapB.methods ?? []).join(", ") },
+    { label: "方法",      a: snapA.method ?? "", b: snapB.method ?? "" },
     { label: "摘要",      a: snapA.summary,               b: snapB.summary },
     { label: "数据源别名", a: refLabel(previous.datasource_ref), b: refLabel(current.datasource_ref) },
-    { label: "前置脚本",  a: scriptLabel(previous.pre_script_snapshot),  b: scriptLabel(current.pre_script_snapshot) },
-    { label: "后置脚本",  a: scriptLabel(previous.post_script_snapshot), b: scriptLabel(current.post_script_snapshot) },
+    { label: "前置脚本",  a: chainLabel(previous.pre_script_snapshots),  b: chainLabel(current.pre_script_snapshots) },
+    { label: "后置脚本",  a: chainLabel(previous.post_script_snapshots), b: chainLabel(current.post_script_snapshots) },
   ].filter(c => (c.a ?? "") !== (c.b ?? ""))
 
   const sqlChanged = sqlChanges.some(c => c.added || c.removed)
@@ -136,8 +136,10 @@ function refLabel(ref?: { alias?: string } | null) {
   return ref?.alias ?? ""
 }
 
-function scriptLabel(snap?: { name?: string } | null) {
-  return snap?.name ?? ""
+// chainLabel renders an ordered script chain as "1. a → 2. b".
+function chainLabel(snaps?: { name?: string }[] | null) {
+  if (!snaps || snaps.length === 0) return ""
+  return snaps.map((s, i) => `${i + 1}. ${s.name ?? ""}`).join("  →  ")
 }
 
 function diffParamDefs(prev: ParamLite[], next: ParamLite[]) {
@@ -172,7 +174,7 @@ function SqlDiff({ changes }: { changes: Change[] }) {
       <pre className="text-xs leading-relaxed font-mono overflow-x-auto">
         {changes.map((chunk, i) => {
           const lines = chunk.value.replace(/\n$/, "").split("\n")
-          return lines.map((line, j) => (
+          return lines.map((line: string, j: number) => (
             <div
               key={`${i}-${j}`}
               className={cn(

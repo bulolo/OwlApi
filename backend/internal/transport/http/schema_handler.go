@@ -165,7 +165,7 @@ func (h *QueryTestHandler) HandleGetSchema(c *gin.Context) {
 // @Param datasourceId path int true "数据源ID"
 // @Param table path string true "表名"
 // @Param limit query int false "行数上限（默认100，最多500）"
-// @Success 200 {object} object
+// @Success 200 {object} RPreviewTable
 // @Router /v1/tenants/{slug}/datasources/{datasourceId}/tables/{table}/preview [get]
 func (h *QueryTestHandler) HandlePreviewTable(c *gin.Context) {
 	tenant := GetTenant(c)

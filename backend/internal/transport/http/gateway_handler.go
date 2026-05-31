@@ -8,8 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var _ = domain.GatewayOffline // keep domain import used
-
 type GatewayHandler struct {
 	gateways service.GatewayAdminService
 	tenants  service.TenantService

@@ -92,7 +92,7 @@ func (r *TenantUserRepo) GetByTenantAndUser(ctx context.Context, tenantID, userI
 		`SELECT tenant_id, user_id, role, joined_at FROM tenant_users WHERE tenant_id=$1 AND user_id=$2`,
 		tenantID, userID).Scan(&tu.TenantID, &tu.UserID, &tu.Role, &tu.JoinedAt)
 	if err != nil {
-		return nil, err
+		return nil, nfErr(err, "tenant user")
 	}
 	return &tu, nil
 }

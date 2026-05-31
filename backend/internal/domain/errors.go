@@ -1,6 +1,9 @@
 package domain
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // Error represents a business error with an HTTP status code.
 type Error struct {
@@ -9,6 +12,14 @@ type Error struct {
 }
 
 func (e *Error) Error() string { return e.Message }
+
+// IsNotFound reports whether err is (or wraps) a 404 domain error. Use this in
+// service control-flow (e.g. "does it already exist?") now that repos translate
+// pgx.ErrNoRows into a domain 404 instead of leaking the raw driver error.
+func IsNotFound(err error) bool {
+	var de *Error
+	return errors.As(err, &de) && de.Code == 404
+}
 
 func ErrNotFound(msg string) *Error     { return &Error{Code: 404, Message: msg} }
 func ErrBadRequest(msg string) *Error   { return &Error{Code: 400, Message: msg} }

@@ -1,5 +1,5 @@
 // @title           OwlApi Control Plane
-// @version         0.2.0
+// @version         0.2.1
 // @description     企业级 SQL to API 智能网关平台管理接口
 // @host            localhost:3000
 // @BasePath        /
@@ -24,11 +24,15 @@ import (
 	"github.com/bulolo/owlapi/internal/edition"
 	"github.com/bulolo/owlapi/internal/pb"
 	"github.com/bulolo/owlapi/internal/pkg/auth"
+	"github.com/bulolo/owlapi/internal/pkg/crypto"
 	"github.com/bulolo/owlapi/internal/pkg/logger"
 	"github.com/bulolo/owlapi/internal/repo/postgres"
 	"github.com/bulolo/owlapi/internal/service"
 	transport_grpc "github.com/bulolo/owlapi/internal/transport/grpc"
 	transport_http "github.com/bulolo/owlapi/internal/transport/http"
+
+	// EE-only modules: 通过 init() 注册路由和迁移。sync_ce.sh 会删除这一段。
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
@@ -47,6 +51,9 @@ func main() {
 	edition.Init(cfg.Edition, cfg.LicenseKey)
 
 	auth.Init(cfg.JWTSecret)
+	// 用 JWT_SECRET 派生数据列加密 KEK（同一 master 保证集群内一致），
+	// 必须放在任何会读/写加密字段的模块初始化前。
+	crypto.Init(cfg.JWTSecret)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -58,12 +65,12 @@ func main() {
 	}
 
 	// Repos
-	platformSettingsRepo := &postgres.PlatformSettingsRepo{DB: db}
 	tenantRepo := &postgres.TenantRepo{DB: db}
 	userRepo := &postgres.UserRepo{DB: db}
 	tenantUserRepo := &postgres.TenantUserRepo{DB: db}
 	gatewayRepo := &postgres.GatewayRepo{DB: db}
 	projectRepo := &postgres.ProjectRepo{DB: db}
+	authKeyRepo := &postgres.ProjectAuthKeyRepo{DB: db}
 	dsRepo := &postgres.DataSourceRepo{DB: db}
 	endpointRepo := &postgres.APIEndpointRepo{DB: db}
 	versionRepo := &postgres.EndpointVersionRepo{DB: db}
@@ -76,17 +83,17 @@ func main() {
 	bindingRepo := &postgres.EndpointDatasourceBindingRepo{DB: db}
 
 	// Services
-	platformSettingsSvc := service.NewPlatformSettingsService(platformSettingsRepo)
 	authSvc := service.NewAuthService(userRepo, tenantRepo, tenantUserRepo)
 	tenantSvc := service.NewTenantService(tenantRepo, tenantUserRepo)
 	tenantUserSvc := service.NewTenantUserService(userRepo, tenantUserRepo)
 	gatewaySvc := service.NewGatewayService(gatewayRepo)
 	dsSvc := service.NewDataSourceService(dsRepo)
 	envSvc := service.NewEnvironmentService(projectEnvRepo, bindingRepo, activeVersionRepo, dsRepo)
-	projectSvc := service.NewProjectService(projectRepo)
+	projectSvc := service.NewProjectService(projectRepo, authKeyRepo)
 	endpointSvc := service.NewAPIEndpointService(endpointRepo, activeVersionRepo)
 	versionSvc := service.NewEndpointVersionService(versionRepo, activeVersionRepo, activationLogRepo, endpointRepo, scriptRepo, dsRepo)
 	callLogSvc := service.NewEndpointCallLogService(callLogRepo)
+	overviewSvc := service.NewOverviewService(activationLogRepo, callLogRepo)
 	groupSvc := service.NewAPIGroupService(groupRepo)
 	scriptSvc := service.NewScriptService(scriptRepo)
 	querySvc := service.NewQueryService(gatewaySvc, envSvc, scriptSvc, cfg.QueryTimeoutSeconds+5)
@@ -112,12 +119,13 @@ func main() {
 	transport_http.RegisterSwagger(r)
 
 	app := &transport_http.App{
+		DB:   db,
 		Auth: authSvc, Tenant: tenantSvc, TenantUser: tenantUserSvc,
 		Gateway: gatewaySvc, GatewayBroker: gatewaySvc,
 		DataSource: dsSvc, Environment: envSvc, Project: projectSvc,
 		Endpoint: endpointSvc, Version: versionSvc, Group: groupSvc, Script: scriptSvc, Query: querySvc, CallLog: callLogSvc,
-		PlatformSettings: platformSettingsSvc,
-		Authz:            authzSvc,
+		Overview: overviewSvc,
+		Authz:    authzSvc,
 	}
 	app.RegisterRoutes(r)
 

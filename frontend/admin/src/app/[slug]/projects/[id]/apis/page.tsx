@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import Apis from "./Apis"
 
 export default async function Page({
@@ -6,5 +7,9 @@ export default async function Page({
   params: Promise<{ id: string }>
 }) {
   await params
-  return <Apis />
+  return (
+    <Suspense>
+      <Apis />
+    </Suspense>
+  )
 }

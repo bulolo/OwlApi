@@ -48,34 +48,48 @@ export function useParamSync() {
   // 从 SQL 提取
   const extractedParams = useMemo(() => extractSQLParams(form.sql), [form.sql])
 
-  // 脚本参数自动补全
+  // 解析一步脚本代码：内联用自身 code，库引用按 id 取 code。
+  const stepCode = (s: { source: string; scriptId?: number; code?: string }) =>
+    s.source === "inline" ? (s.code ?? "") : (scripts.find(x => x.id === s.scriptId)?.code ?? "")
+
+  // 前置脚本链 key——用于精确触发依赖（含内联代码变化）
+  const preChainKey = form.preScripts.map(s => s.source === "inline" ? `i:${s.code}` : `l:${s.scriptId}`).join("|")
+
+  // 脚本参数自动补全（汇总前置链中所有脚本声明的参数）
   useEffect(() => {
-    const preScript = scripts.find(s => s.id === form.preScriptId)
-    if (preScript?.code) {
-      const userParams = extractScriptParams(preScript.code)
-      if (userParams.length > 0) {
-        syncParamDefs(prev => {
-          const existing = new Set(prev.map(d => d.name))
-          const added: ParamDef[] = userParams
-            .filter(p => !existing.has(p))
-            .map(p => ({ name: p, type: "string" as const, required: false, desc: "" }))
-          return added.length > 0 ? [...prev, ...added] : prev
-        })
-        return
-      }
+    const userParams = Array.from(new Set(
+      form.preScripts.flatMap(s => {
+        const code = stepCode(s)
+        return code ? extractScriptParams(code) : []
+      }),
+    ))
+    if (userParams.length > 0) {
+      syncParamDefs(prev => {
+        const existing = new Set(prev.map(d => d.name))
+        const added: ParamDef[] = userParams
+          .filter(p => !existing.has(p))
+          .map(p => ({ name: p, type: "string" as const, required: false, desc: "" }))
+        return added.length > 0 ? [...prev, ...added] : prev
+      })
+      return
     }
     // 新建接口 + SQL 有参数 + 当前无定义 → 自动初始化
     if (isNew && extractedParams.length > 0 && form.paramDefs.length === 0) {
       syncParamDefs(extractedParams.map(p => ({ name: p, type: "string", required: false, desc: "" })))
     }
-  }, [form.preScriptId, scripts, extractedParams, isNew, form.paramDefs.length, syncParamDefs])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preChainKey, scripts, extractedParams, isNew, form.paramDefs.length, syncParamDefs])
 
-  // 脚本参数列表（用于来源标记）
+  // 脚本参数列表（用于来源标记，汇总整条前置链）
   const scriptParamNames = useMemo(() => {
-    const preScript = scripts.find(s => s.id === form.preScriptId)
-    if (!preScript?.code) return new Set<string>()
-    return new Set(extractScriptParams(preScript.code))
-  }, [form.preScriptId, scripts])
+    const names = new Set<string>()
+    for (const s of form.preScripts) {
+      const code = stepCode(s)
+      if (code) extractScriptParams(code).forEach(p => names.add(p))
+    }
+    return names
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preChainKey, scripts])
 
   // 合并视图 (SQL 提取 + 手动定义 + 脚本)
   const derivedParamDefs = useMemo((): DerivedParamDef[] => {

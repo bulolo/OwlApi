@@ -14,6 +14,7 @@ import (
 	"github.com/bulolo/owlapi/internal/repo/postgres"
 	"github.com/bulolo/owlapi/internal/service"
 	"golang.org/x/crypto/bcrypt"
+
 )
 
 func main() {

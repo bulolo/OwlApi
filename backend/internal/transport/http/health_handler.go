@@ -32,9 +32,8 @@ func HandleHealth(c *gin.Context) {
 	OK(c, HealthResp{
 		Status:  "ok",
 		Edition: string(ed.Edition),
-		// is_licensed 不仅要 license 有效，还要求 EE 模块确实编译进来了（注册了路由）。
-		// CE 构建里 eeRouteRegistrars 恒为空 → 即便误配 OWLAPI_EDITION=enterprise + 有效 license，
-		// 也报 false，前端据此永不显示无法工作的 EE UI（避免「假 EE」误配）。
-		IsLicensed: ed.IsLicensed && len(eeRouteRegistrars) > 0,
+		// edition.IsLicensed 已内聚「license 有效 && 可选模块确实编译进来」，是唯一权威信号；
+		// 基础版构建里它恒为 false，前端据此永不显示无法工作的扩展 UI。
+		IsLicensed: ed.IsLicensed,
 	})
 }

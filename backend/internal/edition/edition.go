@@ -30,6 +30,16 @@ type Info struct {
 
 var current Info = Info{Edition: Community, IsLicensed: false}
 
+// modulesLinked 表示本二进制是否编译进了可选扩展模块。由这些模块在其 init() 中
+// 调用 MarkModulesLinked() 置位；基础版构建已物理移除这些模块 → 恒为 false。
+// 它是「代码是否真的存在」的唯一权威信号：即便误配环境变量 + 有效授权码，
+// 缺失模块的构建也不会解锁——授权码无处可用（与 import 失败即降级同理）。
+var modulesLinked bool
+
+// MarkModulesLinked 由可选扩展模块在其 init() 中调用，声明这些模块已链接进本二进制。
+// 基础版构建不含这些模块，故永不会调用。
+func MarkModulesLinked() { modulesLinked = true }
+
 // Init reads the edition + license from config, validates the license if
 // applicable, and stores the result in the package-level singleton.
 // installationID 是本部署的唯一标识（首次启动生成、持久化于 DB）；若 license 绑定了
@@ -46,13 +56,18 @@ func Init(editionStr, licenseKey, installationID string) {
 	current = Info{Edition: ed, IsLicensed: false}
 	if ed == Enterprise {
 		payload, err := verifyLicenseJWS(licenseKey, installationID)
-		if err != nil {
-			slog.Warn("edition: enterprise mode requested but license invalid; EE features will degrade to CE behavior",
+		switch {
+		case err != nil:
+			slog.Warn("edition: enterprise mode requested but license invalid; features will degrade to baseline behavior",
 				"err", err)
-		} else {
+		case !modulesLinked:
+			// license 有效，但本二进制未编译进可选扩展模块（基础版构建已物理移除）。
+			// 此时不解锁——杜绝「仅靠环境变量 + 授权码」绕过构建边界。
+			slog.Warn("edition: license valid but optional modules are not compiled into this binary; running baseline")
+		default:
 			current.IsLicensed = true
 			current.License = payload
-			slog.Info("edition: enterprise license verified",
+			slog.Info("edition: license verified",
 				"customer", payload.Customer,
 				"expires_at", payload.ExpiresAt,
 				"features", payload.Features,
@@ -65,6 +80,7 @@ func Init(editionStr, licenseKey, installationID string) {
 // Current returns the current edition info snapshot.
 func Current() Info { return current }
 
-// IsLicensed reports whether enterprise features are unlocked.
-// Equivalent to: edition=enterprise AND license valid.
+// IsLicensed reports whether licensed features are unlocked.
+// 等价于：edition=enterprise 且 license 有效 且 本二进制确实编译进了可选扩展模块。
+// 缺最后一个条件意味着基础版构建无论怎么配环境变量都不会解锁。
 func IsLicensed() bool { return current.IsLicensed }

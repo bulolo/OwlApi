@@ -9,8 +9,7 @@ const (
 	TenantSuspended TenantStatus = "Suspended"
 )
 
-// 注：订阅档位 plan（含 Demo）属 EE 概念，类型与常量已移至 internal/ee/platform；
-// 核心租户只保留身份字段 + status（基础生命周期）。
+// 核心租户只保留身份字段 + status（基础生命周期）；订阅档位等扩展属性由可选模块单独存储。
 type Tenant struct {
 	ID                 int64        `json:"id"`
 	Name               string       `json:"name"`

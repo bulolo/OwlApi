@@ -31,7 +31,6 @@ import (
 	transport_grpc "github.com/bulolo/owlapi/internal/transport/grpc"
 	transport_http "github.com/bulolo/owlapi/internal/transport/http"
 
-	// EE-only modules: 通过 init() 注册路由和迁移。sync_ce.sh 会删除这一段。
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
